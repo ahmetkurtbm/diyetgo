@@ -66,7 +66,7 @@ export function AppointmentList({ appointments, clientsById }: Props) {
               return (
                 <li key={a.id} className="flex flex-wrap items-center gap-x-4 gap-y-2 px-5 py-3">
                   <div className="w-28 shrink-0 text-sm tabular-nums">
-                    <span className={`font-medium ${cancelled ? 'text-slate-400 line-through' : 'text-slate-900'}`}>
+                    <span className={`font-medium ${cancelled ? 'text-slate-500 line-through' : 'text-slate-900'}`}>
                       {formatTime(a.startsAt)}–{formatTime(a.endsAt)}
                     </span>
                     <span className="block text-xs text-slate-500">{Math.round((Date.parse(a.endsAt) - Date.parse(a.startsAt)) / 60_000)} dk</span>

@@ -39,7 +39,7 @@ function NavGroups({ onNavigate }: { onNavigate?: () => void }) {
     <div className="space-y-5">
       {navigation.map((group, index) => (
         <div key={group.title}>
-          <p id={`${id}-${index}`} className="mb-1 px-3 text-xs font-semibold tracking-wide text-slate-400 uppercase">
+          <p id={`${id}-${index}`} className="mb-1 px-3 text-xs font-semibold tracking-wide text-slate-500 uppercase">
             {group.title}
           </p>
           <ul aria-labelledby={`${id}-${index}`} className="space-y-1">

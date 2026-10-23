@@ -38,7 +38,7 @@ export function Toaster({ children }: { children: ReactNode }) {
               <XCircle aria-hidden className="mt-0.5 size-4 shrink-0 text-red-600" />
             )}
             <p className="flex-1 text-slate-800">{toast.message}</p>
-            <button type="button" aria-label="Bildirimi kapat" onClick={() => dismiss(toast.id)} className="text-slate-400 hover:text-slate-600">
+            <button type="button" aria-label="Bildirimi kapat" onClick={() => dismiss(toast.id)} className="text-slate-500 hover:text-slate-700">
               <X aria-hidden className="size-4" />
             </button>
           </div>

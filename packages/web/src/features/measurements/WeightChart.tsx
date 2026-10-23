@@ -85,12 +85,12 @@ export function WeightChart({ points }: { points: Point[] }) {
           {ticks.map((tick) => (
             <g key={tick} aria-hidden>
               <line x1={PAD.left} x2={width - PAD.right} y1={y(tick)} y2={y(tick)} className="stroke-slate-200" strokeDasharray="4 4" />
-              <text x={PAD.left - 8} y={y(tick)} dy="0.35em" textAnchor="end" className="fill-slate-400 text-[11px]">
+              <text x={PAD.left - 8} y={y(tick)} dy="0.35em" textAnchor="end" className="fill-slate-500 text-[11px]">
                 {formatNumber(tick)}
               </text>
             </g>
           ))}
-          <text x={PAD.left - 8} y={PAD.top - 6} textAnchor="end" className="fill-slate-400 text-[10px]" aria-hidden>
+          <text x={PAD.left - 8} y={PAD.top - 6} textAnchor="end" className="fill-slate-500 text-[10px]" aria-hidden>
             kg
           </text>
           <path d={area} fill={`url(#${gradientId})`} aria-hidden />
@@ -118,10 +118,10 @@ export function WeightChart({ points }: { points: Point[] }) {
               />
             </g>
           ))}
-          <text x={PAD.left} y={HEIGHT - 6} className="fill-slate-400 text-[11px]" aria-hidden>
+          <text x={PAD.left} y={HEIGHT - 6} className="fill-slate-500 text-[11px]" aria-hidden>
             {formatShortDate(first.date)}
           </text>
-          <text x={width - PAD.right} y={HEIGHT - 6} textAnchor="end" className="fill-slate-400 text-[11px]" aria-hidden>
+          <text x={width - PAD.right} y={HEIGHT - 6} textAnchor="end" className="fill-slate-500 text-[11px]" aria-hidden>
             {formatShortDate(last.date)}
           </text>
         </svg>
