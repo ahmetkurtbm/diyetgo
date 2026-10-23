@@ -1,27 +1,9 @@
-import { render, screen, waitFor, within } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
-import { MemoryRouter } from 'react-router'
+import { screen, waitFor, within } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
-import { AppProviders, AppRoutes } from '../../App'
-import { MemoryStorage } from '../../data/demo/memory-storage'
-import { createDemoRepositories } from '../../data/demo/repositories'
-import { openDemoStore } from '../../data/demo/store'
+import { renderApp, fixDate } from '../../test-utils'
 
-const now = () => new Date('2026-03-10T09:00:00.000Z')
-
-function renderSettings(storage = new MemoryStorage()) {
-  const opened = openDemoStore({ storage, now })
-  if (!opened.ok) throw new Error(opened.error.message)
-  const repositories = createDemoRepositories(opened.store, { now })
-  const view = render(
-    <AppProviders repositories={repositories}>
-      <MemoryRouter initialEntries={['/settings']}>
-        <AppRoutes />
-      </MemoryRouter>
-    </AppProviders>,
-  )
-  return { ...view, storage, repositories, user: userEvent.setup() }
-}
+fixDate()
+const renderSettings = (storage?: Storage) => renderApp('/settings', storage)
 
 describe('Ayarlar: demo verilerini sıfırlama', () => {
   it('vazgeçilirse veriler korunur; onaylanırsa örnek verilere döner', async () => {
