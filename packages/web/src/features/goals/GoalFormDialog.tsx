@@ -3,7 +3,7 @@ import { useId, useState, type FormEvent } from 'react'
 import { useRepositories, useRepositoryQuery } from '../../data/context'
 import { Button } from '../../components/ui/Button'
 import { Dialog } from '../../components/ui/Dialog'
-import { SelectField, TextareaField, TextField } from '../../components/ui/form'
+import { FormSection, SelectField, TextareaField, TextField } from '../../components/ui/form'
 import { formatDate, formatNumber, today } from '../../lib/format'
 import { emptyToNull, numberToText as toText, parseNumber } from '../../lib/forms'
 import { goalMethodLabels, sexLabels } from '../../lib/labels'
@@ -29,6 +29,7 @@ export function GoalFormDialog({ open, client, goal, onClose }: Props) {
       open={open}
       onClose={onClose}
       title={goal ? 'Hedefi düzenle' : 'Yeni hedef'}
+      size="lg"
       description={
         goal
           ? 'Hedef dönemleri çakışamaz; başlangıç ve bitiş günleri döneme dahildir.'
@@ -65,7 +66,7 @@ function GoalForm({
 }) {
   const repositories = useRepositories()
   const measurements = useRepositoryQuery((r) => r.measurements.listByClient(client.id), [client.id])
-  const { errors, submit } = useSubmit()
+  const { errors, submit, formRef } = useSubmit()
   const [values, setValues] = useState({
     validFrom: goal?.validFrom ?? today(),
     validTo: goal?.validTo ?? '',
@@ -133,95 +134,97 @@ function GoalForm({
   }
 
   return (
-    <form id={formId} onSubmit={handleSubmit} noValidate className="grid gap-4 sm:grid-cols-2">
-      <TextField label="Başlangıç tarihi" type="date" required value={values.validFrom} error={errors.validFrom} onChange={set('validFrom')} />
-      <TextField label="Bitiş tarihi" type="date" hint="Boş bırakılırsa hedef açık uçludur." value={values.validTo} error={errors.validTo} onChange={set('validTo')} />
+    <form ref={formRef} id={formId} onSubmit={handleSubmit} noValidate className="space-y-5">
+      <FormSection title="Dönem" description="Başlangıç ve bitiş günleri döneme dahildir.">
+        <TextField label="Başlangıç tarihi" type="date" required value={values.validFrom} error={errors.validFrom} onChange={set('validFrom')} />
+        <TextField label="Bitiş tarihi" type="date" hint="Boş bırakılırsa hedef açık uçludur." value={values.validTo} error={errors.validTo} onChange={set('validTo')} />
+      </FormSection>
 
-      <div className="sm:col-span-2">
+      <FormSection title="Enerji hedefi" columns={1}>
         <SelectField label="Yöntem" value={values.method} error={methodError} onChange={set('method')}>
           <option value="manual">{goalMethodLabels.manual} (elle giriş)</option>
           <option value="mifflin_st_jeor">{goalMethodLabels.mifflin_st_jeor} ile hesapla</option>
         </SelectField>
-      </div>
 
-      {calculated && (
-        <div className="space-y-3 rounded-md border border-slate-200 bg-slate-50 p-3 sm:col-span-2">
-          <SelectField label="Etkinlik katsayısı" value={values.activityFactor} error={errors.activityFactor} onChange={set('activityFactor')}>
-            {factors.map(([factor, label]) => (
-              <option key={factor} value={String(factor)}>
-                {formatNumber(factor, 3)} – {label}
-              </option>
-            ))}
-          </SelectField>
-          {estimate === null && <p className="text-sm text-slate-500">Ölçümler yükleniyor…</p>}
-          {estimate?.ok === false && (
-            <div className="text-sm text-amber-900">
-              <p className="font-medium">Hesaplama yapılamıyor:</p>
-              <ul className="mt-1 list-disc pl-5">
-                {estimate.reasons.map((reason) => (
-                  <li key={reason}>{reason}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-          {estimate?.ok && (
-            <div className="space-y-2 text-sm text-slate-700" data-testid="energy-estimate">
-              <p className="text-xs text-slate-500">
-                Kullanılan veriler: {sexLabels[estimate.sex]}, {estimate.ageYears} yaş (başlangıç tarihine göre), {formatNumber(estimate.weight.value)} kg (
-                {formatDate(estimate.weight.measuredOn)}), {formatNumber(estimate.height.value)} cm ({formatDate(estimate.height.measuredOn)})
-              </p>
-              <p>
-                Bazal metabolizma (BMR): <strong className="tabular-nums">{formatNumber(estimate.bmrKcal, 0)} kcal/gün</strong>
-              </p>
-              <p>
-                Tahmini günlük enerji (BMR × {formatNumber(Number(values.activityFactor), 3)}):{' '}
-                <strong className="tabular-nums">{formatNumber(estimate.energyKcal, 0)} kcal/gün</strong>
-              </p>
-              <Button size="sm" onClick={() => setValues({ ...values, energyKcal: toText(Math.round(estimate.energyKcal)) })}>
-                Enerji hedefine aktar
-              </Button>
-              <p className="text-xs text-slate-500">
-                BMR = 10 × kilo + 6,25 × boy − 5 × yaş {estimate.sex === 'male' ? '+ 5' : '− 161'}. Yalnızca {MIN_ADULT_AGE} yaş ve üzeri yetişkinler için kullanılır. Hedefi
-                aktardıktan sonra danışana göre değiştirebilirsiniz.
-              </p>
-            </div>
-          )}
-        </div>
-      )}
+        {calculated && (
+          <div className="space-y-3 rounded-md border border-slate-200 bg-slate-50 p-3">
+            <SelectField label="Etkinlik katsayısı" value={values.activityFactor} error={errors.activityFactor} onChange={set('activityFactor')}>
+              {factors.map(([factor, label]) => (
+                <option key={factor} value={String(factor)}>
+                  {formatNumber(factor, 3)} – {label}
+                </option>
+              ))}
+            </SelectField>
+            {estimate === null && <p className="text-sm text-slate-500">Ölçümler yükleniyor…</p>}
+            {estimate?.ok === false && (
+              <div className="text-sm text-amber-900">
+                <p className="font-medium">Hesaplama yapılamıyor:</p>
+                <ul className="mt-1 list-disc pl-5">
+                  {estimate.reasons.map((reason) => (
+                    <li key={reason}>{reason}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {estimate?.ok && (
+              <div className="space-y-2 text-sm text-slate-700" data-testid="energy-estimate">
+                <p className="text-xs text-slate-500">
+                  Kullanılan veriler: {sexLabels[estimate.sex]}, {estimate.ageYears} yaş (başlangıç tarihine göre), {formatNumber(estimate.weight.value)} kg (
+                  {formatDate(estimate.weight.measuredOn)}), {formatNumber(estimate.height.value)} cm ({formatDate(estimate.height.measuredOn)})
+                </p>
+                <p>
+                  Bazal metabolizma (BMR): <strong className="tabular-nums">{formatNumber(estimate.bmrKcal, 0)} kcal/gün</strong>
+                </p>
+                <p>
+                  Tahmini günlük enerji (BMR × {formatNumber(Number(values.activityFactor), 3)}):{' '}
+                  <strong className="tabular-nums">{formatNumber(estimate.energyKcal, 0)} kcal/gün</strong>
+                </p>
+                <Button size="sm" onClick={() => setValues({ ...values, energyKcal: toText(Math.round(estimate.energyKcal)) })}>
+                  Enerji hedefine aktar
+                </Button>
+                <p className="text-xs text-slate-500">
+                  BMR = 10 × kilo + 6,25 × boy − 5 × yaş {estimate.sex === 'male' ? '+ 5' : '− 161'}. Yalnızca {MIN_ADULT_AGE} yaş ve üzeri yetişkinler için kullanılır. Hedefi
+                  aktardıktan sonra danışana göre değiştirebilirsiniz.
+                </p>
+              </div>
+            )}
+          </div>
+        )}
 
-      <div className="sm:col-span-2">
         <TextField label="Enerji hedefi (kcal/gün)" required inputMode="decimal" autoComplete="off" value={values.energyKcal} error={errors.energyKcal} onChange={set('energyKcal')} />
-      </div>
+      </FormSection>
 
-      <fieldset className="space-y-3 rounded-md border border-slate-200 p-3 sm:col-span-2">
-        <legend className="px-1 text-sm font-medium text-slate-700">Yüzdeye göre dağıt (isteğe bağlı)</legend>
-        <div className="grid grid-cols-3 gap-3">
-          <TextField label="Protein %" inputMode="decimal" value={shares.proteinPct} onChange={(e) => setShares({ ...shares, proteinPct: e.target.value })} />
-          <TextField label="Karbonhidrat %" inputMode="decimal" value={shares.carbsPct} onChange={(e) => setShares({ ...shares, carbsPct: e.target.value })} />
-          <TextField label="Yağ %" inputMode="decimal" value={shares.fatPct} onChange={(e) => setShares({ ...shares, fatPct: e.target.value })} />
+      <FormSection title="Makro hedefleri" columns={1}>
+        <fieldset className="space-y-3 rounded-md border border-slate-200 p-3">
+          <legend className="px-1 text-sm font-medium text-slate-700">Yüzdeye göre dağıt (isteğe bağlı)</legend>
+          <div className="grid grid-cols-3 gap-3">
+            <TextField label="Protein %" inputMode="decimal" value={shares.proteinPct} onChange={(e) => setShares({ ...shares, proteinPct: e.target.value })} />
+            <TextField label="Karbonhidrat %" inputMode="decimal" value={shares.carbsPct} onChange={(e) => setShares({ ...shares, carbsPct: e.target.value })} />
+            <TextField label="Yağ %" inputMode="decimal" value={shares.fatPct} onChange={(e) => setShares({ ...shares, fatPct: e.target.value })} />
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <Button size="sm" onClick={applyShares}>
+              Gramları hesapla
+            </Button>
+            {sharesError && <p className="text-xs text-red-600">{sharesError}</p>}
+          </div>
+          <p className="text-xs text-slate-500">Protein ve karbonhidrat 4, yağ 9 kcal/g kabul edilir.</p>
+        </fieldset>
+
+        <div className="grid gap-3 sm:grid-cols-3">
+          <TextField label="Protein (g)" required inputMode="decimal" autoComplete="off" value={values.proteinG} error={errors.proteinG} onChange={set('proteinG')} />
+          <TextField label="Karbonhidrat (g)" required inputMode="decimal" autoComplete="off" value={values.carbsG} error={errors.carbsG} onChange={set('carbsG')} />
+          <TextField label="Yağ (g)" required inputMode="decimal" autoComplete="off" value={values.fatG} error={errors.fatG} onChange={set('fatG')} />
         </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <Button size="sm" onClick={applyShares}>
-            Gramları hesapla
-          </Button>
-          {sharesError && <p className="text-xs text-red-600">{sharesError}</p>}
-        </div>
-        <p className="text-xs text-slate-500">Protein ve karbonhidrat 4, yağ 9 kcal/g kabul edilir.</p>
-      </fieldset>
+        {macroEnergy !== null && macroEnergy > 0 && (
+          <p className="text-xs text-slate-600 tabular-nums" data-testid="macro-energy">
+            Makrolardan hesaplanan enerji: {formatNumber(macroEnergy, 0)} kcal · P %{formatNumber((4 * macros.proteinG * 100) / macroEnergy, 0)} · K %
+            {formatNumber((4 * macros.carbsG * 100) / macroEnergy, 0)} · Y %{formatNumber((9 * macros.fatG * 100) / macroEnergy, 0)}
+          </p>
+        )}
+      </FormSection>
 
-      <div className="grid grid-cols-3 gap-3 sm:col-span-2">
-        <TextField label="Protein (g)" required inputMode="decimal" autoComplete="off" value={values.proteinG} error={errors.proteinG} onChange={set('proteinG')} />
-        <TextField label="Karbonhidrat (g)" required inputMode="decimal" autoComplete="off" value={values.carbsG} error={errors.carbsG} onChange={set('carbsG')} />
-        <TextField label="Yağ (g)" required inputMode="decimal" autoComplete="off" value={values.fatG} error={errors.fatG} onChange={set('fatG')} />
-      </div>
-      {macroEnergy !== null && macroEnergy > 0 && (
-        <p className="text-xs text-slate-600 tabular-nums sm:col-span-2" data-testid="macro-energy">
-          Makrolardan hesaplanan enerji: {formatNumber(macroEnergy, 0)} kcal · P %{formatNumber((4 * macros.proteinG * 100) / macroEnergy, 0)} · K %
-          {formatNumber((4 * macros.carbsG * 100) / macroEnergy, 0)} · Y %{formatNumber((9 * macros.fatG * 100) / macroEnergy, 0)}
-        </p>
-      )}
-
-      <div className="sm:col-span-2">
+      <div className="border-t border-slate-200 pt-5">
         <TextareaField label="Notlar" value={values.notes} error={errors.notes} onChange={set('notes')} />
       </div>
     </form>

@@ -2,9 +2,11 @@ import { X } from 'lucide-react'
 import { useEffect, useId, useRef, type ReactNode } from 'react'
 import { Button } from './Button'
 
+const sizes = { sm: 'max-w-sm', md: 'max-w-lg', lg: 'max-w-2xl' } as const
+
 /**
  * Tarayıcının yerleşik `<dialog>` öğesi: odak yakalama, Esc ile kapatma ve arka planı
- * etkisizleştirme tarayıcı tarafından sağlanır.
+ * etkisizleştirme tarayıcı tarafından sağlanır. Gövde kaydırılır; başlık ve alt düğmeler hep görünür.
  */
 export function Dialog({
   open,
@@ -13,6 +15,7 @@ export function Dialog({
   description,
   children,
   footer,
+  size = 'md',
 }: {
   open: boolean
   onClose: () => void
@@ -20,6 +23,7 @@ export function Dialog({
   description?: ReactNode
   children?: ReactNode
   footer?: ReactNode
+  size?: keyof typeof sizes
 }) {
   const ref = useRef<HTMLDialogElement>(null)
   const titleId = useId()
@@ -39,10 +43,10 @@ export function Dialog({
         event.preventDefault()
         onClose()
       }}
-      className="m-auto w-[calc(100%-2rem)] max-w-lg rounded-lg bg-white p-0 shadow-xl backdrop:bg-slate-900/40"
+      className={`m-auto w-[calc(100%-2rem)] ${sizes[size]} rounded-lg bg-white p-0 shadow-xl backdrop:bg-slate-900/40`}
     >
       {open && (
-        <div className="flex max-h-[85vh] flex-col">
+        <div className="flex max-h-[85dvh] flex-col">
           <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-4">
             <div>
               <h2 id={titleId} className="text-base font-semibold text-slate-900">
@@ -87,6 +91,7 @@ export function ConfirmDialog({
       onClose={onCancel}
       title={title}
       description={description}
+      size="sm"
       footer={
         <>
           <Button onClick={onCancel} disabled={busy}>

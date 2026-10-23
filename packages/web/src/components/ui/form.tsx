@@ -53,6 +53,19 @@ export function SelectField({ label, error, hint, className = '', children, ...p
   )
 }
 
+/** Uzun formlarda başlıklı bölüm; `fieldset`/`legend` ekran okuyuculara grubun adını verir. */
+export function FormSection({ title, description, columns = 2, children }: { title: string; description?: string; columns?: 1 | 2; children: ReactNode }) {
+  return (
+    <div className="border-t border-slate-200 pt-5 first:border-t-0 first:pt-0">
+      <fieldset>
+        <legend className="text-sm font-semibold text-slate-900">{title}</legend>
+        {description && <p className="mt-0.5 text-xs text-slate-500">{description}</p>}
+        <div className={`mt-3 grid gap-4 ${columns === 2 ? 'sm:grid-cols-2' : ''}`}>{children}</div>
+      </fieldset>
+    </div>
+  )
+}
+
 export function TextareaField({ label, error, hint, className = '', ...props }: FieldProps & TextareaHTMLAttributes<HTMLTextAreaElement>) {
   const id = useId()
   return (

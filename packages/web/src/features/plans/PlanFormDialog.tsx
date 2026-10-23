@@ -3,7 +3,7 @@ import { useId, useState, type FormEvent } from 'react'
 import { useRepositories } from '../../data/context'
 import { Button } from '../../components/ui/Button'
 import { Dialog } from '../../components/ui/Dialog'
-import { SelectField, TextareaField, TextField } from '../../components/ui/form'
+import { FormSection, SelectField, TextareaField, TextField } from '../../components/ui/form'
 import { today } from '../../lib/format'
 import { emptyToNull } from '../../lib/forms'
 import { fullName } from '../../lib/labels'
@@ -82,7 +82,7 @@ function PlanForm({
 }) {
   const repositories = useRepositories()
   const clients = useSelectableClients(plan?.clientId)
-  const { errors, submit } = useSubmit()
+  const { errors, submit, formRef } = useSubmit()
   const [values, setValues] = useState({
     clientId: plan?.clientId ?? clientId ?? '',
     title: plan?.title ?? '',
@@ -107,18 +107,18 @@ function PlanForm({
   }
 
   return (
-    <form id={formId} onSubmit={handleSubmit} noValidate className="grid gap-4 sm:grid-cols-2">
-      <div className="sm:col-span-2">
+    <form ref={formRef} id={formId} onSubmit={handleSubmit} noValidate className="space-y-5">
+      <FormSection title="Danışan ve plan" columns={1}>
         <SelectField label="Danışan" required value={values.clientId} error={clientError ?? (values.clientId ? errors.clientId : undefined)} onChange={set('clientId')}>
           <ClientOptions clients={clients} />
         </SelectField>
-      </div>
-      <div className="sm:col-span-2">
         <TextField label="Plan adı" required autoComplete="off" value={values.title} error={errors.title} onChange={set('title')} />
-      </div>
-      <TextField label="Başlangıç tarihi" type="date" required value={values.startDate} error={errors.startDate} onChange={set('startDate')} />
-      <TextField label="Bitiş tarihi" type="date" hint="Boş bırakılırsa plan açık uçludur." value={values.endDate} error={errors.endDate} onChange={set('endDate')} />
-      <div className="sm:col-span-2">
+      </FormSection>
+      <FormSection title="Plan süresi" description="Bitiş günü plana dahildir.">
+        <TextField label="Başlangıç tarihi" type="date" required value={values.startDate} error={errors.startDate} onChange={set('startDate')} />
+        <TextField label="Bitiş tarihi" type="date" hint="Boş bırakılırsa plan açık uçludur." value={values.endDate} error={errors.endDate} onChange={set('endDate')} />
+      </FormSection>
+      <div className="border-t border-slate-200 pt-5">
         <TextareaField label="Notlar" value={values.notes} error={errors.notes} onChange={set('notes')} />
       </div>
     </form>
