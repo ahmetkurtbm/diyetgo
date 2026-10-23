@@ -9,7 +9,9 @@ import type { SortState } from './use-sort'
  */
 export function Table({ children, label, layout = 'scroll' }: { children: ReactNode; label: string; layout?: 'scroll' | 'stacked' }) {
   return (
-    <div className="overflow-x-auto" tabIndex={layout === 'scroll' ? 0 : undefined}>
+    // `relative`: hücrelerdeki mutlak konumlu öğeler (ör. `sr-only` başlıklar) kaydırma alanında kırpılır;
+    // aksi hâlde sayfaya göre konumlanıp tüm sayfayı genişletirler.
+    <div className="relative overflow-x-auto" tabIndex={layout === 'scroll' ? 0 : undefined}>
       <table aria-label={label} className={`min-w-full divide-y divide-slate-200 text-sm ${layout === 'stacked' ? 'table-stacked' : ''}`}>
         {children}
       </table>

@@ -114,7 +114,8 @@ export function ClientDetailPage() {
             <Detail label="Notlar">{client.notes ? <span className="font-normal whitespace-pre-line">{client.notes}</span> : '—'}</Detail>
           </dl>
         </Card>
-        <div className="space-y-6 lg:col-span-2">
+        {/* min-w-0: ızgara öğesi geniş tabloların içerik genişliğine uzamaz; tablolar kendi alanında kaydırılır. */}
+        <div className="min-w-0 space-y-6 lg:col-span-2">
           <MeasurementsCard clientId={client.id} />
           <ClientGoalsCard client={client} />
           <ClientPlansCard client={client} />
