@@ -12,6 +12,7 @@ import { errorMessage } from '../../lib/errors'
 import { formatDate } from '../../lib/format'
 import { ageLabel, fullName, sexLabels } from '../../lib/labels'
 import { ClientAppointmentsCard } from '../appointments/ClientAppointmentsCard'
+import { ClientGoalsCard } from '../goals/ClientGoalsCard'
 import { MeasurementsCard } from '../measurements/MeasurementsCard'
 import { ClientPlansCard } from '../plans/ClientPlansCard'
 import { ClientFormDialog } from './ClientFormDialog'
@@ -115,6 +116,7 @@ export function ClientDetailPage() {
         </Card>
         <div className="space-y-6 lg:col-span-2">
           <MeasurementsCard clientId={client.id} />
+          <ClientGoalsCard client={client} />
           <ClientPlansCard client={client} />
           <ClientAppointmentsCard client={client} />
         </div>

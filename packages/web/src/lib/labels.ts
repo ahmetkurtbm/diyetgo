@@ -1,4 +1,4 @@
-import { ageOn, type AppointmentStatus, type Client, type MealPlan, type Sex } from '@diyetgo/shared'
+import { ageOn, isGoalActiveOn, type AppointmentStatus, type Client, type ClientGoal, type MealPlan, type Sex } from '@diyetgo/shared'
 import { today } from './format'
 
 /** Bugüne göre yaş; doğum tarihi yoksa veya gelecekteyse `—`. */
@@ -46,6 +46,23 @@ export const planStatusTones = {
   active: 'brand',
   finished: 'neutral',
 } as const satisfies Record<PlanStatus, string>
+
+export const goalMethodLabels: Record<ClientGoal['method'], string> = {
+  manual: 'Elle girildi',
+  mifflin_st_jeor: 'Mifflin-St Jeor',
+}
+
+export type GoalStatus = 'active' | 'upcoming' | 'past'
+
+/** Hedefin verilen güne göre durumu; dönem `validFrom` ve `validTo` dahil kapalı aralıktır. */
+export function goalStatus(goal: Pick<ClientGoal, 'validFrom' | 'validTo'>, date: string): GoalStatus {
+  if (isGoalActiveOn(goal, date)) return 'active'
+  return date < goal.validFrom ? 'upcoming' : 'past'
+}
+
+export const goalStatusLabels: Record<GoalStatus, string> = { active: 'Aktif', upcoming: 'Başlamadı', past: 'Sona erdi' }
+
+export const goalStatusTones = { active: 'brand', upcoming: 'info', past: 'neutral' } as const satisfies Record<GoalStatus, string>
 
 export function fullName(client: Pick<Client, 'firstName' | 'lastName'>): string {
   return `${client.firstName} ${client.lastName}`

@@ -4,19 +4,19 @@ import { errorMessage, fieldErrorsOf } from './errors'
 
 /**
  * Form gönderimi: alan hataları formda, diğer hatalar ve başarı mesajı bildirim olarak gösterilir.
- * `submit` işlem başarılıysa `true` döner.
+ * `submit` işlem başarılıysa `true` döner. Başarı mesajı işlemin sonucuna göre de üretilebilir.
  */
 export function useSubmit() {
   const toast = useToast()
   const [busy, setBusy] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
 
-  async function submit(action: () => Promise<unknown>, successMessage: string): Promise<boolean> {
+  async function submit<T>(action: () => Promise<T>, successMessage: string | ((result: T) => string)): Promise<boolean> {
     setBusy(true)
     setErrors({})
     try {
-      await action()
-      toast.success(successMessage)
+      const result = await action()
+      toast.success(typeof successMessage === 'function' ? successMessage(result) : successMessage)
       return true
     } catch (error) {
       const fieldErrors = fieldErrorsOf(error)
