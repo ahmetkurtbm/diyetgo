@@ -14,7 +14,7 @@ describe('Danışan detayı', () => {
     expect(screen.getByText('deniz.ornek@example.com')).toBeDefined()
     expect(await screen.findByRole('table', { name: 'Ölçüm geçmişi' })).toBeDefined()
     expect(measurementRows()).toHaveLength(3)
-    const chart = screen.getByRole('img', { name: /Kilo değişimi/ })
+    const chart = screen.getByRole('group', { name: /Kilo değişimi/ })
     expect(chart.getAttribute('aria-label')).toContain('78,4 kg')
     expect(chart.getAttribute('aria-label')).toContain('75,8 kg')
     expect(chart.getAttribute('aria-label')).toContain('-2,6 kg')
