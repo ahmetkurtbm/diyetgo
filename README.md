@@ -110,4 +110,4 @@ Bileşenler veriye yalnızca `packages/web/src/data/repositories.ts` içindeki r
 Tamamlanmayan işler:
 
 - **Yerel PostgreSQL modu (`VITE_DATA_MODE=api`):** Express API, Drizzle ORM ve migration'lar, Docker Compose ile PostgreSQL 18 ve ayrı test veritabanı planlanmıştır; henüz uygulanmadı. Bu nedenle şu an Docker, veritabanı, migration veya seed komutu yoktur.
-- **Vercel dağıtımı:** Yapılandırma henüz eklenmedi. Planlanan dağıtım yalnızca `@diyetgo/web` paketini `VITE_DATA_MODE=demo` ile derler ve backend veya veritabanı gerektirmez.
+- **Vercel dağıtımı:** Yapılandırma kökteki `vercel.json` dosyasındadır; henüz yayına alınmadı. Vercel depo kökünden `npm install` çalıştırır, yalnızca `@diyetgo/web` paketini `VITE_DATA_MODE=demo` ile derler ve `packages/web/dist` dizinini yayınlar. Tüm adresler `index.html`'e yönlendirilir; böylece `/clients` gibi sayfalar yenilendiğinde de açılır. Demo backend veya veritabanı gerektirmez ve Vercel'de ortam değişkeni ya da gizli bilgi tanımlanması gerekmez.
