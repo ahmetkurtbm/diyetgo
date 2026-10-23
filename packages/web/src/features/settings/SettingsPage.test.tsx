@@ -56,7 +56,7 @@ describe('Ayarlar: öğün türleri', () => {
 describe('Uygulama kabuğu', () => {
   it('demo uyarısını ve menüyü gösterir', async () => {
     renderSettings()
-    expect(await screen.findByText(/Demo modu: veriler yalnızca bu tarayıcıda tutulur/)).toBeDefined()
+    expect(await screen.findByText(/Veriler yalnızca bu tarayıcıda tutulur/)).toBeDefined()
     expect(screen.getAllByRole('link', { name: 'Danışanlar' }).length).toBeGreaterThan(0)
   })
 })
