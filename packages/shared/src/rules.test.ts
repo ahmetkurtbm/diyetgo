@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import {
   appointmentsOverlap,
+  canAddFoodToMeal,
+  canAddPlanOrAppointment,
   findActiveGoal,
   findAppointmentConflicts,
   goalPeriodsOverlap,
@@ -12,6 +14,18 @@ import {
 } from './rules'
 
 const period = (validFrom: string, validTo: string | null) => ({ validFrom, validTo })
+
+describe('arşiv kuralları', () => {
+  it('arşivlenmiş danışana yeni plan veya randevu eklenemez', () => {
+    expect(canAddPlanOrAppointment({ archivedAt: null })).toBe(true)
+    expect(canAddPlanOrAppointment({ archivedAt: '2026-03-01T09:00:00.000Z' })).toBe(false)
+  })
+
+  it('arşivlenmiş besin yeni öğün içeriğine eklenemez', () => {
+    expect(canAddFoodToMeal({ archivedAt: null })).toBe(true)
+    expect(canAddFoodToMeal({ archivedAt: '2026-03-01T09:00:00.000Z' })).toBe(false)
+  })
+})
 
 describe('hedef dönemleri: başlangıç ve bitiş günleri dahildir', () => {
   it('bitişik dönemler (31 Mart biter, 1 Nisan başlar) çakışmaz', () => {

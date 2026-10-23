@@ -19,6 +19,28 @@ const ok = (schema: { safeParse: (v: unknown) => { success: boolean } }, value: 
 const fail = (schema: { safeParse: (v: unknown) => { success: boolean } }, value: unknown) =>
   expect(schema.safeParse(value).success).toBe(false)
 
+describe('Türkçe doğrulama mesajları', () => {
+  const message = (schema: { safeParse: (v: unknown) => { error?: { issues: { message: string }[] } } }, value: unknown) =>
+    schema.safeParse(value).error?.issues[0]?.message
+
+  it('yaygın hatalar için kullanıcıya uygun mesaj üretir', () => {
+    const client = { firstName: '  ', lastName: 'X', birthDate: null, sex: null, email: null, phone: null, notes: null }
+    expect(message(clientInputSchema, client)).toBe('Bu alan zorunludur')
+    expect(message(clientInputSchema, { ...client, firstName: 'A', email: 'x' })).toBe('Geçerli bir e-posta adresi girin')
+    expect(message(clientInputSchema, { ...client, firstName: 'A', birthDate: '2026-02-30' })).toBe('Geçerli bir tarih girin')
+    expect(message(clientInputSchema, { ...client, firstName: 'A', sex: 'x' })).toBe('Geçerli bir seçenek seçin')
+    expect(message(clientInputSchema, { lastName: 'X' })).toBe('Bu alan zorunludur')
+  })
+
+  it('sayısal sınırları Türkçe sayı biçimiyle yazar', () => {
+    const item = { planMealId: ID, foodId: ID2, quantity: 0, sortOrder: 0, notes: null }
+    expect(message(planMealItemInputSchema, item)).toBe('0 değerinden büyük olmalı')
+    expect(message(planMealItemInputSchema, { ...item, quantity: Number.NaN })).toBe('Geçerli bir sayı girin')
+    expect(message(planMealItemInputSchema, { ...item, quantity: 1, sortOrder: 1.5 })).toBe('Tam sayı olmalı')
+    expect(message(planMealItemInputSchema, { ...item, quantity: 10_001 })).toBe('En fazla 10.000 olabilir')
+  })
+})
+
 describe('client', () => {
   const client = {
     firstName: 'Test',

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest'
-import { addDays, daysBetween, istanbulDateOf, istanbulDayRangeUtc, istanbulTimeToUtc, TIME_ZONE } from './dates'
+import { addDays, daysBetween, istanbulDateOf, istanbulDayRangeUtc, istanbulTimeOf, istanbulTimeToUtc, TIME_ZONE } from './dates'
 
 describe('addDays / daysBetween', () => {
   it('ay, yıl ve artık yıl geçişlerini doğru yapar', () => {
@@ -38,6 +38,22 @@ describe('Europe/Istanbul dönüşümleri', () => {
     expect(istanbulDateOf('2026-03-10T21:30:00.000Z')).toBe('2026-03-11') // 00:30
     expect(istanbulDateOf('2026-12-31T21:00:00.000Z')).toBe('2027-01-01')
     expect(istanbulDateOf(new Date('2028-02-28T21:00:00.000Z'))).toBe('2028-02-29')
+  })
+
+  it('bir anın İstanbul saatini HH:MM olarak verir', () => {
+    expect(istanbulTimeOf('2026-03-10T21:30:00.000Z')).toBe('00:30')
+    expect(istanbulTimeOf('2026-03-10T20:59:59.999Z')).toBe('23:59')
+    expect(istanbulTimeOf(new Date('2026-03-10T07:05:00.000Z'))).toBe('10:05')
+    expect(istanbulTimeOf('2015-01-15T08:00:00.000Z')).toBe('10:00') // 2016 öncesi UTC+2
+    expect(() => istanbulTimeOf('saat')).toThrow(RangeError)
+  })
+
+  it('istanbulTimeOf ve istanbulTimeToUtc gidiş-dönüş tutarlıdır', () => {
+    for (const [date, h, m] of [['2026-03-11', 0, 0], ['2026-03-11', 23, 59], ['2028-02-29', 12, 30]] as const) {
+      const utc = istanbulTimeToUtc(date, h, m)
+      expect(istanbulDateOf(utc)).toBe(date)
+      expect(istanbulTimeOf(utc)).toBe(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`)
+    }
   })
 
   it('İstanbul saatini UTC zamana çevirir', () => {
@@ -97,6 +113,7 @@ describe('makinenin saat diliminden bağımsızlık', () => {
     expect(istanbulDateOf('2026-03-10T20:59:59.999Z')).toBe('2026-03-10')
     expect(istanbulDateOf('2026-03-10T21:00:00.000Z')).toBe('2026-03-11')
     expect(istanbulTimeToUtc('2026-03-11', 0, 30)).toBe('2026-03-10T21:30:00.000Z')
+    expect(istanbulTimeOf('2026-03-10T21:30:00.000Z')).toBe('00:30')
     expect(istanbulDayRangeUtc('2026-12-31')).toEqual({ start: '2026-12-30T21:00:00.000Z', end: '2026-12-31T21:00:00.000Z' })
     expect(addDays('2026-03-28', 2)).toBe('2026-03-30')
   })

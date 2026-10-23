@@ -11,6 +11,7 @@
  */
 import { z } from 'zod'
 import { ACTIVITY_FACTOR_MAX, ACTIVITY_FACTOR_MIN } from './energy'
+import './zod-tr'
 
 /**
  * Teknik doğrulama üst sınırları. Yalnızca yazım hatalarını (ör. 75 yerine 750 kg) yakalamak içindir;

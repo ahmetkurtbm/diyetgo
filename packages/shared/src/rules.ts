@@ -3,7 +3,21 @@
  * Fonksiyonlar saftır; "bugün" gibi değerler çağıran taraftan verilir.
  */
 import { addDays, daysBetween } from './dates'
-import type { Appointment, ClientGoal, MealPlan } from './schemas'
+import type { Appointment, Client, ClientGoal, Food, MealPlan } from './schemas'
+
+// ---------- Arşivleme ----------
+//
+// Arşivleme mevcut kayıtları etkilemez; yalnızca yeni bağlantıları engeller (CLAUDE.md §4.4).
+
+/** Arşivlenmiş danışana yeni plan veya randevu eklenemez. */
+export function canAddPlanOrAppointment(client: Pick<Client, 'archivedAt'>): boolean {
+  return client.archivedAt === null
+}
+
+/** Arşivlenmiş besin yeni öğün içeriğine eklenemez; mevcut içeriklerde görünmeye devam eder. */
+export function canAddFoodToMeal(food: Pick<Food, 'archivedAt'>): boolean {
+  return food.archivedAt === null
+}
 
 // ---------- Hedef dönemleri ----------
 //

@@ -69,6 +69,13 @@ export function istanbulDateOf(instant: string | Date): string {
   return utcMsToDate(istanbulWallClockMs(ms))
 }
 
+/** Bir anın İstanbul'daki saati, `HH:MM`. Örn. `2026-03-10T21:30:00Z` → `00:30`. */
+export function istanbulTimeOf(instant: string | Date): string {
+  const ms = typeof instant === 'string' ? instantToMs(instant) : instant.getTime()
+  if (Number.isNaN(ms)) throw new RangeError('Geçersiz zaman')
+  return new Date(istanbulWallClockMs(ms)).toISOString().slice(11, 16)
+}
+
 /** İstanbul'da verilen gün ve saatin UTC karşılığı (ISO 8601, `Z`). */
 export function istanbulTimeToUtc(date: string, hour: number, minute: number): string {
   if (!Number.isInteger(hour) || hour < 0 || hour > 23 || !Number.isInteger(minute) || minute < 0 || minute > 59) {
