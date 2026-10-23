@@ -1,3 +1,4 @@
+import { ageOn } from '@diyetgo/shared'
 import { ChevronRight, Plus, Search, Users } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router'
@@ -5,9 +6,18 @@ import { useRepositoryQuery } from '../../data/context'
 import { Button } from '../../components/ui/Button'
 import { Badge, EmptyState, ErrorState, LoadingState } from '../../components/ui/feedback'
 import { Card, PageHeader } from '../../components/ui/layout'
-import { Table, Td, Th } from '../../components/ui/table'
+import { SortableTh, SortSelect, Table, Td, Th } from '../../components/ui/table'
+import { useSort } from '../../components/ui/use-sort'
+import { today } from '../../lib/format'
 import { ageLabel, fullName } from '../../lib/labels'
 import { ClientFormDialog } from './ClientFormDialog'
+
+const sortOptions = [
+  { key: 'name', label: 'Ad soyad' },
+  { key: 'age', label: 'Yaş' },
+  { key: 'email', label: 'E-posta' },
+  { key: 'status', label: 'Durum' },
+] as const
 
 export function ClientsPage() {
   const navigate = useNavigate()
@@ -17,6 +27,13 @@ export function ClientsPage() {
   const query = useRepositoryQuery((r) => r.clients.list({ search, includeArchived }), [search, includeArchived])
   const clients = query.data ?? []
   const filtered = search.trim() !== '' || includeArchived
+  const date = today()
+  const sorting = useSort(clients, {
+    name: { kind: 'text', value: fullName },
+    age: { kind: 'number', value: (c) => (c.birthDate && c.birthDate <= date ? ageOn(c.birthDate, date) : null) },
+    email: { kind: 'text', value: (c) => c.email },
+    status: { kind: 'text', value: (c) => (c.archivedAt ? 'Arşivde' : 'Aktif') },
+  })
 
   return (
     <>
@@ -67,37 +84,43 @@ export function ClientsPage() {
             />
           ))}
         {clients.length > 0 && (
-          <Table label="Danışan listesi">
-            <thead>
-              <tr>
-                <Th>Ad soyad</Th>
-                <Th className="hidden sm:table-cell">Yaş</Th>
-                <Th className="hidden md:table-cell">E-posta</Th>
-                <Th>Durum</Th>
-                <Th>
-                  <span className="sr-only">Detay</span>
-                </Th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {clients.map((client) => (
-                <tr key={client.id} className="cursor-pointer hover:bg-slate-50" onClick={() => navigate(`/clients/${client.id}`)}>
-                  <Td>
-                    <Link to={`/clients/${client.id}`} className="font-medium text-slate-900 hover:text-brand-700" onClick={(e) => e.stopPropagation()}>
-                      {fullName(client)}
-                    </Link>
-                    <span className="block text-xs text-slate-500 sm:hidden">{ageLabel(client)}</span>
-                  </Td>
-                  <Td className="hidden sm:table-cell">{ageLabel(client)}</Td>
-                  <Td className="hidden md:table-cell">{client.email ?? '—'}</Td>
-                  <Td>{client.archivedAt ? <Badge>Arşivde</Badge> : <Badge tone="brand">Aktif</Badge>}</Td>
-                  <Td className="w-8 text-slate-400">
-                    <ChevronRight aria-hidden className="size-4" />
-                  </Td>
+          <>
+            <SortSelect options={sortOptions} sort={sorting.sort} onChange={sorting.setSort} />
+            <Table label="Danışan listesi" layout="stacked">
+              <thead>
+                <tr>
+                  <SortableTh label="Ad soyad" column="name" sort={sorting.sort} onSort={sorting.toggle} />
+                  <SortableTh label="Yaş" column="age" sort={sorting.sort} onSort={sorting.toggle} />
+                  <SortableTh label="E-posta" column="email" sort={sorting.sort} onSort={sorting.toggle} />
+                  <SortableTh label="Durum" column="status" sort={sorting.sort} onSort={sorting.toggle} />
+                  <Th>
+                    <span className="sr-only">Detay</span>
+                  </Th>
                 </tr>
-              ))}
-            </tbody>
-          </Table>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {sorting.rows.map((client) => (
+                  <tr key={client.id} className="cursor-pointer hover:bg-slate-50" onClick={() => navigate(`/clients/${client.id}`)}>
+                    <Td>
+                      <Link to={`/clients/${client.id}`} className="font-medium text-slate-900 hover:text-brand-700" onClick={(e) => e.stopPropagation()}>
+                        {fullName(client)}
+                      </Link>
+                    </Td>
+                    <Td label="Yaş" className="whitespace-nowrap">
+                      {ageLabel(client)}
+                    </Td>
+                    <Td label="E-posta" className="break-all">
+                      {client.email ?? '—'}
+                    </Td>
+                    <Td label="Durum">{client.archivedAt ? <Badge>Arşivde</Badge> : <Badge tone="brand">Aktif</Badge>}</Td>
+                    <Td className="w-8 text-slate-400 max-sm:hidden">
+                      <ChevronRight aria-hidden className="size-4" />
+                    </Td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+          </>
         )}
       </Card>
       <ClientFormDialog open={creating} onClose={() => setCreating(false)} onSaved={(client) => navigate(`/clients/${client.id}`)} />

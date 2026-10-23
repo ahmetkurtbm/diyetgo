@@ -6,14 +6,24 @@ import { Button } from '../../components/ui/Button'
 import { ConfirmDialog } from '../../components/ui/Dialog'
 import { EmptyState, ErrorState, LoadingState } from '../../components/ui/feedback'
 import { Card, CardHeader } from '../../components/ui/layout'
-import { Table, Td, Th } from '../../components/ui/table'
+import { SortableTh, Table, Td, Th } from '../../components/ui/table'
 import { useToast } from '../../components/ui/toast-context'
+import { useSort, type SortColumns } from '../../components/ui/use-sort'
 import { errorMessage } from '../../lib/errors'
 import { formatDate, formatNumber } from '../../lib/format'
 import { MeasurementFormDialog } from './MeasurementFormDialog'
 import { WeightChart } from './WeightChart'
 
 const value = (v: number | null, unit: string) => (v === null ? '—' : `${formatNumber(v)} ${unit}`)
+
+const sortColumns: SortColumns<Measurement, 'date' | 'weight' | 'height' | 'waist' | 'hip' | 'fat'> = {
+  date: { kind: 'date', value: (m) => m.measuredOn },
+  weight: { kind: 'number', value: (m) => m.weightKg },
+  height: { kind: 'number', value: (m) => m.heightCm },
+  waist: { kind: 'number', value: (m) => m.waistCm },
+  hip: { kind: 'number', value: (m) => m.hipCm },
+  fat: { kind: 'number', value: (m) => m.bodyFatPct },
+}
 
 export function MeasurementsCard({ clientId }: { clientId: string }) {
   const repositories = useRepositories()
@@ -23,6 +33,7 @@ export function MeasurementsCard({ clientId }: { clientId: string }) {
   const [deleting, setDeleting] = useState<Measurement | null>(null)
 
   const measurements = query.data ?? []
+  const sorting = useSort(measurements, sortColumns)
   const weights = measurements.flatMap((m) => (m.weightKg === null ? [] : [{ date: m.measuredOn, value: m.weightKg }]))
 
   async function remove(measurement: Measurement) {
@@ -67,29 +78,29 @@ export function MeasurementsCard({ clientId }: { clientId: string }) {
           <Table label="Ölçüm geçmişi">
             <thead>
               <tr>
-                <Th>Tarih</Th>
-                <Th className="text-right">Kilo</Th>
-                <Th className="hidden text-right sm:table-cell">Boy</Th>
-                <Th className="hidden text-right md:table-cell">Bel</Th>
-                <Th className="hidden text-right md:table-cell">Kalça</Th>
-                <Th className="hidden text-right lg:table-cell">Yağ oranı</Th>
+                <SortableTh label="Tarih" column="date" sort={sorting.sort} onSort={sorting.toggle} />
+                <SortableTh label="Kilo" column="weight" align="right" sort={sorting.sort} onSort={sorting.toggle} />
+                <SortableTh label="Boy" column="height" align="right" sort={sorting.sort} onSort={sorting.toggle} />
+                <SortableTh label="Bel" column="waist" align="right" sort={sorting.sort} onSort={sorting.toggle} />
+                <SortableTh label="Kalça" column="hip" align="right" sort={sorting.sort} onSort={sorting.toggle} />
+                <SortableTh label="Yağ oranı" column="fat" align="right" sort={sorting.sort} onSort={sorting.toggle} />
                 <Th>
                   <span className="sr-only">İşlemler</span>
                 </Th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {measurements.map((m) => (
+              {sorting.rows.map((m) => (
                 <tr key={m.id}>
                   <Td className="whitespace-nowrap">
                     <span className="font-medium text-slate-900">{formatDate(m.measuredOn)}</span>
                     {m.notes && <span className="block max-w-56 truncate text-xs text-slate-500">{m.notes}</span>}
                   </Td>
-                  <Td className="text-right tabular-nums">{value(m.weightKg, 'kg')}</Td>
-                  <Td className="hidden text-right tabular-nums sm:table-cell">{value(m.heightCm, 'cm')}</Td>
-                  <Td className="hidden text-right tabular-nums md:table-cell">{value(m.waistCm, 'cm')}</Td>
-                  <Td className="hidden text-right tabular-nums md:table-cell">{value(m.hipCm, 'cm')}</Td>
-                  <Td className="hidden text-right tabular-nums lg:table-cell">{m.bodyFatPct === null ? '—' : `%${formatNumber(m.bodyFatPct)}`}</Td>
+                  <Td className="text-right whitespace-nowrap tabular-nums">{value(m.weightKg, 'kg')}</Td>
+                  <Td className="text-right whitespace-nowrap tabular-nums">{value(m.heightCm, 'cm')}</Td>
+                  <Td className="text-right whitespace-nowrap tabular-nums">{value(m.waistCm, 'cm')}</Td>
+                  <Td className="text-right whitespace-nowrap tabular-nums">{value(m.hipCm, 'cm')}</Td>
+                  <Td className="text-right whitespace-nowrap tabular-nums">{m.bodyFatPct === null ? '—' : `%${formatNumber(m.bodyFatPct)}`}</Td>
                   <Td className="text-right whitespace-nowrap">
                     <Button variant="ghost" size="sm" aria-label={`${formatDate(m.measuredOn)} ölçümünü düzenle`} onClick={() => setEditing(m)}>
                       <Pencil aria-hidden className="size-4" />

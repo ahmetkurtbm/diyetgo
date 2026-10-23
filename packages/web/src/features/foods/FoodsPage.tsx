@@ -6,13 +6,30 @@ import { Button } from '../../components/ui/Button'
 import { ConfirmDialog, Dialog } from '../../components/ui/Dialog'
 import { Badge, EmptyState, ErrorState, LoadingState } from '../../components/ui/feedback'
 import { Card, PageHeader } from '../../components/ui/layout'
-import { Table, Td, Th } from '../../components/ui/table'
+import { SortableTh, SortSelect, Table, Td, Th } from '../../components/ui/table'
 import { useToast } from '../../components/ui/toast-context'
+import { useSort, type SortColumns } from '../../components/ui/use-sort'
 import { errorMessage } from '../../lib/errors'
 import { formatNumber } from '../../lib/format'
 import { FoodFormDialog } from './FoodFormDialog'
 
 const grams = (value: number) => `${formatNumber(value)} g`
+
+const sortColumns: SortColumns<Food, 'name' | 'energy' | 'protein' | 'carbs' | 'fat'> = {
+  name: { kind: 'text', value: (f) => f.name },
+  energy: { kind: 'number', value: (f) => f.energyKcal },
+  protein: { kind: 'number', value: (f) => f.proteinG },
+  carbs: { kind: 'number', value: (f) => f.carbsG },
+  fat: { kind: 'number', value: (f) => f.fatG },
+}
+
+const sortOptions = [
+  { key: 'name', label: 'Besin' },
+  { key: 'energy', label: 'Enerji' },
+  { key: 'protein', label: 'Protein' },
+  { key: 'carbs', label: 'Karbonhidrat' },
+  { key: 'fat', label: 'Yağ' },
+] as const
 
 export function FoodsPage() {
   const repositories = useRepositories()
@@ -24,6 +41,7 @@ export function FoodsPage() {
   const query = useRepositoryQuery((r) => r.foods.list({ search, includeArchived }), [search, includeArchived])
   const foods = query.data ?? []
   const filtered = search.trim() !== '' || includeArchived
+  const sorting = useSort(foods, sortColumns)
 
   async function run(action: () => Promise<unknown>, success: string) {
     try {
@@ -95,68 +113,75 @@ export function FoodsPage() {
             />
           ))}
         {foods.length > 0 && (
-          <Table label="Besin listesi">
-            <thead>
-              <tr>
-                <Th>Besin</Th>
-                <Th className="hidden text-right sm:table-cell">Enerji</Th>
-                <Th className="hidden text-right md:table-cell">Protein</Th>
-                <Th className="hidden text-right md:table-cell">Karbonhidrat</Th>
-                <Th className="hidden text-right md:table-cell">Yağ</Th>
-                <Th className="hidden lg:table-cell">Porsiyon</Th>
-                <Th>
-                  <span className="sr-only">İşlemler</span>
-                </Th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {foods.map((food) => (
-                <tr key={food.id}>
-                  <Td>
-                    <span className="font-medium text-slate-900">{food.name}</span>
-                    <span className="block text-xs text-slate-500">
-                      {food.brand ? `${food.brand} · ` : ''}100 {food.baseUnit} başına
-                    </span>
-                    <span className="mt-0.5 block text-xs text-slate-600 tabular-nums md:hidden">
-                      <span className="sm:hidden">{formatNumber(food.energyKcal, 0)} kcal · </span>P {formatNumber(food.proteinG)} · K {formatNumber(food.carbsG)} · Y{' '}
-                      {formatNumber(food.fatG)} g
-                    </span>
-                    {(food.isSample || food.archivedAt) && (
-                      <span className="mt-1 flex flex-wrap gap-1">
-                        {food.isSample && <Badge tone="warning">Örnek veri – doğrulanmamış</Badge>}
-                        {food.archivedAt && <Badge>Arşivde</Badge>}
-                      </span>
-                    )}
-                  </Td>
-                  <Td className="hidden text-right whitespace-nowrap tabular-nums sm:table-cell">{formatNumber(food.energyKcal, 0)} kcal</Td>
-                  <Td className="hidden text-right tabular-nums md:table-cell">{grams(food.proteinG)}</Td>
-                  <Td className="hidden text-right tabular-nums md:table-cell">{grams(food.carbsG)}</Td>
-                  <Td className="hidden text-right tabular-nums md:table-cell">{grams(food.fatG)}</Td>
-                  <Td className="hidden lg:table-cell">
-                    {food.portionLabel && food.portionAmount !== null ? `${food.portionLabel} (${formatNumber(food.portionAmount)} ${food.baseUnit})` : '—'}
-                  </Td>
-                  <Td className="text-right whitespace-nowrap">
-                    <Button variant="ghost" size="sm" aria-label={`${food.name} düzenle`} onClick={() => setEditing(food)}>
-                      <Pencil aria-hidden className="size-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      aria-label={food.archivedAt ? `${food.name} arşivden çıkar` : `${food.name} arşivle`}
-                      onClick={() =>
-                        run(() => repositories.foods.setArchived(food.id, food.archivedAt === null), food.archivedAt ? 'Besin arşivden çıkarıldı.' : 'Besin arşivlendi.')
-                      }
-                    >
-                      {food.archivedAt ? <ArchiveRestore aria-hidden className="size-4" /> : <Archive aria-hidden className="size-4" />}
-                    </Button>
-                    <Button variant="ghost" size="sm" aria-label={`${food.name} sil`} onClick={() => void startDelete(food)}>
-                      <Trash2 aria-hidden className="size-4" />
-                    </Button>
-                  </Td>
+          <>
+            <SortSelect options={sortOptions} sort={sorting.sort} onChange={sorting.setSort} />
+            <Table label="Besin listesi" layout="stacked">
+              <thead>
+                <tr>
+                  <SortableTh label="Besin" column="name" sort={sorting.sort} onSort={sorting.toggle} />
+                  <SortableTh label="Enerji" column="energy" align="right" sort={sorting.sort} onSort={sorting.toggle} />
+                  <SortableTh label="Protein" column="protein" align="right" sort={sorting.sort} onSort={sorting.toggle} />
+                  <SortableTh label="Karbonhidrat" column="carbs" align="right" sort={sorting.sort} onSort={sorting.toggle} />
+                  <SortableTh label="Yağ" column="fat" align="right" sort={sorting.sort} onSort={sorting.toggle} />
+                  <Th>Porsiyon</Th>
+                  <Th>
+                    <span className="sr-only">İşlemler</span>
+                  </Th>
                 </tr>
-              ))}
-            </tbody>
-          </Table>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {sorting.rows.map((food) => (
+                  <tr key={food.id}>
+                    <Td>
+                      <span className="font-medium text-slate-900">{food.name}</span>
+                      <span className="block text-xs text-slate-500">
+                        {food.brand ? `${food.brand} · ` : ''}100 {food.baseUnit} başına
+                      </span>
+                      {(food.isSample || food.archivedAt) && (
+                        <span className="mt-1 flex flex-wrap gap-1">
+                          {food.isSample && <Badge tone="warning">Örnek veri – doğrulanmamış</Badge>}
+                          {food.archivedAt && <Badge>Arşivde</Badge>}
+                        </span>
+                      )}
+                    </Td>
+                    <Td label="Enerji" className="text-right whitespace-nowrap tabular-nums">
+                      {formatNumber(food.energyKcal, 0)} kcal
+                    </Td>
+                    <Td label="Protein" className="text-right whitespace-nowrap tabular-nums">
+                      {grams(food.proteinG)}
+                    </Td>
+                    <Td label="Karbonhidrat" className="text-right whitespace-nowrap tabular-nums">
+                      {grams(food.carbsG)}
+                    </Td>
+                    <Td label="Yağ" className="text-right whitespace-nowrap tabular-nums">
+                      {grams(food.fatG)}
+                    </Td>
+                    <Td label="Porsiyon">
+                      {food.portionLabel && food.portionAmount !== null ? `${food.portionLabel} (${formatNumber(food.portionAmount)} ${food.baseUnit})` : '—'}
+                    </Td>
+                    <Td className="text-right whitespace-nowrap max-sm:justify-end">
+                      <Button variant="ghost" size="sm" aria-label={`${food.name} düzenle`} onClick={() => setEditing(food)}>
+                        <Pencil aria-hidden className="size-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        aria-label={food.archivedAt ? `${food.name} arşivden çıkar` : `${food.name} arşivle`}
+                        onClick={() =>
+                          run(() => repositories.foods.setArchived(food.id, food.archivedAt === null), food.archivedAt ? 'Besin arşivden çıkarıldı.' : 'Besin arşivlendi.')
+                        }
+                      >
+                        {food.archivedAt ? <ArchiveRestore aria-hidden className="size-4" /> : <Archive aria-hidden className="size-4" />}
+                      </Button>
+                      <Button variant="ghost" size="sm" aria-label={`${food.name} sil`} onClick={() => void startDelete(food)}>
+                        <Trash2 aria-hidden className="size-4" />
+                      </Button>
+                    </Td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+          </>
         )}
       </Card>
 

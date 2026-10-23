@@ -6,8 +6,9 @@ import { Button } from '../../components/ui/Button'
 import { ConfirmDialog } from '../../components/ui/Dialog'
 import { Badge, EmptyState, ErrorState, LoadingState } from '../../components/ui/feedback'
 import { Card, CardHeader } from '../../components/ui/layout'
-import { Table, Td, Th } from '../../components/ui/table'
+import { SortableTh, Table, Td, Th } from '../../components/ui/table'
 import { useToast } from '../../components/ui/toast-context'
+import { useSort, type SortColumns } from '../../components/ui/use-sort'
 import { errorMessage } from '../../lib/errors'
 import { formatDate, formatNumber, today } from '../../lib/format'
 import { goalMethodLabels, goalStatus, goalStatusLabels, goalStatusTones } from '../../lib/labels'
@@ -16,6 +17,11 @@ import { GoalFormDialog } from './GoalFormDialog'
 const period = (g: ClientGoal) => `${formatDate(g.validFrom)} – ${g.validTo ? formatDate(g.validTo) : 'açık uçlu'}`
 const methodLabel = (g: ClientGoal) =>
   g.method === 'mifflin_st_jeor' && g.activityFactor !== null ? `${goalMethodLabels[g.method]} (etkinlik ${formatNumber(g.activityFactor, 3)})` : goalMethodLabels[g.method]
+
+const sortColumns: SortColumns<ClientGoal, 'period' | 'energy'> = {
+  period: { kind: 'date', value: (g) => g.validFrom },
+  energy: { kind: 'number', value: (g) => g.energyKcal },
+}
 
 function ActiveGoal({ goal }: { goal: ClientGoal }) {
   const macroEnergy = energyFromMacros(goal)
@@ -65,6 +71,7 @@ export function ClientGoalsCard({ client }: { client: Client }) {
   const goals = query.data ?? []
   const date = today()
   const active = findActiveGoal(goals, date)
+  const sorting = useSort(goals, sortColumns)
 
   async function remove(goal: ClientGoal) {
     setDeleting(null)
@@ -99,10 +106,10 @@ export function ClientGoalsCard({ client }: { client: Client }) {
           <Table label="Hedef geçmişi">
             <thead>
               <tr>
-                <Th>Dönem</Th>
-                <Th className="text-right">Enerji</Th>
-                <Th className="hidden text-right sm:table-cell">P / K / Y (g)</Th>
-                <Th className="hidden md:table-cell">Yöntem</Th>
+                <SortableTh label="Dönem" column="period" sort={sorting.sort} onSort={sorting.toggle} />
+                <SortableTh label="Enerji" column="energy" align="right" sort={sorting.sort} onSort={sorting.toggle} />
+                <Th className="text-right">P / K / Y (g)</Th>
+                <Th>Yöntem</Th>
                 <Th>Durum</Th>
                 <Th>
                   <span className="sr-only">İşlemler</span>
@@ -110,7 +117,7 @@ export function ClientGoalsCard({ client }: { client: Client }) {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {goals.map((g) => {
+              {sorting.rows.map((g) => {
                 const status = goalStatus(g, date)
                 return (
                   <tr key={g.id}>
@@ -118,11 +125,11 @@ export function ClientGoalsCard({ client }: { client: Client }) {
                       <span className="font-medium text-slate-900">{period(g)}</span>
                       {g.notes && <span className="block max-w-56 truncate text-xs text-slate-500">{g.notes}</span>}
                     </Td>
-                    <Td className="text-right tabular-nums">{formatNumber(g.energyKcal, 0)} kcal</Td>
-                    <Td className="hidden text-right tabular-nums sm:table-cell">
+                    <Td className="text-right whitespace-nowrap tabular-nums">{formatNumber(g.energyKcal, 0)} kcal</Td>
+                    <Td className="text-right whitespace-nowrap tabular-nums">
                       {formatNumber(g.proteinG)} / {formatNumber(g.carbsG)} / {formatNumber(g.fatG)}
                     </Td>
-                    <Td className="hidden md:table-cell">{methodLabel(g)}</Td>
+                    <Td className="whitespace-nowrap">{methodLabel(g)}</Td>
                     <Td>
                       <Badge tone={goalStatusTones[status]}>{goalStatusLabels[status]}</Badge>
                     </Td>

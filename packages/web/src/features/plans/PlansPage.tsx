@@ -7,10 +7,21 @@ import { Button } from '../../components/ui/Button'
 import { Badge, EmptyState, ErrorState, LoadingState } from '../../components/ui/feedback'
 import { SelectField } from '../../components/ui/form'
 import { Card, PageHeader } from '../../components/ui/layout'
-import { Table, Td, Th } from '../../components/ui/table'
+import { SortableTh, SortSelect, Table, Td, Th } from '../../components/ui/table'
+import { useSort } from '../../components/ui/use-sort'
 import { formatDate, today } from '../../lib/format'
-import { fullName, planStatus, planStatusLabels, planStatusTones } from '../../lib/labels'
+import { fullName, planStatus, planStatusLabels, planStatusTones, type PlanStatus } from '../../lib/labels'
 import { PlanFormDialog } from './PlanFormDialog'
+
+/** Durum sıralaması: önce devam edenler, sonra başlamamış, tamamlanmış ve arşivdekiler. */
+const statusRank: Record<PlanStatus, number> = { active: 0, upcoming: 1, finished: 2, archived: 3 }
+
+const sortOptions = [
+  { key: 'title', label: 'Plan' },
+  { key: 'client', label: 'Danışan' },
+  { key: 'start', label: 'Başlangıç' },
+  { key: 'status', label: 'Durum' },
+] as const
 
 export function PlansPage() {
   const navigate = useNavigate()
@@ -27,6 +38,16 @@ export function PlansPage() {
   const plans = query.data?.plans ?? []
   const clientsById = new Map((query.data?.clients ?? []).map((c) => [c.id, c]))
   const date = today()
+  const clientName = (clientId: string) => {
+    const client = clientsById.get(clientId)
+    return client ? fullName(client) : null
+  }
+  const sorting = useSort(plans, {
+    title: { kind: 'text', value: (p) => p.title },
+    client: { kind: 'text', value: (p) => clientName(p.clientId) },
+    start: { kind: 'date', value: (p) => p.startDate },
+    status: { kind: 'number', value: (p) => statusRank[planStatus(p, date)] },
+  })
 
   return (
     <>
@@ -73,47 +94,50 @@ export function PlansPage() {
           />
         )}
         {plans.length > 0 && (
-          <Table label="Plan listesi">
-            <thead>
-              <tr>
-                <Th>Plan</Th>
-                <Th className="hidden sm:table-cell">Danışan</Th>
-                <Th className="hidden md:table-cell">Tarihler</Th>
-                <Th>Durum</Th>
-                <Th>
-                  <span className="sr-only">Detay</span>
-                </Th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {plans.map((plan) => {
-                const client = clientsById.get(plan.clientId)
-                const length = planLengthDays(plan)
-                const status = planStatus(plan, date)
-                return (
-                  <tr key={plan.id} className="cursor-pointer hover:bg-slate-50" onClick={() => navigate(`/plans/${plan.id}`)}>
-                    <Td>
-                      <Link to={`/plans/${plan.id}`} className="font-medium text-slate-900 hover:text-brand-700" onClick={(e) => e.stopPropagation()}>
-                        {plan.title}
-                      </Link>
-                      <span className="block text-xs text-slate-500 sm:hidden">{client ? fullName(client) : '—'}</span>
-                    </Td>
-                    <Td className="hidden sm:table-cell">{client ? fullName(client) : '—'}</Td>
-                    <Td className="hidden md:table-cell">
-                      {formatDate(plan.startDate)} – {plan.endDate ? formatDate(plan.endDate) : 'açık uçlu'}
-                      {length !== null && <span className="block text-xs text-slate-500">{length} gün</span>}
-                    </Td>
-                    <Td>
-                      <Badge tone={planStatusTones[status]}>{planStatusLabels[status]}</Badge>
-                    </Td>
-                    <Td className="w-8 text-slate-400">
-                      <ChevronRight aria-hidden className="size-4" />
-                    </Td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </Table>
+          <>
+            <SortSelect options={sortOptions} sort={sorting.sort} onChange={sorting.setSort} />
+            <Table label="Plan listesi" layout="stacked">
+              <thead>
+                <tr>
+                  <SortableTh label="Plan" column="title" sort={sorting.sort} onSort={sorting.toggle} />
+                  <SortableTh label="Danışan" column="client" sort={sorting.sort} onSort={sorting.toggle} />
+                  <SortableTh label="Tarihler" column="start" sort={sorting.sort} onSort={sorting.toggle} />
+                  <SortableTh label="Durum" column="status" sort={sorting.sort} onSort={sorting.toggle} />
+                  <Th>
+                    <span className="sr-only">Detay</span>
+                  </Th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {sorting.rows.map((plan) => {
+                  const length = planLengthDays(plan)
+                  const status = planStatus(plan, date)
+                  return (
+                    <tr key={plan.id} className="cursor-pointer hover:bg-slate-50" onClick={() => navigate(`/plans/${plan.id}`)}>
+                      <Td>
+                        <Link to={`/plans/${plan.id}`} className="font-medium text-slate-900 hover:text-brand-700" onClick={(e) => e.stopPropagation()}>
+                          {plan.title}
+                        </Link>
+                      </Td>
+                      <Td label="Danışan">{clientName(plan.clientId) ?? '—'}</Td>
+                      <Td label="Tarihler">
+                        <span>
+                          {formatDate(plan.startDate)} – {plan.endDate ? formatDate(plan.endDate) : 'açık uçlu'}
+                          {length !== null && <span className="block text-xs text-slate-500">{length} gün</span>}
+                        </span>
+                      </Td>
+                      <Td label="Durum">
+                        <Badge tone={planStatusTones[status]}>{planStatusLabels[status]}</Badge>
+                      </Td>
+                      <Td className="w-8 text-slate-400 max-sm:hidden">
+                        <ChevronRight aria-hidden className="size-4" />
+                      </Td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </Table>
+          </>
         )}
       </Card>
       <PlanFormDialog open={creating} clientId={clientId || undefined} onClose={() => setCreating(false)} onSaved={(plan) => navigate(`/plans/${plan.id}`)} />

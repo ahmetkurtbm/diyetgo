@@ -12,6 +12,46 @@
   --color-brand-800: var(--color-emerald-800);
 }
 
+/*
+ * Dar ekranda (< 640 px) tablo satırları karta dönüşür: başlık satırı gizlenir, her hücre
+ * `data-label` etiketiyle "etiket — değer" satırı olarak gösterilir. Etiketsiz hücreler
+ * (ör. ad, işlemler) tam genişlikte kalır.
+ */
+@layer components {
+  @media (width < 40rem) {
+    .table-stacked,
+    .table-stacked tbody,
+    .table-stacked tr {
+      display: block;
+    }
+    .table-stacked thead {
+      display: none;
+    }
+    .table-stacked tr {
+      padding: 0.75rem 1rem;
+    }
+    .table-stacked td {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 0.25rem 0;
+      text-align: right;
+    }
+    .table-stacked td:not([data-label]) {
+      justify-content: flex-start;
+      text-align: left;
+    }
+    .table-stacked td[data-label]::before {
+      content: attr(data-label);
+      flex-shrink: 0;
+      color: var(--color-slate-500);
+      font-size: var(--text-xs);
+      text-align: left;
+    }
+  }
+}
+
 @layer base {
   html {
     color-scheme: light;
