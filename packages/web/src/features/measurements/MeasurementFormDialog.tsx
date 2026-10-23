@@ -5,7 +5,7 @@ import { Button } from '../../components/ui/Button'
 import { Dialog } from '../../components/ui/Dialog'
 import { TextareaField, TextField } from '../../components/ui/form'
 import { today } from '../../lib/format'
-import { emptyToNull, parseOptionalNumber } from '../../lib/forms'
+import { emptyToNull, numberToText as toText, parseOptionalNumber } from '../../lib/forms'
 import { useSubmit } from '../../lib/use-submit'
 
 type Props = { open: boolean; clientId: string; measurement?: Measurement; onClose: () => void }
@@ -19,8 +19,6 @@ const numberFields = [
 ] as const
 
 type NumberField = (typeof numberFields)[number][0]
-
-const toText = (value: number | null) => (value === null ? '' : String(value).replace('.', ','))
 
 export function MeasurementFormDialog({ open, clientId, measurement, onClose }: Props) {
   const formId = useId()

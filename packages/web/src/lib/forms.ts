@@ -9,6 +9,11 @@ export function parseOptionalNumber(value: string): number | null {
   return value.trim() === '' ? null : parseNumber(value)
 }
 
+/** Sayıyı form alanında gösterilecek metne çevirir (ondalık virgül); `null` boş metin olur. */
+export function numberToText(value: number | null | undefined): string {
+  return value === null || value === undefined ? '' : String(value).replace('.', ',')
+}
+
 /** İsteğe bağlı metin: boş veya yalnızca boşluk ise `null`. */
 export function emptyToNull(value: string): string | null {
   return value.trim() === '' ? null : value

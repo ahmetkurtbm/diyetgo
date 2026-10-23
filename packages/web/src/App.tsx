@@ -7,6 +7,7 @@ import type { Repositories } from './data/repositories'
 import { ClientDetailPage } from './features/clients/ClientDetailPage'
 import { ClientsPage } from './features/clients/ClientsPage'
 import { DashboardPage } from './features/dashboard/DashboardPage'
+import { FoodsPage } from './features/foods/FoodsPage'
 import { ComingSoonPage } from './features/placeholder/ComingSoonPage'
 import { NotFoundPage } from './features/placeholder/NotFoundPage'
 import { SettingsPage } from './features/settings/SettingsPage'
@@ -18,7 +19,7 @@ export function AppRoutes() {
         <Route index element={<DashboardPage />} />
         <Route path="clients" element={<ClientsPage />} />
         <Route path="clients/:clientId" element={<ClientDetailPage />} />
-        <Route path="foods/*" element={<ComingSoonPage title="Besinler" />} />
+        <Route path="foods" element={<FoodsPage />} />
         <Route path="plans/*" element={<ComingSoonPage title="Beslenme planları" />} />
         <Route path="appointments/*" element={<ComingSoonPage title="Randevular" />} />
         <Route path="settings" element={<SettingsPage />} />
