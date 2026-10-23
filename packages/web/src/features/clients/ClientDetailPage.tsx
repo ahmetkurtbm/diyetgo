@@ -12,6 +12,7 @@ import { errorMessage } from '../../lib/errors'
 import { formatDate } from '../../lib/format'
 import { ageLabel, fullName, sexLabels } from '../../lib/labels'
 import { MeasurementsCard } from '../measurements/MeasurementsCard'
+import { ClientPlansCard } from '../plans/ClientPlansCard'
 import { ClientFormDialog } from './ClientFormDialog'
 
 function Detail({ label, children }: { label: string; children: ReactNode }) {
@@ -111,8 +112,9 @@ export function ClientDetailPage() {
             <Detail label="Notlar">{client.notes ? <span className="font-normal whitespace-pre-line">{client.notes}</span> : '—'}</Detail>
           </dl>
         </Card>
-        <div className="lg:col-span-2">
+        <div className="space-y-6 lg:col-span-2">
           <MeasurementsCard clientId={client.id} />
+          <ClientPlansCard client={client} />
         </div>
       </div>
 

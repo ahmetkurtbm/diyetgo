@@ -1,4 +1,4 @@
-import { ageOn, type AppointmentStatus, type Client, type Sex } from '@diyetgo/shared'
+import { ageOn, type AppointmentStatus, type Client, type MealPlan, type Sex } from '@diyetgo/shared'
 import { today } from './format'
 
 /** Bugüne göre yaş; doğum tarihi yoksa veya gelecekteyse `—`. */
@@ -22,6 +22,30 @@ export const appointmentStatusTones = {
   cancelled: 'neutral',
   no_show: 'warning',
 } as const satisfies Record<AppointmentStatus, string>
+
+export type PlanStatus = 'archived' | 'upcoming' | 'active' | 'finished'
+
+/** Planın verilen güne göre durumu; "aktif" saklanmaz, tarihlerden türetilir (CLAUDE.md §4.4). */
+export function planStatus(plan: Pick<MealPlan, 'startDate' | 'endDate' | 'archivedAt'>, date: string): PlanStatus {
+  if (plan.archivedAt !== null) return 'archived'
+  if (date < plan.startDate) return 'upcoming'
+  if (plan.endDate !== null && plan.endDate < date) return 'finished'
+  return 'active'
+}
+
+export const planStatusLabels: Record<PlanStatus, string> = {
+  archived: 'Arşivde',
+  upcoming: 'Başlamadı',
+  active: 'Devam ediyor',
+  finished: 'Tamamlandı',
+}
+
+export const planStatusTones = {
+  archived: 'neutral',
+  upcoming: 'info',
+  active: 'brand',
+  finished: 'neutral',
+} as const satisfies Record<PlanStatus, string>
 
 export function fullName(client: Pick<Client, 'firstName' | 'lastName'>): string {
   return `${client.firstName} ${client.lastName}`

@@ -29,6 +29,13 @@ const shortDateFormat = new Intl.DateTimeFormat('tr-TR', { timeZone: 'UTC', day:
 const timeFormat = new Intl.DateTimeFormat('tr-TR', { timeZone: TIME_ZONE, hour: '2-digit', minute: '2-digit' })
 const weekdayDateFormat = new Intl.DateTimeFormat('tr-TR', { timeZone: TIME_ZONE, weekday: 'short', day: 'numeric', month: 'short' })
 
+const longDateFormat = new Intl.DateTimeFormat('tr-TR', { timeZone: 'UTC', weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+
+/** `2026-03-10` → `10 Mart 2026 Salı` */
+export function formatLongDate(date: string): string {
+  return longDateFormat.format(new Date(`${date}T00:00:00Z`))
+}
+
 /** `2026-03-10` → `10 Mar` */
 export function formatShortDate(date: string): string {
   return shortDateFormat.format(new Date(`${date}T00:00:00Z`))

@@ -6,7 +6,7 @@ import { useRepositoryQuery } from '../../data/context'
 import { Badge, EmptyState, ErrorState, LoadingState } from '../../components/ui/feedback'
 import { Card, CardHeader, PageHeader } from '../../components/ui/layout'
 import { formatDate, formatDateTime, formatTime, formatWeekdayDate, today } from '../../lib/format'
-import { appointmentStatusLabels, appointmentStatusTones, fullName } from '../../lib/labels'
+import { appointmentStatusLabels, appointmentStatusTones, fullName, planStatus } from '../../lib/labels'
 
 type Activity = { id: string; at: string; title: string; detail: string; to: string }
 
@@ -78,7 +78,7 @@ export function DashboardPage() {
   const startOf = (a: Appointment) => Date.parse(a.startsAt)
   const todays = appointments.filter((a) => startOf(a) >= todayStart && startOf(a) < todayEnd && a.status !== 'cancelled')
   const upcoming = appointments.filter((a) => a.status === 'scheduled' && startOf(a) >= todayEnd && startOf(a) < weekEnd)
-  const activePlans = plans.filter((p) => p.startDate <= date && (p.endDate === null || date <= p.endDate))
+  const activePlans = plans.filter((p) => planStatus(p, date) === 'active')
 
   const nameOf = (clientId: string) => {
     const client = clientsById.get(clientId)
@@ -87,7 +87,7 @@ export function DashboardPage() {
   const activities: Activity[] = [
     ...clients.map((c) => ({ id: c.id, at: c.updatedAt, title: changeVerb(c, 'Danışan eklendi', 'Danışan güncellendi'), detail: fullName(c), to: `/clients/${c.id}` })),
     ...measurements.map((m) => ({ id: m.id, at: m.updatedAt, title: changeVerb(m, 'Ölçüm kaydedildi', 'Ölçüm güncellendi'), detail: nameOf(m.clientId), to: `/clients/${m.clientId}` })),
-    ...plans.map((p) => ({ id: p.id, at: p.updatedAt, title: changeVerb(p, 'Plan oluşturuldu', 'Plan güncellendi'), detail: `${p.title} · ${nameOf(p.clientId)}`, to: `/clients/${p.clientId}` })),
+    ...plans.map((p) => ({ id: p.id, at: p.updatedAt, title: changeVerb(p, 'Plan oluşturuldu', 'Plan güncellendi'), detail: `${p.title} · ${nameOf(p.clientId)}`, to: `/plans/${p.id}` })),
     ...appointments.map((a) => ({
       id: a.id,
       at: a.updatedAt,
@@ -127,7 +127,9 @@ export function DashboardPage() {
             return (
               <li key={plan.id} className="flex items-center justify-between gap-3 px-5 py-3">
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-medium text-slate-900">{plan.title}</p>
+                  <Link to={`/plans/${plan.id}`} className="block truncate text-sm font-medium text-slate-900 hover:text-brand-700">
+                    {plan.title}
+                  </Link>
                   <Link to={`/clients/${plan.clientId}`} className="text-xs text-slate-500 hover:text-brand-700">
                     {nameOf(plan.clientId)}
                   </Link>
