@@ -36,6 +36,13 @@ export function formatLongDate(date: string): string {
   return longDateFormat.format(new Date(`${date}T00:00:00Z`))
 }
 
+const weekdayFormat = new Intl.DateTimeFormat('tr-TR', { timeZone: 'UTC', weekday: 'short' })
+
+/** `2026-03-10` → `Sal` */
+export function formatWeekday(date: string): string {
+  return weekdayFormat.format(new Date(`${date}T00:00:00Z`))
+}
+
 /** `2026-03-10` → `10 Mar` */
 export function formatShortDate(date: string): string {
   return shortDateFormat.format(new Date(`${date}T00:00:00Z`))
