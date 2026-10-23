@@ -1,7 +1,7 @@
 import { useRepositoryQuery } from '../../data/context'
 
 /**
- * Plan için seçilebilen danışanlar: arşivde olmayanlar; düzenlenen planın mevcut danışanı arşivde olsa da listede kalır.
+ * Plan veya randevu için seçilebilen danışanlar: arşivde olmayanlar; düzenlenen kaydın mevcut danışanı arşivde olsa da listede kalır.
  * Seçenekler `<select>`'i render eden bileşende yüklenmelidir; aksi hâlde seçenekler geldiğinde seçili değer yansımaz.
  */
 export function useSelectableClients(includeId?: string) {

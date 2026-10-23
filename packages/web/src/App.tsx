@@ -4,11 +4,11 @@ import { AppShell } from './components/layout/AppShell'
 import { Toaster } from './components/ui/Toaster'
 import { RepositoryContext } from './data/context'
 import type { Repositories } from './data/repositories'
+import { AppointmentsPage } from './features/appointments/AppointmentsPage'
 import { ClientDetailPage } from './features/clients/ClientDetailPage'
 import { ClientsPage } from './features/clients/ClientsPage'
 import { DashboardPage } from './features/dashboard/DashboardPage'
 import { FoodsPage } from './features/foods/FoodsPage'
-import { ComingSoonPage } from './features/placeholder/ComingSoonPage'
 import { NotFoundPage } from './features/placeholder/NotFoundPage'
 import { PlanDetailPage } from './features/plans/PlanDetailPage'
 import { PlansPage } from './features/plans/PlansPage'
@@ -24,7 +24,7 @@ export function AppRoutes() {
         <Route path="foods" element={<FoodsPage />} />
         <Route path="plans" element={<PlansPage />} />
         <Route path="plans/:planId" element={<PlanDetailPage />} />
-        <Route path="appointments/*" element={<ComingSoonPage title="Randevular" />} />
+        <Route path="appointments" element={<AppointmentsPage />} />
         <Route path="settings" element={<SettingsPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>

@@ -11,6 +11,7 @@ import { useToast } from '../../components/ui/toast-context'
 import { errorMessage } from '../../lib/errors'
 import { formatDate } from '../../lib/format'
 import { ageLabel, fullName, sexLabels } from '../../lib/labels'
+import { ClientAppointmentsCard } from '../appointments/ClientAppointmentsCard'
 import { MeasurementsCard } from '../measurements/MeasurementsCard'
 import { ClientPlansCard } from '../plans/ClientPlansCard'
 import { ClientFormDialog } from './ClientFormDialog'
@@ -115,6 +116,7 @@ export function ClientDetailPage() {
         <div className="space-y-6 lg:col-span-2">
           <MeasurementsCard clientId={client.id} />
           <ClientPlansCard client={client} />
+          <ClientAppointmentsCard client={client} />
         </div>
       </div>
 
