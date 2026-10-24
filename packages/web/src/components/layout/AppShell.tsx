@@ -90,7 +90,7 @@ function DemoNotice({ persistent }: { persistent: boolean }) {
 }
 
 /** Mobil menü: yerleşik `<dialog>` odak yakalamayı, Escape'i ve arka planı etkisizleştirmeyi sağlar. */
-function MobileMenu({ open, onClose, persistent }: { open: boolean; onClose: () => void; persistent: boolean }) {
+function MobileMenu({ open, onClose, isDemo, persistent }: { open: boolean; onClose: () => void; isDemo: boolean; persistent: boolean }) {
   const ref = useRef<HTMLDialogElement>(null)
 
   useEffect(() => {
@@ -135,9 +135,11 @@ function MobileMenu({ open, onClose, persistent }: { open: boolean; onClose: () 
           <nav aria-label="Ana menü" className="flex-1 overflow-y-auto px-3 py-4">
             <NavGroups onNavigate={onClose} />
           </nav>
-          <div className="border-t border-slate-200 p-3">
-            <DemoNotice persistent={persistent} />
-          </div>
+          {isDemo && (
+            <div className="border-t border-slate-200 p-3">
+              <DemoNotice persistent={persistent} />
+            </div>
+          )}
         </div>
       )}
     </dialog>
@@ -187,7 +189,7 @@ export function AppShell() {
           </button>
         </div>
       </header>
-      <MobileMenu open={menuOpen} onClose={() => setMenuOpen(false)} persistent={persistent} />
+      <MobileMenu open={menuOpen} onClose={() => setMenuOpen(false)} isDemo={isDemo} persistent={persistent} />
 
       <main key={pathname} className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:py-8">
         <Outlet />

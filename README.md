@@ -2,7 +2,7 @@
 
 Diyetisyenler için danışan, ölçüm, besin, beslenme planı, randevu ve beslenme hedefi yönetimi sunan bir web uygulaması.
 
-> **Demo uyarısı:** Arayüz şu anda yalnızca **demo modunda** çalışır; yerel backend geliştirme aşamasındadır (bkz. [Yerel veritabanı ve backend](#yerel-veritabanı-ve-backend)). Demo modunda tüm veriler **yalnızca kullandığınız tarayıcıda** (localStorage) tutulur; sunucuya gönderilmez, cihazlar arasında paylaşılmaz ve yedeklenmez. Örnek veriler **kurgusaldır**. Kimlik doğrulama olmadığı için **gerçek kişisel veya sağlık verisi girmeyin.**
+> **Demo uyarısı:** Herkese açık sürüm (Vercel) yalnızca **demo modunda** çalışır; yerel PostgreSQL modu için bkz. [Yerel veritabanı ve backend](#yerel-veritabanı-ve-backend). Demo modunda tüm veriler **yalnızca kullandığınız tarayıcıda** (localStorage) tutulur; sunucuya gönderilmez, cihazlar arasında paylaşılmaz ve yedeklenmez. Örnek veriler **kurgusaldır**. Kimlik doğrulama olmadığı için **gerçek kişisel veya sağlık verisi girmeyin.**
 
 ## İçindekiler
 
@@ -72,7 +72,7 @@ Testler makinenin saat diliminden bağımsızdır; tarih ve saat hesapları `Eur
 
 | Değişken | Değerler | Varsayılan | Açıklama |
 |---|---|---|---|
-| `VITE_DATA_MODE` | `demo` | `demo` | Veri kaynağını seçer. Şu anda yalnızca `demo` desteklenir; başka bir değer verilirse uygulama açılışta bunu belirten bir hata ekranı gösterir. |
+| `VITE_DATA_MODE` | `demo`, `api` | `demo` | Veri kaynağını seçer: `demo` tarayıcıdaki localStorage'ı, `api` yerel Express API'yi kullanır. Başka bir değer verilirse uygulama açılışta bunu belirten bir hata ekranı gösterir. |
 
 Demo için değişken tanımlamak gerekmez. Gerekirse `packages/web/.env.local` dosyasına yazılabilir; `.env` dosyaları Git'e eklenmez. `VITE_` önekli değişkenler tarayıcıya gönderilen koda gömülür, bu yüzden bunlara hiçbir gizli bilgi yazılmamalıdır.
 
@@ -97,13 +97,29 @@ npm run db:seed             # kurgusal örnek verileri yükler
 npm run dev:server          # API: http://127.0.0.1:3001/api
 ```
 
+Arayüzü bu API ile açmak için `packages/web/.env.local` dosyasına `VITE_DATA_MODE=api` yazın ve ikinci bir terminalde `npm run dev` çalıştırın. Vite geliştirme sunucusu `/api` isteklerini kökteki `.env` dosyasındaki `PORT`'a (varsayılan `3001`) yönlendirir. API çalışmıyorsa arayüz "Sunucuya ulaşılamadı" hatası gösterir.
+
 - **Bağlantı kontrolü:** `curl http://127.0.0.1:3001/api/health` çağrısı `{"status":"ok","database":"ok"}` döndürmelidir. Container durumunu `docker compose ps` gösterir (`healthy`).
 - **Migration'lar:** Şema `packages/server/src/db/schema.ts` içindedir. Değişiklikten sonra `npm run db:generate -- --name <anlamlı-ad>` ile yeni migration üretilir, `packages/server/drizzle/` altındaki SQL incelenir ve `npm run db:migrate` ile uygulanır. Uygulanmış migration dosyaları değiştirilmez; `drizzle-kit push` kullanılmaz. Uygulama açılışında migration çalışmaz.
 - **Test veritabanı:** `npm test -w @diyetgo/server` önce `TEST_DATABASE_URL` adının `_test` ile bittiğini doğrular, sonra migration'ları test veritabanına uygular ve her testten önce tabloları boşaltır. Geliştirme veritabanına dokunmaz.
 - **Durdurma:** `docker compose stop` container'ı durdurur, veriler korunur. `docker compose down -v` ise volume'ü ve **tüm veritabanı verisini siler**.
-- **Mevcut API uçları:** `GET /api/health` ve danışanlar (`GET/POST /api/clients`, `GET/PUT/DELETE /api/clients/:id`, `PUT /api/clients/:id/archived`). Hatalar `{ "error": { "code", "message", "fieldErrors", "conflictingIds" } }` biçiminde döner; ilişkili kaydı olan danışan silinmek istenirse veritabanındaki `RESTRICT` kuralı nedeniyle `409 restricted` döner.
+- **API uçları:**
 
-Kimlik doğrulama olmadığı için API dış ağa açılmamalıdır.
+  | Kaynak | Uçlar |
+  |---|---|
+  | Sağlık | `GET /api/health` |
+  | Danışanlar | `GET/POST /api/clients`, `GET/PUT/DELETE /api/clients/:id`, `PUT /api/clients/:id/archived`, `GET /api/clients/:id/measurements`, `GET /api/clients/:id/goals` |
+  | Ölçümler, hedefler | `POST /api/measurements`, `PUT/DELETE /api/measurements/:id`; `POST /api/goals`, `PUT/DELETE /api/goals/:id` |
+  | Besinler | `GET/POST /api/foods`, `GET/PUT/DELETE /api/foods/:id`, `PUT /api/foods/:id/archived`, `GET /api/foods/:id/plan-count` |
+  | Öğün türleri | `GET/POST /api/meal-types`, `PUT/DELETE /api/meal-types/:id`, `PUT /api/meal-types/:id/archived` |
+  | Planlar | `GET/POST /api/meal-plans`, `GET/PUT/DELETE /api/meal-plans/:id`, `PUT /api/meal-plans/:id/archived`, `POST /api/meal-plans/:id/copy` |
+  | Plan öğünleri ve içerikleri | `POST /api/plan-meals`, `PUT/DELETE /api/plan-meals/:id`; `POST /api/plan-meal-items`, `PUT/DELETE /api/plan-meal-items/:id` |
+  | Randevular | `GET/POST /api/appointments` (`from`, `to`, `clientId`, `status` filtreleri), `PUT/DELETE /api/appointments/:id`, `POST /api/appointments/:id/cancel` |
+
+  Hatalar `{ "error": { "code", "message", "fieldErrors", "conflictingIds" } }` biçiminde döner: `validation` (400), `not_found` (404), `conflict` ve `restricted` (409). İlişkili kaydı olan danışan, besin veya öğün türü veritabanındaki `RESTRICT` kuralı nedeniyle silinemez. Randevu çakışması ve hedef dönemi kontrolleri, eşzamanlı istekler birbirini görecek şekilde kilitli işlemlerde yapılır.
+- **İki modun aynı davranması:** `packages/web/src/data/repository-contract.ts` içindeki senaryolar hem demo implementasyonuna (`npm test -w @diyetgo/web`) hem de gerçek HTTP üzerinden API implementasyonuna (`npm test -w @diyetgo/server`) karşı çalıştırılır.
+
+Kimlik doğrulama olmadığı için API dış ağa açılmamalıdır. API yalnızca `127.0.0.1` adresini dinler ve `Host` başlığı `localhost`, `127.0.0.1` veya `[::1]` olmayan istekleri `403` ile reddeder; böylece başka bir site DNS rebinding ile yerel API'ye erişemez.
 
 ## Demo modu
 
@@ -137,7 +153,7 @@ diyetgo/
     └── web/            # @diyetgo/web: React + TypeScript + Vite + Tailwind CSS arayüzü
         └── src/
             ├── components/   # ortak arayüz bileşenleri ve uygulama kabuğu
-            ├── data/         # repository arayüzleri ve demo (localStorage) implementasyonu
+            ├── data/         # repository arayüzleri; api/ (HTTP) ve demo/ (localStorage) implementasyonları
             ├── features/     # ekranlar (danışanlar, besinler, planlar, randevular, hedefler…)
             └── lib/          # biçimlendirme, etiketler, form yardımcıları
 ```
@@ -148,5 +164,5 @@ Bileşenler veriye yalnızca `packages/web/src/data/repositories.ts` içindeki r
 
 Tamamlanmayan işler:
 
-- **Yerel PostgreSQL modu (`VITE_DATA_MODE=api`):** Docker ile PostgreSQL 18, Drizzle şeması ve ilk migration, seed, test veritabanı ve Express iskeleti hazırdır. API'de şu an yalnızca sağlık kontrolü ve danışan uçları vardır. Diğer modüllerin API uçları, web tarafındaki API repository implementasyonları, Vite `/api` proxy'si ve `api` modu seçimi henüz yapılmadı; arayüz bu nedenle hâlâ yalnızca demo modunda açılır.
+- **Kimlik doğrulama ve çoklu kullanıcı:** Kapsam dışıdır (CLAUDE.md §1.1). Bu nedenle yerel API yalnızca `127.0.0.1` üzerinden erişilebilir ve gerçek kişisel veya sağlık verisiyle kullanılmamalıdır.
 - **Vercel dağıtımı:** Yapılandırma kökteki `vercel.json` dosyasındadır. Vercel depo kökünden `npm install` çalıştırır, yalnızca `@diyetgo/web` paketini `VITE_DATA_MODE=demo` ile derler ve `packages/web/dist` dizinini yayınlar. Tüm adresler `index.html`'e yönlendirilir; böylece `/clients` gibi sayfalar yenilendiğinde de açılır. Demo backend veya veritabanı gerektirmez ve Vercel'de ortam değişkeni ya da gizli bilgi tanımlanması gerekmez.

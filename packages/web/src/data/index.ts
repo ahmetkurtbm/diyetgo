@@ -1,3 +1,4 @@
+import { createApiRepositories } from './api/repositories'
 import { createDemoRepositories } from './demo/repositories'
 import { clearDemoStorage, getBrowserStorage, openDemoStore, STORAGE_KEY, type OpenError } from './demo/store'
 import type { Repositories } from './repositories'
@@ -7,11 +8,12 @@ export type DataSource =
   | { ok: false; kind: 'demo_storage'; error: OpenError; resetStorage: () => void }
   | { ok: false; kind: 'unsupported_mode'; message: string }
 
-/** `VITE_DATA_MODE`'a göre veri kaynağını oluşturur. API modu henüz uygulanmadı. */
+/** `VITE_DATA_MODE`'a göre veri kaynağını oluşturur: `demo` (localStorage) veya `api` (yerel Express API). */
 export function createDataSource(): DataSource {
   const mode = import.meta.env.VITE_DATA_MODE ?? 'demo'
+  if (mode === 'api') return { ok: true, repositories: createApiRepositories() }
   if (mode !== 'demo') {
-    return { ok: false, kind: 'unsupported_mode', message: `"${mode}" veri modu henüz desteklenmiyor. VITE_DATA_MODE=demo kullanın.` }
+    return { ok: false, kind: 'unsupported_mode', message: `"${mode}" veri modu desteklenmiyor. VITE_DATA_MODE=demo veya VITE_DATA_MODE=api kullanın.` }
   }
 
   const storage = getBrowserStorage()

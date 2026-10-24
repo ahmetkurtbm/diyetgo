@@ -13,9 +13,10 @@ import { formatDateTime } from '../../lib/format'
 import { parseNumber } from '../../lib/forms'
 
 export function SettingsPage() {
+  const { demo } = useRepositories()
   return (
     <>
-      <PageHeader title="Ayarlar" description="Öğün türlerini yönetin ve demo verilerini sıfırlayın." />
+      <PageHeader title="Ayarlar" description={demo ? 'Öğün türlerini yönetin ve demo verilerini sıfırlayın.' : 'Öğün türlerini yönetin.'} />
       <div className="space-y-6">
         <MealTypesSection />
         <DemoDataSection />
