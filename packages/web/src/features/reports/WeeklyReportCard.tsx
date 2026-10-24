@@ -3,7 +3,7 @@
  * `WeeklyReportDialog` bu öğeyi PNG'ye çevirir. Yalnızca statik içerik vardır (etkileşim, animasyon
  * yok); böylece ekrandaki önizleme ile indirilen görsel aynıdır.
  */
-import type { DatedValue, Nutrients } from '@diyetgo/shared'
+import type { DatedValue } from '@diyetgo/shared'
 import { CalendarClock, MessageSquareQuote, Minus, TrendingDown, TrendingUp } from 'lucide-react'
 import { useId, type Ref } from 'react'
 import { formatDate, formatNumber, formatShortDate, formatTime, formatWeekdayDate } from '../../lib/format'
@@ -46,29 +46,30 @@ function ChangeChip({ value, unit, caption }: { value: number | null; unit: stri
 }
 
 /** Kart içindeki alanın genişliği (400 − kenar boşlukları); grafik bu alana tam oturur. */
-const CHART = { width: 296, height: 136, top: 30, right: 10, bottom: 22, left: 10 }
+const CHART = { width: 296, top: 30, right: 10, bottom: 22, left: 10 }
 
-/** Statik alan grafiği; son nokta vurgulanır, ilk ve son tarih alt eksende yazılıdır. */
-function WeightTrend({ points }: { points: DatedValue[] }) {
+/** Statik alan grafiği (kilo ve vücut ölçüleri); son nokta vurgulanır, ilk ve son tarih alt eksende yazılıdır. */
+function TrendChart({ points, unit, height = 136 }: { points: DatedValue[]; unit: string; height?: number }) {
   const gradientId = `trend-${useId().replace(/[^a-zA-Z0-9]/g, '')}`
+  const H = height
   const values = points.map((p) => p.value)
   const min = Math.min(...values)
   const max = Math.max(...values)
   const span = Math.max(max - min, 1)
   const innerW = CHART.width - CHART.left - CHART.right
-  const innerH = CHART.height - CHART.top - CHART.bottom
+  const innerH = H - CHART.top - CHART.bottom
   const first = Date.parse(points[0]!.date)
   const last = Date.parse(points.at(-1)!.date)
   const x = (date: string) => CHART.left + ((Date.parse(date) - first) / Math.max(last - first, 1)) * innerW
   const y = (value: number) => CHART.top + (1 - (value - min + span * 0.15) / (span * 1.3)) * innerH
   const coords = points.map((p) => [x(p.date), y(p.value)] as const)
   const line = coords.map(([cx, cy], i) => `${i === 0 ? 'M' : 'L'}${cx.toFixed(1)} ${cy.toFixed(1)}`).join(' ')
-  const baseline = CHART.height - CHART.bottom
+  const baseline = H - CHART.bottom
   const area = `${line} L${coords.at(-1)![0].toFixed(1)} ${baseline} L${coords[0]![0].toFixed(1)} ${baseline} Z`
   const [lx, ly] = coords.at(-1)!
 
   return (
-    <svg viewBox={`0 0 ${CHART.width} ${CHART.height}`} width={CHART.width} height={CHART.height} aria-hidden className="block">
+    <svg viewBox={`0 0 ${CHART.width} ${H}`} width={CHART.width} height={H} aria-hidden className="block">
       <defs>
         <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" stopColor={LIME} stopOpacity="0.55" />
@@ -84,76 +85,24 @@ function WeightTrend({ points }: { points: DatedValue[] }) {
         <circle key={points[i]!.date} cx={cx} cy={cy} r={i === coords.length - 1 ? 5 : 3} fill={i === coords.length - 1 ? INK : '#ffffff'} stroke="#4d7c0f" strokeWidth="2" />
       ))}
       {/* Etiket son noktanın üstünde durur; kenarlardan taşmaması için yatayda sınırlanır. */}
-      <g transform={`translate(${Math.min(Math.max(lx, 28), CHART.width - 28)} ${Math.max(ly - 16, 13)})`}>
-        <rect x="-26" y="-11" width="52" height="18" rx="9" fill={INK} />
+      <g transform={`translate(${Math.min(Math.max(lx, 30), CHART.width - 30)} ${Math.max(ly - 16, 13)})`}>
+        <rect x="-28" y="-11" width="56" height="18" rx="9" fill={INK} />
         <text x="0" y="2" textAnchor="middle" fontSize="10.5" fontWeight="700" fill="#ffffff">
-          {formatNumber(points.at(-1)!.value)} kg
+          {formatNumber(points.at(-1)!.value)} {unit}
         </text>
       </g>
-      <text x={CHART.left} y={CHART.height - 6} fontSize="10" fill="#64748b">
+      <text x={CHART.left} y={H - 6} fontSize="10" fill="#64748b">
         {formatShortDate(points[0]!.date)}
       </text>
-      <text x={CHART.width - CHART.right} y={CHART.height - 6} fontSize="10" fill="#64748b" textAnchor="end">
+      <text x={CHART.width - CHART.right} y={H - 6} fontSize="10" fill="#64748b" textAnchor="end">
         {formatShortDate(points.at(-1)!.date)}
       </text>
     </svg>
   )
 }
 
-const MACROS = [
-  { key: 'proteinG', label: 'Protein', color: 'bg-macro-protein' },
-  { key: 'carbsG', label: 'Karbonhidrat', color: 'bg-macro-carbs' },
-  { key: 'fatG', label: 'Yağ', color: 'bg-macro-fat' },
-] as const
-
-function PlanSummary({ plan, goal }: { plan: NonNullable<WeeklyReportData['plan']>; goal: WeeklyReportData['goal'] }) {
-  const ratio = goal ? plan.average.energyKcal / goal.energyKcal : null
-  return (
-    <section className="rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100">
-      <p className="text-[11px] font-semibold tracking-wide text-slate-500 uppercase">Beslenme planın</p>
-      <p className="mt-0.5 truncate text-sm font-semibold text-slate-900">{plan.title}</p>
-      <div className="mt-3 flex items-end justify-between">
-        <span>
-          <span className="text-2xl font-extrabold text-slate-900 tabular-nums">{formatNumber(plan.average.energyKcal, 0)}</span>
-          <span className="ml-1 text-xs text-slate-500">kcal / gün ortalama</span>
-        </span>
-        {goal && ratio !== null && (
-          <span className="text-xs text-slate-500 tabular-nums">
-            Hedef {formatNumber(goal.energyKcal, 0)} · <span className="font-semibold text-slate-700">%{formatNumber(ratio * 100, 0)}</span>
-          </span>
-        )}
-      </div>
-      {ratio !== null && (
-        <span className="mt-2 block h-2 overflow-hidden rounded-full bg-slate-200/80">
-          <span className="block h-full rounded-full" style={{ width: `${Math.min(100, ratio * 100)}%`, background: `linear-gradient(90deg, ${LIME}, #4d7c0f)` }} />
-        </span>
-      )}
-      <div className="mt-3 grid grid-cols-3 gap-2">
-        {MACROS.map(({ key, label, color }) => {
-          const target = goal?.[key as keyof Nutrients]
-          return (
-            <div key={key} className="rounded-xl bg-white p-2 ring-1 ring-slate-100">
-              <span className="flex items-center gap-1 text-[10.5px] font-medium text-slate-500">
-                <span className={`size-1.5 rounded-full ${color}`} />
-                {label}
-              </span>
-              <span className="mt-0.5 block text-sm font-bold text-slate-900 tabular-nums">{formatNumber(plan.average[key], 0)} g</span>
-              {target !== undefined && target > 0 && (
-                <span className="mt-1 block h-1 overflow-hidden rounded-full bg-slate-100">
-                  <span className={`block h-full rounded-full ${color}`} style={{ width: `${Math.min(100, (plan.average[key] / target) * 100)}%` }} />
-                </span>
-              )}
-            </div>
-          )
-        })}
-      </div>
-      <p className="mt-2 text-[10.5px] text-slate-500">Bu haftanın {plan.days} plan gününe göre.</p>
-    </section>
-  )
-}
-
 export function WeeklyReportCard({ data, note, ref }: { data: WeeklyReportData; note: string; ref?: Ref<HTMLDivElement> }) {
-  const { client, week, weight, chart, bodyMetrics, goal, plan, nextAppointment } = data
+  const { client, week, weight, chart, bodyMetrics, nextAppointment } = data
   return (
     <div ref={ref} className="w-[400px] shrink-0 bg-[#eef3ea] p-4">
       <article className="overflow-hidden rounded-[28px] bg-white text-slate-800 shadow-xl shadow-emerald-950/10">
@@ -195,7 +144,7 @@ export function WeeklyReportCard({ data, note, ref }: { data: WeeklyReportData; 
               </div>
               {chart.length >= 2 && (
                 <div className="mt-3">
-                  <WeightTrend points={chart} />
+                  <TrendChart points={chart} unit="kg" />
                 </div>
               )}
             </section>
@@ -204,23 +153,29 @@ export function WeeklyReportCard({ data, note, ref }: { data: WeeklyReportData; 
           )}
 
           {bodyMetrics.length > 0 && (
-            <section className="grid gap-2" style={{ gridTemplateColumns: `repeat(${bodyMetrics.length}, minmax(0, 1fr))` }}>
-              {bodyMetrics.map(({ key, label, unit, summary }) => (
-                <div key={key} className="rounded-2xl bg-slate-50 p-3 ring-1 ring-slate-100">
-                  <span className="block text-[11px] font-medium text-slate-500">{label}</span>
-                  <span className="block text-lg font-bold text-slate-900 tabular-nums">
-                    {formatNumber(summary.current.value)}
-                    <span className="ml-0.5 text-xs font-medium text-slate-500">{unit}</span>
-                  </span>
-                  <span className="block text-[11px] font-semibold tabular-nums" style={{ color: '#4d7c0f' }}>
-                    {summary.previous ? `${signed(summary.totalChange)} ${unit} toplam` : 'İlk ölçüm'}
-                  </span>
+            <section className="space-y-3 rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100">
+              <p className="text-[11px] font-semibold tracking-wide text-slate-500 uppercase">Vücut ölçülerin</p>
+              {bodyMetrics.map(({ key, label, unit, summary, chart: series }) => (
+                <div key={key} className="rounded-xl bg-white p-3 ring-1 ring-slate-100">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <span className="text-sm font-semibold text-slate-700">{label}</span>
+                    <span className="text-right">
+                      <span className="text-lg font-bold text-slate-900 tabular-nums">{formatNumber(summary.current.value)}</span>
+                      <span className="ml-0.5 text-xs font-medium text-slate-500">{unit}</span>
+                      <span className="ml-2 text-[11px] font-semibold tabular-nums" style={{ color: '#4d7c0f' }}>
+                        {summary.previous ? `${signed(summary.totalChange)} ${unit} toplam` : 'İlk ölçüm'}
+                      </span>
+                    </span>
+                  </div>
+                  {series.length >= 2 && (
+                    <div className="-mx-3 mt-1 -mb-1">
+                      <TrendChart points={series} unit={unit} height={96} />
+                    </div>
+                  )}
                 </div>
               ))}
             </section>
           )}
-
-          {plan && <PlanSummary plan={plan} goal={goal} />}
 
           {nextAppointment && (
             <section className="flex items-center gap-3 rounded-2xl p-4 text-white" style={{ background: INK }}>
