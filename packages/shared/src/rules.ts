@@ -89,6 +89,14 @@ export function findAppointmentConflicts<T extends AppointmentSlot & Pick<Appoin
   return existing.filter((a) => a.status !== 'cancelled' && a.id !== candidate.id && appointmentsOverlap(a, candidate))
 }
 
+/**
+ * Bitiş saati geçtiği hâlde hâlâ "planlandı" durumundaki randevu: diyetisyenin tamamlandı, gelmedi
+ * veya iptal olarak işaretlemesi beklenir. `now` UTC milisaniyedir.
+ */
+export function isAppointmentOverdue(appointment: Pick<Appointment, 'status' | 'endsAt'>, now: number): boolean {
+  return appointment.status === 'scheduled' && Date.parse(appointment.endsAt) <= now
+}
+
 // ---------- Plan günleri ----------
 //
 // Plan günleri görelidir: gün 1 = `startDate`, gün N = `startDate + (N − 1)`.

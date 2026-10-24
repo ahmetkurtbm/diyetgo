@@ -8,6 +8,7 @@ import {
   findAppointmentConflicts,
   goalPeriodsOverlap,
   isDayWithinPlan,
+  isAppointmentOverdue,
   isGoalActiveOn,
   isMealTypeNameTaken,
   mealsOutsidePlan,
@@ -203,5 +204,22 @@ describe('öğün türleri', () => {
     expect(isMealTypeNameTaken(existing, ' ikindi ', null)).toBe(true)
     expect(isMealTypeNameTaken(existing, 'Kahvaltı', 't1')).toBe(false)
     expect(isMealTypeNameTaken(existing, 'Akşam', null)).toBe(false)
+  })
+})
+
+describe('saati geçmiş randevu', () => {
+  const now = Date.parse('2026-03-10T09:00:00.000Z')
+  const slot = (endsAt: string, status: 'scheduled' | 'completed' | 'cancelled' | 'no_show' = 'scheduled') => ({ endsAt, status })
+
+  it('bitişi geçmiş ve hâlâ planlanmış randevu işlem bekler; bitiş anı dahildir', () => {
+    expect(isAppointmentOverdue(slot('2026-03-10T08:59:00.000Z'), now)).toBe(true)
+    expect(isAppointmentOverdue(slot('2026-03-10T09:00:00.000Z'), now)).toBe(true)
+    expect(isAppointmentOverdue(slot('2026-03-10T09:01:00.000Z'), now)).toBe(false)
+  })
+
+  it('durumu güncellenmiş randevu işlem beklemez', () => {
+    for (const status of ['completed', 'cancelled', 'no_show'] as const) {
+      expect(isAppointmentOverdue(slot('2026-03-01T08:00:00.000Z', status), now)).toBe(false)
+    }
   })
 })

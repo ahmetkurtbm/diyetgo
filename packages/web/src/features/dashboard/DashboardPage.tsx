@@ -1,5 +1,5 @@
-import { addDays, daysBetween, istanbulDateOf, istanbulDayRangeUtc, planLengthDays, type Appointment, type Client } from '@diyetgo/shared'
-import { CalendarCheck, CalendarClock, CalendarX2, History, NotebookPen, Users, type LucideIcon } from 'lucide-react'
+import { addDays, daysBetween, isAppointmentOverdue, istanbulDateOf, istanbulDayRangeUtc, planLengthDays, type Appointment, type Client } from '@diyetgo/shared'
+import { AlarmClock, CalendarCheck, CalendarClock, CalendarX2, History, NotebookPen, Users, type LucideIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { Link } from 'react-router'
 import { useRepositoryQuery } from '../../data/context'
@@ -8,6 +8,7 @@ import { Card, CardHeader, PageHeader } from '../../components/ui/layout'
 import { AnimatedBar, AnimatedNumber, Stagger, StaggerItem } from '../../components/ui/motion'
 import { formatDate, formatDateTime, formatTime, formatWeekday, formatWeekdayDate, today } from '../../lib/format'
 import { appointmentStatusLabels, appointmentStatusTones, fullName, planStatus } from '../../lib/labels'
+import { OVERDUE_APPOINTMENTS_PATH } from '../appointments/AppointmentsPage'
 
 type Activity = { id: string; at: string; title: string; detail: string; to: string }
 
@@ -227,6 +228,7 @@ export function DashboardPage() {
     .slice(0, 6)
 
   const archivedCount = clients.length - activeClients.length
+  const overdueCount = appointments.filter((a) => isAppointmentOverdue(a, now)).length
   const todayDetail = nextToday
     ? `Sıradaki ${formatTime(nextToday.startsAt)} · ${nameOf(nextToday.clientId)}`
     : todays.length > 0
@@ -236,6 +238,18 @@ export function DashboardPage() {
   return (
     <>
       <PageHeader title="Genel bakış" description={formatDate(date)} />
+      {overdueCount > 0 && (
+        <Link
+          to={OVERDUE_APPOINTMENTS_PATH}
+          className="mb-4 flex items-center gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 transition-colors hover:bg-amber-100"
+        >
+          <AlarmClock aria-hidden className="size-5 shrink-0" />
+          <span className="flex-1">
+            <strong>{overdueCount}</strong> randevunun saati geçti, işlem yapın.
+          </span>
+          <span className="font-medium underline">Randevulara git</span>
+        </Link>
+      )}
       <Stagger className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StaggerItem>
         <StatCard

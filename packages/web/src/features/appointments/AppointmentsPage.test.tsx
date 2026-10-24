@@ -157,3 +157,29 @@ describe('Danışan detayındaki randevular', () => {
     expect(screen.queryByRole('button', { name: 'Yeni randevu' })).toBeNull()
   })
 })
+
+describe('Saati geçmiş randevular', () => {
+  // Test saati 10 Mart 12:00 (İstanbul); Deniz'in 10:00–10:45 randevusu hâlâ "planlandı".
+  it('işlem bekleyen randevuyu işaretler, uyarı bandından listeler ve tek tıkla tamamlar', async () => {
+    const { user } = await openPage()
+    const row = rowOf('2026-03-10', '10:00')
+    expect(within(row).getByText('Saati geçti, işlem yapın')).toBeDefined()
+    expect(within(rowOf('2026-03-12', '14:00')).queryByText('Saati geçti, işlem yapın')).toBeNull()
+    expect(screen.getByRole('status').textContent).toMatch(/1 randevunun saati geçti/)
+
+    await user.click(screen.getByRole('button', { name: 'İşlem bekleyenleri göster' }))
+    await waitFor(() => expect(dayNames()).toEqual([formatLongDate('2026-03-10')]))
+
+    await user.click(within(rowOf('2026-03-10', '10:00')).getByRole('button', { name: /tamamlandı olarak işaretle/ }))
+    expect(await screen.findByText('Randevu tamamlandı olarak işaretlendi.')).toBeDefined()
+    expect(await screen.findByText('İşlem bekleyen randevu yok')).toBeDefined()
+  })
+
+  it('genel bakışta uyarı gösterir ve işlem bekleyenler listesine götürür', async () => {
+    const { user } = renderApp('/')
+    const banner = await screen.findByRole('link', { name: /randevunun saati geçti/ })
+    await user.click(banner)
+    expect(await screen.findByRole('heading', { name: 'Randevular' })).toBeDefined()
+    expect((screen.getByLabelText('Dönem') as HTMLSelectElement).value).toBe('overdue')
+  })
+})

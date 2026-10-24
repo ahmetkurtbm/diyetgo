@@ -1,5 +1,5 @@
-import { istanbulDateOf, type Appointment, type Client } from '@diyetgo/shared'
-import { CalendarX2, Pencil, Trash2 } from 'lucide-react'
+import { isAppointmentOverdue, istanbulDateOf, type Appointment, type AppointmentStatus, type Client } from '@diyetgo/shared'
+import { AlarmClock, CalendarX2, Check, Pencil, Trash2, UserX } from 'lucide-react'
 import { useState } from 'react'
 import { Link } from 'react-router'
 import { useRepositories } from '../../data/context'
@@ -27,6 +27,7 @@ export function AppointmentList({ appointments, clientsById }: Props) {
   const [cancelling, setCancelling] = useState<Appointment | null>(null)
   const [deleting, setDeleting] = useState<Appointment | null>(null)
   const date = today()
+  const now = Date.now()
 
   const groups: { date: string; items: Appointment[] }[] = []
   for (const appointment of appointments) {
@@ -41,6 +42,12 @@ export function AppointmentList({ appointments, clientsById }: Props) {
     return client ? `${fullName(client)}, ` : ''
   }
   const slotLabel = (a: Appointment) => `${formatShortDate(istanbulDateOf(a.startsAt))} ${formatTime(a.startsAt)}`
+
+  /** Saati geçmiş randevunun sonucunu tek tıkla kaydeder. */
+  function setStatus(a: Appointment, status: AppointmentStatus, success: string) {
+    const { clientId, startsAt, endsAt, notes } = a
+    return run(() => repositories.appointments.update(a.id, { clientId, startsAt, endsAt, notes, status }), success)
+  }
 
   async function run(action: () => Promise<unknown>, success: string) {
     try {
@@ -62,9 +69,10 @@ export function AppointmentList({ appointments, clientsById }: Props) {
           <ul className="divide-y divide-slate-100">
             {group.items.map((a) => {
               const cancelled = a.status === 'cancelled'
+              const overdue = isAppointmentOverdue(a, now)
               const client = clientsById?.get(a.clientId)
               return (
-                <li key={a.id} className="flex flex-wrap items-center gap-x-4 gap-y-2 px-5 py-3">
+                <li key={a.id} className={`flex flex-wrap items-center gap-x-4 gap-y-2 px-5 py-3 ${overdue ? 'border-l-4 border-l-amber-500 bg-amber-50/70' : ''}`}>
                   <div className="w-28 shrink-0 text-sm tabular-nums">
                     <span className={`font-medium ${cancelled ? 'text-slate-500 line-through' : 'text-slate-900'}`}>
                       {formatTime(a.startsAt)}–{formatTime(a.endsAt)}
@@ -82,7 +90,24 @@ export function AppointmentList({ appointments, clientsById }: Props) {
                       ))}
                     {a.notes && <span className="block truncate text-xs text-slate-500">{a.notes}</span>}
                   </div>
-                  <Badge tone={appointmentStatusTones[a.status]}>{appointmentStatusLabels[a.status]}</Badge>
+                  {overdue ? (
+                    <span className="flex flex-wrap items-center gap-2">
+                      <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-900">
+                        <AlarmClock aria-hidden className="size-3.5" />
+                        Saati geçti, işlem yapın
+                      </span>
+                      <Button size="sm" aria-label={`${slotLabel(a)} randevusunu tamamlandı olarak işaretle`} onClick={() => setStatus(a, 'completed', 'Randevu tamamlandı olarak işaretlendi.')}>
+                        <Check aria-hidden className="size-4" />
+                        Tamamlandı
+                      </Button>
+                      <Button size="sm" aria-label={`${slotLabel(a)} randevusuna gelmedi olarak işaretle`} onClick={() => setStatus(a, 'no_show', 'Randevu gelmedi olarak işaretlendi.')}>
+                        <UserX aria-hidden className="size-4" />
+                        Gelmedi
+                      </Button>
+                    </span>
+                  ) : (
+                    <Badge tone={appointmentStatusTones[a.status]}>{appointmentStatusLabels[a.status]}</Badge>
+                  )}
                   <div className="flex shrink-0">
                     <Button variant="ghost" size="sm" aria-label={`${slotLabel(a)} randevusunu düzenle`} onClick={() => setEditing(a)}>
                       <Pencil aria-hidden className="size-4" />
