@@ -8,7 +8,11 @@
   ],
   "scripts": {
     "dev": "npm run dev -w @diyetgo/web",
+    "dev:server": "npm run dev -w @diyetgo/server",
     "build": "npm run build -w @diyetgo/web",
+    "db:generate": "npm run db:generate -w @diyetgo/server",
+    "db:migrate": "npm run db:migrate -w @diyetgo/server",
+    "db:seed": "npm run db:seed -w @diyetgo/server",
     "lint": "oxlint",
     "test": "npm run test --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present"
