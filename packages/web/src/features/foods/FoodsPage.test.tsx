@@ -27,8 +27,8 @@ describe('Besin listesi', () => {
     const search = await screen.findByRole('searchbox', { name: 'Besin ara' })
     await user.type(search, 'YOĞURT')
     await screen.findByText('Yoğurt (tam yağlı)')
-    // Yoğurt (tam yağlı), Süzme yoğurt, Yoğurt, az yağlı
-    expect(rows()).toHaveLength(3)
+    // Yoğurt (tam yağlı), Süzme yoğurt, Yoğurt, az yağlı, Mantı (yoğurtlu)
+    expect(rows()).toHaveLength(4)
     await user.clear(search)
     await user.type(search, 'olmayan-besin')
     expect(await screen.findByText('Sonuç bulunamadı')).toBeDefined()

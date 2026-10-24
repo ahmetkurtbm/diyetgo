@@ -166,7 +166,7 @@ export function createSeedData(today: string): SeedData {
   }
   foods.push(recipe)
   // Başlangıç besin listesi tarifin ardından gelir; önceki seed kimlikleri değişmez.
-  FOOD_CATALOG.forEach(([name, baseUnit, energyKcal, proteinG, carbsG, fatG, cookingMethod], i) => {
+  FOOD_CATALOG.forEach(([name, baseUnit, energyKcal, proteinG, carbsG, fatG, cookingMethod, portion], i) => {
     foods.push({
       id: seedId('food', foodRows.length + 2 + i),
       name,
@@ -176,8 +176,8 @@ export function createSeedData(today: string): SeedData {
       proteinG,
       carbsG,
       fatG,
-      portionLabel: null,
-      portionAmount: null,
+      portionLabel: portion?.[0] ?? null,
+      portionAmount: portion?.[1] ?? null,
       source: SAMPLE_FOOD_SOURCE,
       isSample: true,
       cookingMethod,

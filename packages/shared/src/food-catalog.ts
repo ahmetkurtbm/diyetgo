@@ -1,7 +1,8 @@
 /**
  * Diyetisyenin paylaştığı başlangıç besin listesi (100 g veya 100 ml başına yaklaşık değerler).
  *
- * Değerler bir kaynakla doğrulanmamıştır; seed'de `isSample: true` ve `SAMPLE_FOOD_SOURCE` ile
+ * Sondaki kahvaltılık ve yemek grupları uygulamaya eklenen yaklaşık ortalama değerlerdir (ev tipi
+ * tariflere göre; porsiyon, ölçü ve yağ miktarıyla değişir). Hiçbir değer bir kaynakla doğrulanmamıştır; seed'de `isSample: true` ve `SAMPLE_FOOD_SOURCE` ile
  * işaretlenir. Kuru ağırlıkla verilen tahıl ve baklagillerin pişmiş hâlleri ayrı kayıttır.
  *
  * Listedeki şu besinler seed'de zaten bulunduğu için (planlarda kullanılıyor) tekrar eklenmez:
@@ -9,7 +10,7 @@
  */
 import type { CookingMethod, Food } from './schemas'
 
-export type CatalogFood = [name: string, baseUnit: Food['baseUnit'], kcal: number, protein: number, carbs: number, fat: number, cookingMethod: CookingMethod | null]
+export type CatalogFood = [name: string, baseUnit: Food['baseUnit'], kcal: number, protein: number, carbs: number, fat: number, cookingMethod: CookingMethod | null, portion?: [label: string, amount: number]]
 
 export const FOOD_CATALOG: readonly CatalogFood[] = [
   // Yumurta, et ve balık
@@ -215,4 +216,85 @@ export const FOOD_CATALOG: readonly CatalogFood[] = [
   ['Soya sosu', 'g', 53, 8, 5, 0.6, null],
   ['Domates püresi', 'g', 38, 1.7, 8.3, 0.2, null],
   ['Akçaağaç şurubu', 'g', 260, 0, 67, 0.1, null],
+  // Kahvaltılıklar ve ek ürünler (yaklaşık ortalama değerler)
+  ['Haşlanmış yumurta', 'g', 155, 12.6, 1.1, 10.6, 'boiled', ['1 adet', 50]],
+  ['Sahanda yumurta (yağda)', 'g', 196, 13.6, 0.8, 15.3, 'fried', ['1 adet', 46]],
+  ['Omlet, sade', 'g', 154, 10.6, 0.6, 11.7, 'fried', ['1 porsiyon', 110]],
+  ['Menemen', 'g', 105, 5.5, 4, 7.5, 'sauteed', ['1 porsiyon', 200]],
+  ['Siyah zeytin', 'g', 200, 1.5, 4.5, 20, null, ['5 adet', 20]],
+  ['Yeşil zeytin', 'g', 145, 1, 3.8, 15.3, null, ['5 adet', 20]],
+  ['Zeytin ezmesi', 'g', 270, 1.5, 5, 27, null, ['1 yemek kaşığı', 15]],
+  ['Reçel', 'g', 250, 0.4, 62, 0.1, null, ['1 yemek kaşığı', 20]],
+  ['Krem peynir', 'g', 342, 5.9, 4.1, 34.2, null, ['1 yemek kaşığı', 15]],
+  ['Tulum peyniri', 'g', 361, 24, 1, 29, null, ['1 dilim', 30]],
+  ['Hellim peyniri', 'g', 321, 22, 2, 25, null, ['1 dilim', 30]],
+  ['Dana salam', 'g', 253, 14, 2, 21, null, ['1 dilim', 10]],
+  ['Sosis', 'g', 258, 12, 3, 22, null, ['1 adet', 40]],
+  ['Toz şeker', 'g', 387, 0, 99.8, 0, null, ['1 tatlı kaşığı', 5]],
+  ['Çay, şekersiz', 'ml', 1, 0, 0.3, 0, null, ['1 çay bardağı', 100]],
+  ['Türk kahvesi, şekersiz', 'ml', 2, 0.1, 0.3, 0, null, ['1 fincan', 60]],
+  ['Kaşarlı tost', 'g', 289, 13, 30, 13, 'grilled', ['1 adet', 120]],
+  ['Haşlanmış patates', 'g', 87, 1.9, 20.1, 0.1, 'boiled', ['1 orta boy', 150]],
+  ['Fırında patates (yağsız)', 'g', 93, 2.5, 21.2, 0.1, 'baked', ['1 orta boy', 150]],
+  ['Patates kızartması', 'g', 312, 3.4, 41.4, 14.7, 'fried', ['1 porsiyon', 120]],
+  // Yemekler (pişmiş, yaklaşık ortalama değerler)
+  ['Pirinç pilavı', 'g', 152, 2.7, 28, 3.2, 'boiled', ['1 yemek kaşığı', 20]],
+  ['Şehriyeli pirinç pilavı', 'g', 160, 3, 29, 3.6, 'boiled', ['1 yemek kaşığı', 20]],
+  ['Makarna, haşlanmış', 'g', 155, 5.8, 31, 0.9, 'boiled', ['1 yemek kaşığı', 20]],
+  ['Kısır', 'g', 151, 3.5, 23, 5, null, ['1 yemek kaşığı', 20]],
+  ['Tavuk sote', 'g', 134, 15, 5, 6, 'sauteed', ['1 yemek kaşığı', 25]],
+  ['Et sote', 'g', 170, 17, 4, 9.5, 'sauteed', ['1 yemek kaşığı', 25]],
+  ['Mantar sote', 'g', 73, 3, 4, 5, 'sauteed', ['1 yemek kaşığı', 20]],
+  ['Izgara köfte', 'g', 231, 18, 6, 15, 'grilled', ['1 adet', 30]],
+  ['İzmir köfte', 'g', 140, 8, 9, 8, 'baked', ['1 porsiyon', 250]],
+  ['Mercimek köftesi', 'g', 160, 6, 25, 4, null, ['1 adet', 25]],
+  ['Karnıyarık', 'g', 133, 5, 8, 9, 'baked', ['1 adet', 200]],
+  ['İmam bayıldı', 'g', 119, 1.5, 8, 9, 'baked', ['1 adet', 180]],
+  ['Musakka', 'g', 120, 6, 6, 8, 'baked', ['1 porsiyon', 200]],
+  ['Hünkar beğendi', 'g', 163, 9, 7, 11, 'stewed', ['1 porsiyon', 250]],
+  ['Etli güveç', 'g', 119, 9, 6, 6.5, 'stewed', ['1 porsiyon', 250]],
+  ['Türlü', 'g', 76, 2.5, 7, 4.2, 'stewed', ['1 yemek kaşığı', 25]],
+  ['Fırında sebze (zeytinyağlı)', 'g', 81, 1.8, 9, 4.2, 'baked', ['1 yemek kaşığı', 25]],
+  ['Zeytinyağlı taze fasulye', 'g', 76, 1.6, 6.5, 4.8, 'stewed', ['1 yemek kaşığı', 25]],
+  ['Kuru fasulye yemeği', 'g', 129, 7, 15, 4.5, 'stewed', ['1 yemek kaşığı', 25]],
+  ['Nohut yemeği', 'g', 141, 7, 17, 5, 'stewed', ['1 yemek kaşığı', 25]],
+  ['Barbunya pilaki', 'g', 123, 5.5, 15, 4.5, 'stewed', ['1 yemek kaşığı', 25]],
+  ['Ispanak yemeği (kıymalı)', 'g', 90, 6, 4, 5.5, 'stewed', ['1 yemek kaşığı', 25]],
+  ['Zeytinyağlı pırasa', 'g', 86, 1.3, 9, 5, 'stewed', ['1 yemek kaşığı', 25]],
+  ['Zeytinyağlı enginar', 'g', 92, 2.5, 8, 5.5, 'stewed', ['1 adet', 120]],
+  ['Bamya yemeği', 'g', 72, 2, 7, 4, 'stewed', ['1 yemek kaşığı', 25]],
+  ['Patates yemeği', 'g', 96, 2, 13, 4, 'stewed', ['1 yemek kaşığı', 25]],
+  ['Kabak dolması (etli)', 'g', 106, 5, 9, 5.5, 'stewed', ['1 adet', 120]],
+  ['Biber dolması (zeytinyağlı)', 'g', 140, 2.5, 20, 5.5, 'stewed', ['1 adet', 100]],
+  ['Yaprak sarma (zeytinyağlı)', 'g', 180, 3, 25, 7.5, 'stewed', ['1 adet', 20]],
+  ['Lahana sarması (etli)', 'g', 109, 5, 11, 5, 'stewed', ['1 adet', 60]],
+  ['Mantı (yoğurtlu)', 'g', 191, 8, 24, 7, 'boiled', ['1 porsiyon', 250]],
+  ['Lahmacun', 'g', 232, 10, 30, 8, 'baked', ['1 adet', 120]],
+  ['Kıymalı pide', 'g', 250, 11, 30, 9.5, 'baked', ['1 porsiyon', 250]],
+  ['Su böreği (peynirli)', 'g', 262, 10, 25, 13.5, 'baked', ['1 dilim', 100]],
+  ['Sigara böreği', 'g', 328, 9, 28, 20, 'fried', ['1 adet', 30]],
+  ['Gözleme (peynirli)', 'g', 242, 9, 30, 9.5, 'baked', ['1 adet', 200]],
+  ['Tavuk döner', 'g', 199, 22, 3, 11, 'grilled', ['1 porsiyon', 150]],
+  ['Et döner', 'g', 240, 20, 3, 16.5, 'grilled', ['1 porsiyon', 150]],
+  ['Tavuk şiş', 'g', 152, 24, 1.5, 5.5, 'grilled', ['1 porsiyon', 150]],
+  ['Adana kebap', 'g', 279, 17, 2, 22.5, 'grilled', ['1 porsiyon', 150]],
+  ['Fırında tavuk baget', 'g', 209, 24, 0, 12.5, 'baked', ['1 adet', 100]],
+  ['Izgara somon', 'g', 200, 22, 0, 12.4, 'grilled', ['1 porsiyon', 150]],
+  ['Hamsi tava', 'g', 231, 18, 7, 14.5, 'fried', ['1 porsiyon', 150]],
+  ['Ezogelin çorbası', 'ml', 70, 3, 10, 2, 'boiled', ['1 kase', 250]],
+  ['Yayla çorbası', 'ml', 65, 2.5, 7, 3, 'boiled', ['1 kase', 250]],
+  ['Domates çorbası', 'ml', 56, 1.3, 7, 2.5, 'boiled', ['1 kase', 250]],
+  ['Tavuk suyu çorbası (şehriyeli)', 'ml', 45, 3, 5, 1.4, 'boiled', ['1 kase', 250]],
+  ['Tarhana çorbası', 'ml', 60, 2, 9, 1.8, 'boiled', ['1 kase', 250]],
+  ['Sebze çorbası', 'ml', 45, 1.2, 6, 1.8, 'boiled', ['1 kase', 250]],
+  ['Kremalı mantar çorbası', 'ml', 75, 1.5, 6, 5, 'boiled', ['1 kase', 250]],
+  ['Yağsız salata', 'g', 20, 1.1, 3.4, 0.2, 'raw', ['1 kase', 150]],
+  ['Çoban salata (zeytinyağlı)', 'g', 56, 1, 4.5, 3.8, 'raw', ['1 kase', 150]],
+  ['Cacık', 'g', 49, 2.5, 3.5, 2.8, null, ['1 kase', 200]],
+  ['Haydari', 'g', 152, 6, 4, 12.5, null, ['1 yemek kaşığı', 20]],
+  ['Humus', 'g', 166, 7.9, 14.3, 9.6, null, ['1 yemek kaşığı', 15]],
+  ['Sütlaç', 'g', 120, 3.3, 20, 3, 'baked', ['1 kase', 150]],
+  ['Muhallebi', 'g', 116, 3.2, 19, 3, 'boiled', ['1 kase', 150]],
+  ['İrmik helvası', 'g', 365, 4, 50, 16.5, null, ['1 yemek kaşığı', 20]],
+  ['Baklava', 'g', 431, 6, 50, 23, 'baked', ['1 dilim', 40]],
 ]

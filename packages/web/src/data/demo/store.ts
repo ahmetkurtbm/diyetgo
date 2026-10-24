@@ -36,8 +36,9 @@ export const STORAGE_PREFIX = 'diyetgo:'
  * - 3: besinlere pişirme yöntemi ve tarif alanları (`cookingMethod`, `recipeYieldG`); tarif malzemeleri.
  * - 4: planlara tür ve haftalık adetler (`kind`, `weeklyQuotas`); mevcut planlar günlük menüdür.
  * - 5: başlangıç besin listesi (`FOOD_CATALOG`) eksikse eklenir; mevcut besinlere dokunulmaz.
+ * - 6: listeye eklenen kahvaltılıklar ve yemekler aynı şekilde eklenir.
  */
-const VERSION = 5
+const VERSION = 6
 
 export type DemoData = SeedData
 type Envelope = { version: typeof VERSION; seededAt: string; data: DemoData }
@@ -66,6 +67,7 @@ const upgrades: Record<number, (data: Record<string, unknown>, today: string) =>
   2: (data) => ({ ...data, foods: withDefaults(data.foods, { cookingMethod: null, recipeYieldG: null }), recipeIngredients: [] }),
   3: (data) => ({ ...data, mealPlans: withDefaults(data.mealPlans, { kind: 'daily', weeklyQuotas: [] }) }),
   4: (data, today) => ({ ...data, foods: withCatalogFoods(data.foods, today) }),
+  5: (data, today) => ({ ...data, foods: withCatalogFoods(data.foods, today) }),
 }
 
 /**
