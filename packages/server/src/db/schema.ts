@@ -147,6 +147,8 @@ export const measurements = pgTable(
     heightCm: doublePrecision('height_cm'),
     waistCm: doublePrecision('waist_cm'),
     hipCm: doublePrecision('hip_cm'),
+    /** Uyluk (bacak) çevresi. */
+    thighCm: doublePrecision('thigh_cm'),
     bodyFatPct: doublePrecision('body_fat_pct'),
     notes: text('notes'),
     ...stamps(),
@@ -306,4 +308,56 @@ export const clientGoals = pgTable(
     uniqueIndex('client_goals_one_open_per_client').on(t.clientId).where(sql`${t.validTo} is null`),
     check('client_goals_date_order', sql`${t.validTo} is null or ${t.validTo} >= ${t.validFrom}`),
   ],
+)
+
+// ---------- Danışanın sağlık bilgileri ve öneriler ----------
+
+/** Danışana bağlı, sahibi olan ve yalnızca danışan altında listelenen kayıtlar için ortak sütunlar. */
+const clientChild = () => ({
+  id: id(),
+  ownerId: ownerId(),
+  clientId: uuid('client_id')
+    .notNull()
+    .references(() => clients.id, { onDelete: 'restrict' }),
+})
+
+export const clientMedications = pgTable(
+  'client_medications',
+  {
+    ...clientChild(),
+    name: text('name').notNull(),
+    dose: text('dose'),
+    frequency: text('frequency'),
+    startedOn: calendarDate('started_on'),
+    endedOn: calendarDate('ended_on'),
+    notes: text('notes'),
+    ...stamps(),
+  },
+  (t) => [
+    index('client_medications_client_id_idx').on(t.ownerId, t.clientId),
+    check('client_medications_date_order', sql`${t.startedOn} is null or ${t.endedOn} is null or ${t.endedOn} >= ${t.startedOn}`),
+  ],
+)
+
+export const clientConditions = pgTable(
+  'client_conditions',
+  {
+    ...clientChild(),
+    name: text('name').notNull(),
+    diagnosedOn: calendarDate('diagnosed_on'),
+    notes: text('notes'),
+    ...stamps(),
+  },
+  (t) => [index('client_conditions_client_id_idx').on(t.ownerId, t.clientId)],
+)
+
+export const clientRecommendations = pgTable(
+  'client_recommendations',
+  {
+    ...clientChild(),
+    givenOn: calendarDate('given_on').notNull(),
+    text: text('text').notNull(),
+    ...stamps(),
+  },
+  (t) => [index('client_recommendations_client_id_idx').on(t.ownerId, t.clientId, t.givenOn)],
 )

@@ -11,8 +11,11 @@ import {
   canAddFoodToMeal,
   canAddPlanOrAppointment,
   canUseMealType,
+  clientConditionInputSchema,
   clientGoalInputSchema,
   clientInputSchema,
+  clientMedicationInputSchema,
+  clientRecommendationInputSchema,
   findAppointmentConflicts,
   foodInputSchema,
   goalPeriodsOverlap,
@@ -29,7 +32,7 @@ import {
   type MealPlan,
   type PlanMeal,
 } from '@diyetgo/shared'
-import { RepositoryError, type Repositories } from '../repositories'
+import { RepositoryError, type ClientRecordRepository, type Repositories } from '../repositories'
 import type { DemoData, DemoStore } from './store'
 
 type Schema<T> = {
@@ -58,6 +61,9 @@ function find<T extends { id: string }>(records: T[], id: string, label: string)
 function removeWhere<T>(records: T[], predicate: (record: T) => boolean): void {
   for (let i = records.length - 1; i >= 0; i--) if (predicate(records[i]!)) records.splice(i, 1)
 }
+
+/** PostgreSQL'in `DESC` sıralaması gibi: boş değerler (`null`) önce, ardından büyükten küçüğe. */
+const descNullsFirst = (a: string | null, b: string | null) => (a === b ? 0 : a === null ? -1 : b === null ? 1 : b.localeCompare(a))
 
 const collator = new Intl.Collator('tr-TR')
 const normalize = (value: string) => value.toLocaleLowerCase('tr-TR')
@@ -126,6 +132,45 @@ export function createDemoRepositories(
     }
   }
 
+  type RecordCollection = 'clientMedications' | 'clientConditions' | 'clientRecommendations'
+
+  /** İlaç, hastalık ve öneri: danışana bağlı, alt kaydı olmayan kayıtlar için ortak davranış. */
+  function clientRecords<K extends RecordCollection, I extends { clientId: string }>(
+    collection: K,
+    schema: Schema<I>,
+    label: string,
+    compare: (a: DemoData[K][number], b: DemoData[K][number]) => number,
+  ): ClientRecordRepository<DemoData[K][number], I> {
+    type R = DemoData[K][number]
+    const records = (data: DemoData) => data[collection] as R[]
+    return {
+      async listByClient(clientId) {
+        return records(read())
+          .filter((r) => r.clientId === clientId)
+          .sort(compare)
+      },
+      create: (input) =>
+        mutate((data, ts) => {
+          const parsed = parse(schema, input)
+          find(data.clients, parsed.clientId, 'Danışan')
+          const record = { ...parsed, ...stamp(ts) } as unknown as R
+          records(data).push(record)
+          return record
+        }),
+      update: (id, input) =>
+        mutate((data, ts) => {
+          const parsed = parse(schema, input)
+          find(data.clients, parsed.clientId, 'Danışan')
+          return Object.assign(find(records(data), id, label), parsed, { updatedAt: ts })
+        }),
+      remove: (id) =>
+        mutate((data) => {
+          find(records(data), id, label)
+          removeWhere(records(data), (r) => r.id === id)
+        }),
+    }
+  }
+
   return {
     mode: 'demo',
     subscribe: (listener) => store.subscribe(listener),
@@ -159,9 +204,12 @@ export function createDemoRepositories(
             data.measurements.some((m) => m.clientId === id) ||
             data.mealPlans.some((p) => p.clientId === id) ||
             data.appointments.some((a) => a.clientId === id) ||
-            data.clientGoals.some((g) => g.clientId === id)
+            data.clientGoals.some((g) => g.clientId === id) ||
+            data.clientMedications.some((m) => m.clientId === id) ||
+            data.clientConditions.some((c) => c.clientId === id) ||
+            data.clientRecommendations.some((r) => r.clientId === id)
           if (related) {
-            throw new RepositoryError('restricted', 'Bu danışanın ölçüm, plan, randevu veya hedef kayıtları var. Silmek yerine arşivleyin.')
+            throw new RepositoryError('restricted', 'Bu danışanın ölçüm, plan, randevu, hedef, ilaç, hastalık veya öneri kayıtları var. Silmek yerine arşivleyin.')
           }
           removeWhere(data.clients, (c) => c.id === id)
         }),
@@ -475,6 +523,20 @@ export function createDemoRepositories(
           removeWhere(data.clientGoals, (g) => g.id === id)
         }),
     },
+
+    medications: clientRecords(
+      'clientMedications',
+      clientMedicationInputSchema,
+      'İlaç kaydı',
+      (a, b) => descNullsFirst(a.endedOn, b.endedOn) || descNullsFirst(a.startedOn, b.startedOn) || a.createdAt.localeCompare(b.createdAt),
+    ),
+    conditions: clientRecords('clientConditions', clientConditionInputSchema, 'Hastalık kaydı', (a, b) => a.createdAt.localeCompare(b.createdAt)),
+    recommendations: clientRecords(
+      'clientRecommendations',
+      clientRecommendationInputSchema,
+      'Öneri',
+      (a, b) => b.givenOn.localeCompare(a.givenOn) || b.createdAt.localeCompare(a.createdAt),
+    ),
 
     demo: {
       async info() {

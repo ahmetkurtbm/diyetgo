@@ -15,6 +15,13 @@
       "when": 1792854652217,
       "tag": "0001_multi_dietitian_auth",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792862923158,
+      "tag": "0002_client_health_records",
+      "breakpoints": true
     }
   ]
 }

@@ -5,7 +5,7 @@
  * Her senaryo kendi kayıtlarını oluşturur; mevcut (seed) verilere dayanmaz. Randevular seed
  * verisiyle çakışmaması için uzak bir tarihte (2031) oluşturulur.
  */
-import type { AppointmentInput, ClientGoalInput, ClientInput, FoodInput, MealPlanInput } from '@diyetgo/shared'
+import type { AppointmentInput, ClientGoalInput, ClientInput, ClientMedicationInput, FoodInput, MealPlanInput } from '@diyetgo/shared'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { RepositoryError, type Repositories, type RepositoryErrorCode } from './repositories'
 
@@ -101,7 +101,7 @@ export function describeRepositoryContract(name: string, setup: () => Promise<Re
 
       it('ilişkili kaydı olan danışanı silmez (restricted), olmayanı siler', async () => {
         const withRecord = await createClient()
-        await repos.measurements.create({ clientId: withRecord.id, measuredOn: '2031-05-01', weightKg: 70, heightCm: null, waistCm: null, hipCm: null, bodyFatPct: null, notes: null })
+        await repos.measurements.create({ clientId: withRecord.id, measuredOn: '2031-05-01', weightKg: 70, heightCm: null, waistCm: null, hipCm: null, thighCm: null, bodyFatPct: null, notes: null })
         await expectError(repos.clients.remove(withRecord.id), 'restricted')
 
         const alone = await createClient()
@@ -113,7 +113,7 @@ export function describeRepositoryContract(name: string, setup: () => Promise<Re
     describe('ölçümler', () => {
       it('en az bir değer ister; en yeni ölçümü önce listeler, günceller ve siler', async () => {
         const client = await createClient()
-        const base = { clientId: client.id, weightKg: null, heightCm: null, waistCm: null, hipCm: null, bodyFatPct: null, notes: null }
+        const base = { clientId: client.id, weightKg: null, heightCm: null, waistCm: null, hipCm: null, thighCm: null, bodyFatPct: null, notes: null }
         await expectError(repos.measurements.create({ ...base, measuredOn: '2031-05-01' }), 'validation')
 
         const older = await repos.measurements.create({ ...base, measuredOn: '2031-05-01', weightKg: 72.5 })
@@ -265,6 +265,60 @@ export function describeRepositoryContract(name: string, setup: () => Promise<Re
 
         await repos.appointments.remove(appointment.id)
         expect(await repos.appointments.list({ clientId: client.id })).toEqual([])
+      })
+    })
+
+    describe('ilaçlar, hastalıklar ve öneriler', () => {
+      const medication = (clientId: string, overrides: Partial<ClientMedicationInput> = {}): ClientMedicationInput => ({
+        clientId,
+        name: 'Örnek ilaç',
+        dose: null,
+        frequency: null,
+        startedOn: null,
+        endedOn: null,
+        notes: null,
+        ...overrides,
+      })
+
+      it('ilaçları devam edenler önce olacak şekilde listeler; günceller, siler ve tarih sırasını doğrular', async () => {
+        const client = await createClient()
+        const ended = await repos.medications.create(medication(client.id, { name: 'Biten', startedOn: '2031-01-01', endedOn: '2031-02-01' }))
+        const older = await repos.medications.create(medication(client.id, { name: 'Eski devam eden', startedOn: '2031-01-10' }))
+        const newer = await repos.medications.create(medication(client.id, { name: 'Yeni devam eden', startedOn: '2031-03-01', dose: '500 mg' }))
+        expect((await repos.medications.listByClient(client.id)).map((m) => m.id)).toEqual([newer.id, older.id, ended.id])
+
+        const error = await expectError(repos.medications.update(older.id, medication(client.id, { startedOn: '2031-05-02', endedOn: '2031-05-01' })), 'validation')
+        expect(error.fieldErrors.endedOn).toBeTruthy()
+        expect((await repos.medications.update(older.id, medication(client.id, { name: 'Güncel', frequency: 'Günde 1' }))).frequency).toBe('Günde 1')
+
+        await repos.medications.remove(ended.id)
+        expect(await repos.medications.listByClient(client.id)).toHaveLength(2)
+        await expectError(repos.medications.remove(ended.id), 'not_found')
+        await expectError(repos.medications.create(medication(MISSING_ID)), 'not_found')
+      })
+
+      it('hastalıkları eklenme sırasıyla, önerileri en yenisi önce listeler', async () => {
+        const client = await createClient()
+        const first = await repos.conditions.create({ clientId: client.id, name: 'Birinci', diagnosedOn: null, notes: null })
+        const second = await repos.conditions.create({ clientId: client.id, name: 'İkinci', diagnosedOn: '2031-01-01', notes: null })
+        expect((await repos.conditions.listByClient(client.id)).map((c) => c.id)).toEqual([first.id, second.id])
+        expect((await repos.conditions.update(first.id, { clientId: client.id, name: 'Birinci (güncel)', diagnosedOn: null, notes: 'Not' })).notes).toBe('Not')
+        await expectError(repos.conditions.create({ clientId: client.id, name: ' ', diagnosedOn: null, notes: null }), 'validation')
+
+        const old = await repos.recommendations.create({ clientId: client.id, givenOn: '2031-01-01', text: 'Eski öneri' })
+        const recent = await repos.recommendations.create({ clientId: client.id, givenOn: '2031-02-01', text: 'Yeni öneri' })
+        expect((await repos.recommendations.listByClient(client.id)).map((r) => r.id)).toEqual([recent.id, old.id])
+        expect(await repos.recommendations.listByClient(MISSING_ID)).toEqual([])
+      })
+
+      it('ilacı, hastalığı veya önerisi olan danışan silinemez', async () => {
+        const withRecommendation = await createClient()
+        await repos.recommendations.create({ clientId: withRecommendation.id, givenOn: '2031-01-01', text: 'Öneri' })
+        await expectError(repos.clients.remove(withRecommendation.id), 'restricted')
+
+        const withCondition = await createClient()
+        await repos.conditions.create({ clientId: withCondition.id, name: 'Durum', diagnosedOn: null, notes: null })
+        await expectError(repos.clients.remove(withCondition.id), 'restricted')
       })
     })
 

@@ -64,7 +64,7 @@ export function createClientService(db: Db, ownerId: string) {
         await db.delete(clients).where(byIdAndOwner(clients, id, ownerId))
       } catch (error) {
         if (isRestrictViolation(error)) {
-          throw new ApiError('restricted', 'Bu danışanın ölçüm, plan, randevu veya hedef kayıtları var. Silmek yerine arşivleyin.')
+          throw new ApiError('restricted', 'Bu danışanın ölçüm, plan, randevu, hedef, ilaç, hastalık veya öneri kayıtları var. Silmek yerine arşivleyin.')
         }
         throw error
       }

@@ -56,7 +56,7 @@ describe('bozuk veya tanınmayan veri asla ezilmez', () => {
   it.each([
     ['bozuk JSON', '{bozuk', 'corrupt'],
     ['JSON olmayan değer', '42', 'corrupt'],
-    ['bilinmeyen sürüm', JSON.stringify({ version: 2, seededAt: NOW.toISOString(), data: {} }), 'unsupported_version'],
+    ['bilinmeyen sürüm', JSON.stringify({ version: 99, seededAt: NOW.toISOString(), data: {} }), 'unsupported_version'],
     ['eksik koleksiyon', JSON.stringify({ version: 1, seededAt: NOW.toISOString(), data: { clients: [] } }), 'invalid'],
   ])('%s', (_name, raw, reason) => {
     const storage = new MemoryStorage()
@@ -71,10 +71,45 @@ describe('bozuk veya tanınmayan veri asla ezilmez', () => {
     const storage = new MemoryStorage()
     const data = createSeedData('2026-03-10')
     data.foods[0]!.energyKcal = -5
-    const raw = JSON.stringify({ version: 1, seededAt: NOW.toISOString(), data })
+    const raw = JSON.stringify({ version: 2, seededAt: NOW.toISOString(), data })
     storage.setItem(STORAGE_KEY, raw)
     const result = openDemoStore({ storage, now })
     expect(result.ok).toBe(false)
+    expect(storage.getItem(STORAGE_KEY)).toBe(raw)
+  })
+})
+
+describe('sürüm yükseltme', () => {
+  /** Sürüm 1 biçimi: uyluk çevresi ve ilaç, hastalık, öneri koleksiyonları yok. */
+  function versionOneData() {
+    const { clientMedications: _m, clientConditions: _c, clientRecommendations: _r, ...data } = createSeedData('2026-03-10')
+    return { ...data, measurements: data.measurements.map(({ thighCm: _t, ...m }) => m) }
+  }
+
+  it('sürüm 1 veriyi kayıpsız yükseltir ve yeni biçimde kaydeder', () => {
+    const storage = new MemoryStorage()
+    const old = versionOneData()
+    old.clients[0]!.firstName = 'Kullanıcının değişikliği'
+    storage.setItem(STORAGE_KEY, JSON.stringify({ version: 1, seededAt: '2026-01-01T00:00:00.000Z', data: old }))
+
+    const store = open(storage)
+    const { version, seededAt, data } = store.read()
+    expect(version).toBe(2)
+    expect(seededAt).toBe('2026-01-01T00:00:00.000Z')
+    expect(data.clients[0]!.firstName).toBe('Kullanıcının değişikliği')
+    expect(data.measurements).toHaveLength(old.measurements.length)
+    expect(data.measurements.every((m) => m.thighCm === null)).toBe(true)
+    expect(data).toMatchObject({ clientMedications: [], clientConditions: [], clientRecommendations: [] })
+    expect(JSON.parse(storage.getItem(STORAGE_KEY)!).version).toBe(2)
+  })
+
+  it('yükseltmeden sonra da geçersiz olan sürüm 1 veriyi ezmez', () => {
+    const storage = new MemoryStorage()
+    const old = versionOneData()
+    old.foods[0]!.energyKcal = -5
+    const raw = JSON.stringify({ version: 1, seededAt: NOW.toISOString(), data: old })
+    storage.setItem(STORAGE_KEY, raw)
+    expect(openDemoStore({ storage, now }).ok).toBe(false)
     expect(storage.getItem(STORAGE_KEY)).toBe(raw)
   })
 })

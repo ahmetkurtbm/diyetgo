@@ -108,14 +108,14 @@ describe('ölçümler', () => {
     const refs = await seedRefs(repos)
     const list = await repos.measurements.listByClient(refs.deniz.id)
     expect(list.map((m) => m.measuredOn)).toEqual([...list.map((m) => m.measuredOn)].sort().reverse())
-    const input = { clientId: '00000000-0000-4000-8000-0000000000ff', measuredOn: TODAY, weightKg: 70, heightCm: null, waistCm: null, hipCm: null, bodyFatPct: null, notes: null }
+    const input = { clientId: '00000000-0000-4000-8000-0000000000ff', measuredOn: TODAY, weightKg: 70, heightCm: null, waistCm: null, hipCm: null, thighCm: null, bodyFatPct: null, notes: null }
     await expectError(repos.measurements.create(input), 'not_found')
   })
 
   it('en az bir değer ister; ekler, günceller ve siler', async () => {
     const { repos } = setup()
     const refs = await seedRefs(repos)
-    const input = { clientId: refs.ece.id, measuredOn: TODAY, weightKg: null, heightCm: null, waistCm: null, hipCm: null, bodyFatPct: null, notes: null }
+    const input = { clientId: refs.ece.id, measuredOn: TODAY, weightKg: null, heightCm: null, waistCm: null, hipCm: null, thighCm: null, bodyFatPct: null, notes: null }
     expect((await expectError(repos.measurements.create(input), 'validation')).fieldErrors.weightKg).toBe('En az bir ölçüm değeri girilmeli')
     const created = await repos.measurements.create({ ...input, weightKg: 63.5 })
     expect((await repos.measurements.update(created.id, { ...input, weightKg: 63 })).weightKg).toBe(63)

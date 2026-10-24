@@ -1,5 +1,6 @@
 import { Router, type Response } from 'express'
 import type { Db } from '../db/client'
+import { createConditionService, createMedicationService, createRecommendationService } from '../services/client-records'
 import { createClientService } from '../services/clients'
 import { createGoalService } from '../services/goals'
 import { createMeasurementService } from '../services/measurements'
@@ -35,6 +36,15 @@ export function clientsRouter(db: Db) {
   })
   router.get('/:id/goals', async (req, res) => {
     res.json(await goals(res).listByClient(req.params.id))
+  })
+  router.get('/:id/medications', async (req, res) => {
+    res.json(await createMedicationService(db, ownerOf(res)).listByClient(req.params.id))
+  })
+  router.get('/:id/conditions', async (req, res) => {
+    res.json(await createConditionService(db, ownerOf(res)).listByClient(req.params.id))
+  })
+  router.get('/:id/recommendations', async (req, res) => {
+    res.json(await createRecommendationService(db, ownerOf(res)).listByClient(req.params.id))
   })
 
   return router

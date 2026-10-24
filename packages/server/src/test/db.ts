@@ -9,6 +9,7 @@ export const db = createDb(testDatabaseUrl())
 export async function resetDatabase() {
   await db.execute(sql`
     truncate table plan_meal_items, plan_meals, meal_plans, appointments, client_goals,
-      measurements, clients, foods, meal_types, sessions, accounts, verifications, users
+      measurements, client_medications, client_conditions, client_recommendations, clients, foods, meal_types,
+      sessions, accounts, verifications, users
   `)
 }

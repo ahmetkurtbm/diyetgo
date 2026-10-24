@@ -16,12 +16,13 @@ import { WeightChart } from './WeightChart'
 
 const value = (v: number | null, unit: string) => (v === null ? '—' : `${formatNumber(v)} ${unit}`)
 
-const sortColumns: SortColumns<Measurement, 'date' | 'weight' | 'height' | 'waist' | 'hip' | 'fat'> = {
+const sortColumns: SortColumns<Measurement, 'date' | 'weight' | 'height' | 'waist' | 'hip' | 'thigh' | 'fat'> = {
   date: { kind: 'date', value: (m) => m.measuredOn },
   weight: { kind: 'number', value: (m) => m.weightKg },
   height: { kind: 'number', value: (m) => m.heightCm },
   waist: { kind: 'number', value: (m) => m.waistCm },
   hip: { kind: 'number', value: (m) => m.hipCm },
+  thigh: { kind: 'number', value: (m) => m.thighCm },
   fat: { kind: 'number', value: (m) => m.bodyFatPct },
 }
 
@@ -83,6 +84,7 @@ export function MeasurementsCard({ clientId }: { clientId: string }) {
                 <SortableTh label="Boy" column="height" align="right" sort={sorting.sort} onSort={sorting.toggle} />
                 <SortableTh label="Bel" column="waist" align="right" sort={sorting.sort} onSort={sorting.toggle} />
                 <SortableTh label="Kalça" column="hip" align="right" sort={sorting.sort} onSort={sorting.toggle} />
+                <SortableTh label="Uyluk" column="thigh" align="right" sort={sorting.sort} onSort={sorting.toggle} />
                 <SortableTh label="Yağ oranı" column="fat" align="right" sort={sorting.sort} onSort={sorting.toggle} />
                 <Th>
                   <span className="sr-only">İşlemler</span>
@@ -100,6 +102,7 @@ export function MeasurementsCard({ clientId }: { clientId: string }) {
                   <Td className="text-right whitespace-nowrap tabular-nums">{value(m.heightCm, 'cm')}</Td>
                   <Td className="text-right whitespace-nowrap tabular-nums">{value(m.waistCm, 'cm')}</Td>
                   <Td className="text-right whitespace-nowrap tabular-nums">{value(m.hipCm, 'cm')}</Td>
+                  <Td className="text-right whitespace-nowrap tabular-nums">{value(m.thighCm, 'cm')}</Td>
                   <Td className="text-right whitespace-nowrap tabular-nums">{m.bodyFatPct === null ? '—' : `%${formatNumber(m.bodyFatPct)}`}</Td>
                   <Td className="text-right whitespace-nowrap">
                     <Button variant="ghost" size="sm" aria-label={`${formatDate(m.measuredOn)} ölçümünü düzenle`} onClick={() => setEditing(m)}>

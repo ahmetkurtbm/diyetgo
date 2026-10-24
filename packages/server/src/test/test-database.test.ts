@@ -33,7 +33,10 @@ describe('migrations', () => {
     expect(tables.rows.map((r) => r.table_name)).toEqual([
       'accounts',
       'appointments',
+      'client_conditions',
       'client_goals',
+      'client_medications',
+      'client_recommendations',
       'clients',
       'foods',
       'meal_plans',

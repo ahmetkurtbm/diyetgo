@@ -15,8 +15,8 @@ export function reportWeek(end: string): { start: string; end: string } {
   return { start: addDays(end, -6), end }
 }
 
-type MeasurementValues = Pick<Measurement, 'measuredOn' | 'createdAt' | 'weightKg' | 'waistCm' | 'hipCm' | 'bodyFatPct'>
-export type MetricKey = 'weightKg' | 'waistCm' | 'hipCm' | 'bodyFatPct'
+type MeasurementValues = Pick<Measurement, 'measuredOn' | 'createdAt' | 'weightKg' | 'waistCm' | 'hipCm' | 'thighCm' | 'bodyFatPct'>
+export type MetricKey = 'weightKg' | 'waistCm' | 'hipCm' | 'thighCm' | 'bodyFatPct'
 
 /** Verilen ölçüm türünün `onDate` gününe kadarki değerleri, eskiden yeniye. Aynı gün birden çok ölçümde son kayıt geçerlidir. */
 export function metricSeries(measurements: readonly MeasurementValues[], key: MetricKey, onDate: string): DatedValue[] {

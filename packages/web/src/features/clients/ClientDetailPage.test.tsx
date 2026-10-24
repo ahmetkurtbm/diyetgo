@@ -107,3 +107,39 @@ describe('Ölçümler', () => {
     expect(await screen.findByText('Grafik için en az iki kilo ölçümü gerekir.')).toBeDefined()
   })
 })
+
+describe('Sağlık bilgileri ve öneriler', () => {
+  const list = (name: string) => screen.findByRole('list', { name })
+
+  it('seed kayıtlarını gösterir; ilaç ekler, öneriyi düzenler ve hastalığı siler', async () => {
+    const { user } = renderApp(`/clients/${SEED_IDS.deniz}`)
+    expect(within(await list('Hastalıklar ve sağlık durumu')).getByText('Demir eksikliği (örnek)')).toBeDefined()
+    expect(within(await list('İlaçlar ve takviyeler')).getByText('Demir takviyesi (örnek) · 1 tablet')).toBeDefined()
+    expect(within(await list('Diyetisyen önerileri')).getByText(/Gün içine yayarak su için/)).toBeDefined()
+
+    await user.click(screen.getByRole('button', { name: 'İlaç ekle' }))
+    let dialog = await screen.findByRole('dialog', { name: 'İlaç ekle' })
+    await user.click(within(dialog).getByRole('button', { name: 'Ekle' }))
+    expect(within(dialog).getByText('Bu alan zorunludur')).toBeDefined()
+    await user.type(within(dialog).getByLabelText(/İlaç veya takviye adı/), 'Örnek vitamin')
+    await user.type(within(dialog).getByLabelText('Doz'), '1000 IU')
+    await user.click(within(dialog).getByRole('button', { name: 'Ekle' }))
+    expect(await screen.findByText('İlaç kaydı eklendi.')).toBeDefined()
+    expect(within(await list('İlaçlar ve takviyeler')).getByText('Örnek vitamin · 1000 IU')).toBeDefined()
+
+    const recommendations = await list('Diyetisyen önerileri')
+    await user.click(within(recommendations).getByRole('button', { name: /kaydını düzenle/ }))
+    dialog = await screen.findByRole('dialog', { name: 'Öneri düzenle' })
+    const text = within(dialog).getByLabelText(/^Öneri/)
+    await user.clear(text)
+    await user.type(text, 'Kahvaltıyı atlamayın.')
+    await user.click(within(dialog).getByRole('button', { name: 'Kaydet' }))
+    expect(await screen.findByText('Öneri güncellendi.')).toBeDefined()
+    expect(within(await list('Diyetisyen önerileri')).getByText('Kahvaltıyı atlamayın.')).toBeDefined()
+
+    await user.click(within(await list('Hastalıklar ve sağlık durumu')).getByRole('button', { name: /kaydını sil/ }))
+    await user.click(await screen.findByRole('button', { name: 'Sil' }))
+    expect(await screen.findByText('Hastalık kaydı silindi.')).toBeDefined()
+    expect(await screen.findByText('Kayıtlı hastalık yok')).toBeDefined()
+  })
+})

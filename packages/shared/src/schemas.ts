@@ -89,12 +89,14 @@ const measurementFields = z.object({
   heightCm: positive(LIMITS.heightCm).nullable(),
   waistCm: positive(LIMITS.circumferenceCm).nullable(),
   hipCm: positive(LIMITS.circumferenceCm).nullable(),
+  /** Uyluk (bacak) çevresi; uyluğun en geniş yerinden. */
+  thighCm: positive(LIMITS.circumferenceCm).nullable(),
   bodyFatPct: positive(LIMITS.bodyFatPct).nullable(),
   notes: optionalText(LIMITS.notes),
 })
 
 function checkMeasurement(m: z.infer<typeof measurementFields>, ctx: Ctx) {
-  if ([m.weightKg, m.heightCm, m.waistCm, m.hipCm, m.bodyFatPct].every((v) => v === null)) {
+  if ([m.weightKg, m.heightCm, m.waistCm, m.hipCm, m.thighCm, m.bodyFatPct].every((v) => v === null)) {
     ctx.addIssue({ code: 'custom', path: ['weightKg'], message: 'En az bir ölçüm değeri girilmeli' })
   }
 }
@@ -260,3 +262,55 @@ export const clientGoalInputSchema = clientGoalFields.superRefine(checkClientGoa
 export const clientGoalSchema = clientGoalFields.extend(recordFields).superRefine(checkClientGoal)
 export type ClientGoalInput = z.infer<typeof clientGoalInputSchema>
 export type ClientGoal = z.infer<typeof clientGoalSchema>
+
+// ---------- Danışanın sağlık bilgileri ve öneriler ----------
+//
+// Diyetisyenin kaydı içindir: uygulama bu bilgilerden teşhis, ilaç etkileşimi veya tedavi önerisi
+// üretmez. Gerçek kişisel veya sağlık verisi yalnızca KVKK gereksinimleri karşılandığında girilmelidir.
+
+/** Danışanın kullandığı ilaç veya takviye. */
+const clientMedicationFields = z.object({
+  clientId: idSchema,
+  name: requiredText(LIMITS.name),
+  /** Örn. "500 mg". */
+  dose: optionalText(LIMITS.name),
+  /** Örn. "Günde 2 kez, yemekten sonra". */
+  frequency: optionalText(LIMITS.name),
+  startedOn: calendarDateSchema.nullable(),
+  endedOn: calendarDateSchema.nullable(),
+  notes: optionalText(LIMITS.notes),
+})
+
+function checkMedication(m: z.infer<typeof clientMedicationFields>, ctx: Ctx) {
+  if (m.startedOn !== null) checkDateOrder(m.startedOn, m.endedOn, ctx, 'endedOn')
+}
+
+export const clientMedicationInputSchema = clientMedicationFields.superRefine(checkMedication)
+export const clientMedicationSchema = clientMedicationFields.extend(recordFields).superRefine(checkMedication)
+export type ClientMedicationInput = z.infer<typeof clientMedicationInputSchema>
+export type ClientMedication = z.infer<typeof clientMedicationSchema>
+
+/** Danışanın bildirdiği hastalık veya sağlık durumu (ör. tip 2 diyabet, çölyak, hipotiroidi). */
+const clientConditionFields = z.object({
+  clientId: idSchema,
+  name: requiredText(LIMITS.name),
+  diagnosedOn: calendarDateSchema.nullable(),
+  notes: optionalText(LIMITS.notes),
+})
+
+export const clientConditionInputSchema = clientConditionFields
+export const clientConditionSchema = clientConditionFields.extend(recordFields)
+export type ClientConditionInput = z.infer<typeof clientConditionInputSchema>
+export type ClientCondition = z.infer<typeof clientConditionSchema>
+
+/** Diyetisyenin danışana özel önerisi; tarihlidir, geçmiş öneriler korunur. */
+const clientRecommendationFields = z.object({
+  clientId: idSchema,
+  givenOn: calendarDateSchema,
+  text: requiredText(LIMITS.notes),
+})
+
+export const clientRecommendationInputSchema = clientRecommendationFields
+export const clientRecommendationSchema = clientRecommendationFields.extend(recordFields)
+export type ClientRecommendationInput = z.infer<typeof clientRecommendationInputSchema>
+export type ClientRecommendation = z.infer<typeof clientRecommendationSchema>

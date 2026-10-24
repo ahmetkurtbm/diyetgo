@@ -15,6 +15,7 @@ const numberFields = [
   ['heightCm', 'Boy (cm)'],
   ['waistCm', 'Bel çevresi (cm)'],
   ['hipCm', 'Kalça çevresi (cm)'],
+  ['thighCm', 'Uyluk (bacak) çevresi (cm)'],
   ['bodyFatPct', 'Vücut yağ oranı (%)'],
 ] as const
 
@@ -67,6 +68,7 @@ function MeasurementForm({
     heightCm: toText(measurement?.heightCm ?? null),
     waistCm: toText(measurement?.waistCm ?? null),
     hipCm: toText(measurement?.hipCm ?? null),
+    thighCm: toText(measurement?.thighCm ?? null),
     bodyFatPct: toText(measurement?.bodyFatPct ?? null),
   })
 
@@ -79,6 +81,7 @@ function MeasurementForm({
       heightCm: parseOptionalNumber(numbers.heightCm),
       waistCm: parseOptionalNumber(numbers.waistCm),
       hipCm: parseOptionalNumber(numbers.hipCm),
+      thighCm: parseOptionalNumber(numbers.thighCm),
       bodyFatPct: parseOptionalNumber(numbers.bodyFatPct),
       notes: emptyToNull(notes),
     }

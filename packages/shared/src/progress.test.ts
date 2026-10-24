@@ -7,6 +7,7 @@ const m = (measuredOn: string, values: { weightKg?: number; waistCm?: number }, 
   weightKg: values.weightKg ?? null,
   waistCm: values.waistCm ?? null,
   hipCm: null,
+  thighCm: null,
   bodyFatPct: null,
 })
 

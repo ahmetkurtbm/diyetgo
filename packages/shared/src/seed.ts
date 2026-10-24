@@ -12,7 +12,10 @@ import { addDays, istanbulTimeToUtc } from './dates'
 import type {
   Appointment,
   Client,
+  ClientCondition,
   ClientGoal,
+  ClientMedication,
+  ClientRecommendation,
   Food,
   MealPlan,
   MealType,
@@ -33,6 +36,9 @@ export type SeedData = {
   planMealItems: PlanMealItem[]
   appointments: Appointment[]
   clientGoals: ClientGoal[]
+  clientMedications: ClientMedication[]
+  clientConditions: ClientCondition[]
+  clientRecommendations: ClientRecommendation[]
 }
 
 const GROUP = {
@@ -45,6 +51,10 @@ const GROUP = {
   planMealItem: 7,
   appointment: 8,
   clientGoal: 9,
+  // 10 (0x0a) server'daki demo diyetisyen hesabıyla karışmasın diye kullanılmaz.
+  clientMedication: 11,
+  clientCondition: 12,
+  clientRecommendation: 13,
 } as const
 
 /** Sabit, geçerli bir UUID (v4 biçiminde) üretir: ilk blok varlık grubu, son blok sıra numarasıdır. */
@@ -79,15 +89,16 @@ export function createSeedData(today: string): SeedData {
     heightCm: null,
     waistCm: null,
     hipCm: null,
+    thighCm: null,
     bodyFatPct: null,
     notes: null,
     ...stamps,
     ...v,
   })
   const measurements: Measurement[] = [
-    m(1, c.deniz, -60, { weightKg: 78.4, heightCm: 168, waistCm: 86 }),
-    m(2, c.deniz, -30, { weightKg: 76.9, waistCm: 84 }),
-    m(3, c.deniz, -7, { weightKg: 75.8, waistCm: 83, bodyFatPct: 31 }),
+    m(1, c.deniz, -60, { weightKg: 78.4, heightCm: 168, waistCm: 86, thighCm: 59 }),
+    m(2, c.deniz, -30, { weightKg: 76.9, waistCm: 84, thighCm: 58 }),
+    m(3, c.deniz, -7, { weightKg: 75.8, waistCm: 83, thighCm: 57, bodyFatPct: 31 }),
     m(4, c.ece, -3, { weightKg: 64.2, heightCm: 162 }),
     m(5, c.kaan, -40, { weightKg: 92.5, heightCm: 181, waistCm: 101 }),
     m(6, c.kaan, -5, { weightKg: 90.1, waistCm: 98 }),
@@ -206,5 +217,45 @@ export function createSeedData(today: string): SeedData {
     g(4, { clientId: c.kaan, validFrom: day(-40), validTo: day(-6), energyKcal: 2300, proteinG: 120, carbsG: 260, fatG: 85, method: 'mifflin_st_jeor', activityFactor: 1.55 }),
   ]
 
-  return { clients, measurements, foods, mealTypes, mealPlans, planMeals, planMealItems, appointments, clientGoals }
+  // Sağlık bilgileri kurgusaldır ve "(örnek)" olarak işaretlidir; tıbbi öneri değildir.
+  const clientMedications: ClientMedication[] = [
+    {
+      id: seedId('clientMedication', 1),
+      clientId: c.deniz,
+      name: 'Demir takviyesi (örnek)',
+      dose: '1 tablet',
+      frequency: 'Günde 1 kez',
+      startedOn: day(-45),
+      endedOn: null,
+      notes: null,
+      ...stamps,
+    },
+  ]
+  const clientConditions: ClientCondition[] = [
+    { id: seedId('clientCondition', 1), clientId: c.deniz, name: 'Demir eksikliği (örnek)', diagnosedOn: day(-50), notes: null, ...stamps },
+  ]
+  const clientRecommendations: ClientRecommendation[] = [
+    {
+      id: seedId('clientRecommendation', 1),
+      clientId: c.deniz,
+      givenOn: day(-7),
+      text: 'Gün içine yayarak su için; akşam öğününü yatmadan en az 2 saat önce tamamlayın. (örnek)',
+      ...stamps,
+    },
+  ]
+
+  return {
+    clients,
+    measurements,
+    foods,
+    mealTypes,
+    mealPlans,
+    planMeals,
+    planMealItems,
+    appointments,
+    clientGoals,
+    clientMedications,
+    clientConditions,
+    clientRecommendations,
+  }
 }

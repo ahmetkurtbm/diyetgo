@@ -8,7 +8,7 @@ import { appointmentsRouter } from './routes/appointments'
 import { clientsRouter } from './routes/clients'
 import { foodsRouter, mealTypesRouter } from './routes/foods'
 import { mealPlansRouter, planMealItemsRouter, planMealsRouter } from './routes/meal-plans'
-import { goalsRouter, measurementsRouter } from './routes/records'
+import { conditionsRouter, goalsRouter, measurementsRouter, medicationsRouter, recommendationsRouter } from './routes/records'
 
 const LOCAL_HOSTNAMES = new Set(['localhost', '127.0.0.1', '[::1]'])
 
@@ -42,6 +42,9 @@ export function createApp(db: Db, auth: Auth) {
   app.use('/api/clients', clientsRouter(db))
   app.use('/api/measurements', measurementsRouter(db))
   app.use('/api/goals', goalsRouter(db))
+  app.use('/api/medications', medicationsRouter(db))
+  app.use('/api/conditions', conditionsRouter(db))
+  app.use('/api/recommendations', recommendationsRouter(db))
   app.use('/api/foods', foodsRouter(db))
   app.use('/api/meal-types', mealTypesRouter(db))
   app.use('/api/meal-plans', mealPlansRouter(db))

@@ -8,8 +8,14 @@ import type {
   AppointmentInput,
   AppointmentStatus,
   Client,
+  ClientCondition,
+  ClientConditionInput,
   ClientGoal,
   ClientGoalInput,
+  ClientMedication,
+  ClientMedicationInput,
+  ClientRecommendation,
+  ClientRecommendationInput,
   ClientInput,
   Food,
   FoodInput,
@@ -60,7 +66,7 @@ export interface ClientRepository {
   create(input: ClientInput): Promise<Client>
   update(id: string, input: ClientInput): Promise<Client>
   setArchived(id: string, archived: boolean): Promise<Client>
-  /** Ölçüm, plan, randevu veya hedefi olan danışan silinemez (`restricted`). */
+  /** Ölçüm, plan, randevu, hedef, ilaç, hastalık veya önerisi olan danışan silinemez (`restricted`). */
   remove(id: string): Promise<void>
 }
 
@@ -134,6 +140,17 @@ export interface GoalRepository {
   remove(id: string): Promise<void>
 }
 
+/**
+ * Danışana bağlı, alt kaydı olmayan basit kayıt (ilaç, hastalık, öneri): danışan altında listelenir,
+ * serbestçe silinebilir. Danışanın bu kayıtları varken danışan silinemez (`restricted`).
+ */
+export interface ClientRecordRepository<T, I> {
+  listByClient(clientId: string): Promise<T[]>
+  create(input: I): Promise<T>
+  update(id: string, input: I): Promise<T>
+  remove(id: string): Promise<void>
+}
+
 export type DemoInfo = { persistent: boolean; seededAt: string; counts: Record<string, number> }
 
 /** Yalnızca demo modunda bulunur. */
@@ -152,6 +169,12 @@ export type Repositories = {
   mealPlans: MealPlanRepository
   appointments: AppointmentRepository
   goals: GoalRepository
+  /** Devam eden ilaçlar (bitişi olmayanlar) önce, ardından en yeni başlangıç. */
+  medications: ClientRecordRepository<ClientMedication, ClientMedicationInput>
+  /** Eklenme sırasıyla. */
+  conditions: ClientRecordRepository<ClientCondition, ClientConditionInput>
+  /** En yeni öneri önce. */
+  recommendations: ClientRecordRepository<ClientRecommendation, ClientRecommendationInput>
   demo: DemoControls | null
   /** Veri değiştiğinde (bu sekmede veya başka sekmede) çağrılır; aboneliği kaldıran fonksiyon döner. */
   subscribe(listener: () => void): () => void

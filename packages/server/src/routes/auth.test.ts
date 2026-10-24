@@ -94,7 +94,7 @@ describe('diyetisyenler arası izolasyon', () => {
     const measurement = (
       await http
         .post('/api/measurements')
-        .send({ clientId: danisan.id, measuredOn: '2031-05-01', weightKg: 70, heightCm: null, waistCm: null, hipCm: null, bodyFatPct: null, notes: null })
+        .send({ clientId: danisan.id, measuredOn: '2031-05-01', weightKg: 70, heightCm: null, waistCm: null, hipCm: null, thighCm: null, bodyFatPct: null, notes: null })
         .expect(201)
     ).body
     const appointment = (await http.post('/api/appointments').send({ clientId: danisan.id, startsAt: at('09:00'), endsAt: at('09:30'), status: 'scheduled', notes: null }).expect(201)).body
@@ -104,7 +104,12 @@ describe('diyetisyenler arası izolasyon', () => {
         .send({ clientId: danisan.id, validFrom: '2031-01-01', validTo: null, energyKcal: 1800, proteinG: 90, carbsG: 200, fatG: 60, method: 'manual', activityFactor: null, notes: null })
         .expect(201)
     ).body.goal
-    return { danisan, food, mealType, plan, meal, item, measurement, appointment, goal }
+    const medication = (
+      await http.post('/api/medications').send({ clientId: danisan.id, name: 'Gizli ilaç', dose: null, frequency: null, startedOn: null, endedOn: null, notes: null }).expect(201)
+    ).body
+    const condition = (await http.post('/api/conditions').send({ clientId: danisan.id, name: 'Gizli durum', diagnosedOn: null, notes: null }).expect(201)).body
+    const recommendation = (await http.post('/api/recommendations').send({ clientId: danisan.id, givenOn: '2031-05-01', text: 'Gizli öneri' }).expect(201)).body
+    return { danisan, food, mealType, plan, meal, item, measurement, appointment, goal, medication, condition, recommendation }
   }
 
   it('başka diyetisyenin kayıtlarını listelemez', async () => {
@@ -149,6 +154,16 @@ describe('diyetisyenler arası izolasyon', () => {
     await http.post(`/api/appointments/${a.appointment.id}/cancel`).send({}).expect(404)
     await http.delete(`/api/appointments/${a.appointment.id}`).expect(404)
     await http.delete(`/api/goals/${a.goal.id}`).expect(404)
+
+    for (const resource of ['medications', 'conditions', 'recommendations'] as const) {
+      expect((await http.get(`/api/clients/${a.danisan.id}/${resource}`).expect(200)).body).toEqual([])
+    }
+    await http.put(`/api/medications/${a.medication.id}`).send({ ...a.medication, name: 'Ele geçirildi' }).expect(404)
+    await http.delete(`/api/medications/${a.medication.id}`).expect(404)
+    await http.put(`/api/conditions/${a.condition.id}`).send({ clientId: a.danisan.id, name: 'X', diagnosedOn: null, notes: null }).expect(404)
+    await http.delete(`/api/conditions/${a.condition.id}`).expect(404)
+    await http.put(`/api/recommendations/${a.recommendation.id}`).send({ clientId: a.danisan.id, givenOn: '2031-05-01', text: 'X' }).expect(404)
+    await http.delete(`/api/recommendations/${a.recommendation.id}`).expect(404)
   })
 
   it('başka diyetisyenin danışanına, planına veya besinine bağlı kayıt oluşturamaz', async () => {
@@ -158,7 +173,7 @@ describe('diyetisyenler arası izolasyon', () => {
 
     await http
       .post('/api/measurements')
-      .send({ clientId: a.danisan.id, measuredOn: '2031-05-02', weightKg: 1, heightCm: null, waistCm: null, hipCm: null, bodyFatPct: null, notes: null })
+      .send({ clientId: a.danisan.id, measuredOn: '2031-05-02', weightKg: 1, heightCm: null, waistCm: null, hipCm: null, thighCm: null, bodyFatPct: null, notes: null })
       .expect(404)
     await http.post('/api/meal-plans').send({ clientId: a.danisan.id, title: 'X', startDate: '2031-05-01', endDate: null, notes: null }).expect(404)
     await http.post('/api/appointments').send({ clientId: a.danisan.id, startsAt: at('11:00'), endsAt: at('11:30'), status: 'scheduled', notes: null }).expect(404)
@@ -166,11 +181,17 @@ describe('diyetisyenler arası izolasyon', () => {
       .post('/api/goals')
       .send({ clientId: a.danisan.id, validFrom: '2031-01-01', validTo: null, energyKcal: 1, proteinG: 1, carbsG: 1, fatG: 1, method: 'manual', activityFactor: null, notes: null })
       .expect(404)
+    await http.post('/api/medications').send({ clientId: a.danisan.id, name: 'X', dose: null, frequency: null, startedOn: null, endedOn: null, notes: null }).expect(404)
+    await http.post('/api/conditions').send({ clientId: a.danisan.id, name: 'X', diagnosedOn: null, notes: null }).expect(404)
+    await http.post('/api/recommendations').send({ clientId: a.danisan.id, givenOn: '2031-05-01', text: 'X' }).expect(404)
+    // Kendi kaydını başkasının danışanına taşıyamaz.
+    const own = (await http.post('/api/clients').send(clientBody).expect(201)).body
+    const ownNote = (await http.post('/api/recommendations').send({ clientId: own.id, givenOn: '2031-05-01', text: 'Benim' }).expect(201)).body
+    await http.put(`/api/recommendations/${ownNote.id}`).send({ clientId: a.danisan.id, givenOn: '2031-05-01', text: 'Taşı' }).expect(404)
     await http.post('/api/plan-meals').send({ mealPlanId: a.plan.id, dayNumber: 2, mealTypeId: a.mealType.id, time: null, notes: null }).expect(404)
     await http.post('/api/plan-meal-items').send({ planMealId: a.meal.id, foodId: a.food.id, quantity: 1, sortOrder: 0, notes: null }).expect(404)
 
     // Kendi planına başkasının besinini veya öğün türünü ekleyemez.
-    const own = (await http.post('/api/clients').send(clientBody).expect(201)).body
     const ownPlan = (await http.post('/api/meal-plans').send({ clientId: own.id, title: 'B', startDate: '2031-05-01', endDate: null, notes: null }).expect(201)).body
     await http.post('/api/plan-meals').send({ mealPlanId: ownPlan.id, dayNumber: 1, mealTypeId: a.mealType.id, time: null, notes: null }).expect(404)
     const ownType = (await http.get('/api/meal-types').expect(200)).body[0]

@@ -17,6 +17,7 @@ import { MeasurementsCard } from '../measurements/MeasurementsCard'
 import { ClientPlansCard } from '../plans/ClientPlansCard'
 import { WeeklyReportDialog } from '../reports/WeeklyReportDialog'
 import { ClientFormDialog } from './ClientFormDialog'
+import { ConditionsCard, MedicationsCard, RecommendationsCard } from './health-cards'
 
 function Detail({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -110,7 +111,7 @@ export function ClientDetailPage() {
       )}
 
       <div className="grid gap-6 lg:grid-cols-3">
-        <Card className="self-start">
+        <Card className="self-start lg:col-start-1 lg:row-start-1">
           <CardHeader title="Danışan bilgileri" />
           <dl className="divide-y divide-slate-100 px-5 py-2 sm:divide-y-0">
             <Detail label="Doğum tarihi">{client.birthDate ? `${formatDate(client.birthDate)} (${ageLabel(client)})` : '—'}</Detail>
@@ -120,10 +121,15 @@ export function ClientDetailPage() {
             <Detail label="Notlar">{client.notes ? <span className="font-normal whitespace-pre-line">{client.notes}</span> : '—'}</Detail>
           </dl>
         </Card>
+        <div className="min-w-0 space-y-6 lg:col-start-1">
+          <ConditionsCard clientId={client.id} />
+          <MedicationsCard clientId={client.id} />
+        </div>
         {/* min-w-0: ızgara öğesi geniş tabloların içerik genişliğine uzamaz; tablolar kendi alanında kaydırılır. */}
-        <div className="min-w-0 space-y-6 lg:col-span-2">
+        <div className="min-w-0 space-y-6 lg:col-span-2 lg:col-start-2 lg:row-span-2 lg:row-start-1">
           <MeasurementsCard clientId={client.id} />
           <ClientGoalsCard client={client} />
+          <RecommendationsCard clientId={client.id} />
           <ClientPlansCard client={client} />
           <ClientAppointmentsCard client={client} />
         </div>

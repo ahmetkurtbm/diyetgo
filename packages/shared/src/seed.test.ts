@@ -4,7 +4,10 @@ import { ageOn, MIN_ADULT_AGE } from './energy'
 import { findAppointmentConflicts, goalPeriodsOverlap, isDayWithinPlan } from './rules'
 import {
   appointmentSchema,
+  clientConditionSchema,
   clientGoalSchema,
+  clientMedicationSchema,
+  clientRecommendationSchema,
   clientSchema,
   foodSchema,
   mealPlanSchema,
@@ -34,6 +37,9 @@ describe('seed verisi', () => {
       planMealItems: planMealItemSchema,
       appointments: appointmentSchema,
       clientGoals: clientGoalSchema,
+      clientMedications: clientMedicationSchema,
+      clientConditions: clientConditionSchema,
+      clientRecommendations: clientRecommendationSchema,
     } as const
     for (const [collection, schema] of Object.entries(schemas)) {
       const records = seed[collection as keyof typeof schemas]
@@ -60,6 +66,7 @@ describe('seed verisi', () => {
     expect(seed.mealPlans.every((p) => isClient(p.clientId))).toBe(true)
     expect(seed.appointments.every((a) => isClient(a.clientId))).toBe(true)
     expect(seed.clientGoals.every((g) => isClient(g.clientId))).toBe(true)
+    expect([...seed.clientMedications, ...seed.clientConditions, ...seed.clientRecommendations].every((r) => isClient(r.clientId))).toBe(true)
     expect(seed.planMeals.every((m) => has(seed.mealPlans)(m.mealPlanId) && has(seed.mealTypes)(m.mealTypeId))).toBe(true)
     expect(seed.planMealItems.every((i) => has(seed.planMeals)(i.planMealId) && has(seed.foods)(i.foodId))).toBe(true)
   })

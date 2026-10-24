@@ -7,6 +7,9 @@ import {
   foodInputSchema,
   LIMITS,
   mealPlanInputSchema,
+  clientConditionInputSchema,
+  clientMedicationInputSchema,
+  clientRecommendationInputSchema,
   measurementInputSchema,
   planMealInputSchema,
   planMealItemInputSchema,
@@ -83,11 +86,12 @@ describe('client', () => {
 })
 
 describe('measurement', () => {
-  const empty = { clientId: ID, measuredOn: '2026-03-10', weightKg: null, heightCm: null, waistCm: null, hipCm: null, bodyFatPct: null, notes: null }
+  const empty = { clientId: ID, measuredOn: '2026-03-10', weightKg: null, heightCm: null, waistCm: null, hipCm: null, thighCm: null, bodyFatPct: null, notes: null }
 
   it('en az bir ölçüm değeri ister', () => {
     fail(measurementInputSchema, empty)
     ok(measurementInputSchema, { ...empty, waistCm: 80 })
+    ok(measurementInputSchema, { ...empty, thighCm: 56.5 })
   })
 
   it('sıfır, negatif ve teknik üst sınırı aşan değerleri reddeder', () => {
@@ -241,5 +245,24 @@ describe('clientGoal', () => {
     fail(clientGoalInputSchema, { ...goal, energyKcal: 0 })
     fail(clientGoalInputSchema, { ...goal, energyKcal: Number.POSITIVE_INFINITY })
     fail(clientGoalInputSchema, { ...goal, proteinG: Number.NaN })
+  })
+})
+
+describe('danışan sağlık bilgileri ve öneriler', () => {
+  const medication = { clientId: ID, name: 'Örnek ilaç', dose: null, frequency: null, startedOn: null, endedOn: null, notes: null }
+
+  it('ilaç adı zorunludur; bitiş başlangıçtan önce olamaz', () => {
+    ok(clientMedicationInputSchema, medication)
+    fail(clientMedicationInputSchema, { ...medication, name: '  ' })
+    ok(clientMedicationInputSchema, { ...medication, startedOn: '2026-03-01', endedOn: '2026-03-01' })
+    fail(clientMedicationInputSchema, { ...medication, startedOn: '2026-03-02', endedOn: '2026-03-01' })
+  })
+
+  it('hastalık adı ve öneri metni zorunludur; öneri tarihlidir', () => {
+    ok(clientConditionInputSchema, { clientId: ID, name: 'Örnek durum', diagnosedOn: null, notes: null })
+    fail(clientConditionInputSchema, { clientId: ID, name: '', diagnosedOn: null, notes: null })
+    ok(clientRecommendationInputSchema, { clientId: ID, givenOn: '2026-03-10', text: 'Örnek öneri' })
+    fail(clientRecommendationInputSchema, { clientId: ID, givenOn: '2026-03-10', text: ' ' })
+    fail(clientRecommendationInputSchema, { clientId: ID, givenOn: null, text: 'Örnek öneri' })
   })
 })

@@ -9,7 +9,10 @@
  */
 import {
   appointmentSchema,
+  clientConditionSchema,
   clientGoalSchema,
+  clientMedicationSchema,
+  clientRecommendationSchema,
   clientSchema,
   foodSchema,
   istanbulDateOf,
@@ -25,10 +28,33 @@ import { MemoryStorage } from './memory-storage'
 
 export const STORAGE_KEY = 'diyetgo:demo:v1'
 export const STORAGE_PREFIX = 'diyetgo:'
-const VERSION = 1
+/**
+ * Veri biçiminin sürümü. Sürüm 2: ölçümlere uyluk çevresi (`thighCm`), danışanlara ilaç, hastalık ve
+ * öneri koleksiyonları eklendi. Sürüm 1 veri açılışta kayıpsız yükseltilir (bkz. `upgrade`).
+ */
+const VERSION = 2
 
 export type DemoData = SeedData
 type Envelope = { version: typeof VERSION; seededAt: string; data: DemoData }
+
+/**
+ * Eski sürümdeki veriyi güncel biçime çevirir; mevcut kayıtlar korunur, yalnızca yeni alanlar boş
+ * değerle eklenir. Tanınmayan sürüm veya yapı olduğu gibi döner; `validate` reddeder.
+ */
+function upgrade(value: unknown): unknown {
+  if (typeof value !== 'object' || value === null) return value
+  const envelope = value as { version?: unknown; data?: unknown }
+  if (envelope.version !== 1 || typeof envelope.data !== 'object' || envelope.data === null) return value
+  const data = envelope.data as Record<string, unknown>
+  const measurements = Array.isArray(data.measurements)
+    ? data.measurements.map((m: unknown) => (typeof m === 'object' && m !== null ? { thighCm: null, ...m } : m))
+    : data.measurements
+  return {
+    ...envelope,
+    version: 2,
+    data: { ...data, measurements, clientMedications: [], clientConditions: [], clientRecommendations: [] },
+  }
+}
 
 const collectionSchemas = {
   clients: clientSchema,
@@ -40,6 +66,9 @@ const collectionSchemas = {
   planMealItems: planMealItemSchema,
   appointments: appointmentSchema,
   clientGoals: clientGoalSchema,
+  clientMedications: clientMedicationSchema,
+  clientConditions: clientConditionSchema,
+  clientRecommendations: clientRecommendationSchema,
 } satisfies Record<keyof DemoData, { safeParse(value: unknown): { success: boolean } }>
 
 export type DemoStore = {
@@ -132,8 +161,11 @@ export function openDemoStore(options: { storage: Storage | null; now?: () => Da
     } catch {
       return { ok: false, error: { reason: 'corrupt', message: 'Demo verileri okunamadı (bozuk veri).' } }
     }
-    const error = validate(parsed)
+    const upgraded = upgrade(parsed)
+    const error = validate(upgraded)
     if (error) return { ok: false, error }
+    // Yükseltilen veri yeni biçimde kaydedilir; eski veri yalnızca doğrulama geçtikten sonra değişir.
+    if (upgraded !== parsed) save(upgraded as Envelope)
   }
 
   const store: DemoStore = {

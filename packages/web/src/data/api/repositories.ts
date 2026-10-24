@@ -6,7 +6,7 @@
  * Veri değiştiren her başarılı istekten sonra aboneler bilgilendirilir.
  */
 import type { ClientGoal, MealPlan } from '@diyetgo/shared'
-import { RepositoryError, type MealPlanDetail, type Repositories, type RepositoryErrorCode } from '../repositories'
+import { RepositoryError, type ClientRecordRepository, type MealPlanDetail, type Repositories, type RepositoryErrorCode } from '../repositories'
 
 const ERROR_CODES = new Set<RepositoryErrorCode>(['validation', 'not_found', 'conflict', 'restricted'])
 
@@ -137,5 +137,19 @@ export function createApiRepositories(
       update: (goalId, input) => put(`/goals/${id(goalId)}`, input),
       remove: (goalId) => remove(`/goals/${id(goalId)}`),
     },
+
+    medications: records('medications'),
+    conditions: records('conditions'),
+    recommendations: records('recommendations'),
+  }
+
+  /** Danışana bağlı basit kayıtlar: `GET /clients/:id/<kaynak>`, `POST/PUT/DELETE /<kaynak>`. */
+  function records<T, I>(resource: string): ClientRecordRepository<T, I> {
+    return {
+      listByClient: (clientId) => get(`/clients/${id(clientId)}/${resource}`),
+      create: (input) => post(`/${resource}`, input),
+      update: (recordId, input) => put(`/${resource}/${id(recordId)}`, input),
+      remove: (recordId) => remove(`/${resource}/${id(recordId)}`),
+    }
   }
 }

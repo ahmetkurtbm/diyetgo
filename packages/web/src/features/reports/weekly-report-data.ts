@@ -29,6 +29,7 @@ export type WeeklyReportData = {
 const BODY_METRICS = [
   { key: 'waistCm', label: 'Bel', unit: 'cm' },
   { key: 'hipCm', label: 'Kalça', unit: 'cm' },
+  { key: 'thighCm', label: 'Uyluk', unit: 'cm' },
   { key: 'bodyFatPct', label: 'Yağ oranı', unit: '%' },
 ] as const
 

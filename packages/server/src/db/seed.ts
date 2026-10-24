@@ -56,6 +56,9 @@ try {
       ['plan_meal_items', t.planMealItems, seed.planMealItems],
       ['appointments', t.appointments, owned(seed.appointments)],
       ['client_goals', t.clientGoals, owned(seed.clientGoals)],
+      ['client_medications', t.clientMedications, owned(seed.clientMedications)],
+      ['client_conditions', t.clientConditions, owned(seed.clientConditions)],
+      ['client_recommendations', t.clientRecommendations, owned(seed.clientRecommendations)],
     ] as const
     const counts: Record<string, number> = {}
     for (const [name, table, rows] of steps) {
