@@ -1,4 +1,4 @@
-import { Archive, ArchiveRestore, ArrowLeft, Pencil, Trash2, UserX } from 'lucide-react'
+import { Archive, ArchiveRestore, ArrowLeft, FileImage, Pencil, Trash2, UserX } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 import { useRepositories, useRepositoryQuery } from '../../data/context'
@@ -15,6 +15,7 @@ import { ClientAppointmentsCard } from '../appointments/ClientAppointmentsCard'
 import { ClientGoalsCard } from '../goals/ClientGoalsCard'
 import { MeasurementsCard } from '../measurements/MeasurementsCard'
 import { ClientPlansCard } from '../plans/ClientPlansCard'
+import { WeeklyReportDialog } from '../reports/WeeklyReportDialog'
 import { ClientFormDialog } from './ClientFormDialog'
 
 function Detail({ label, children }: { label: string; children: ReactNode }) {
@@ -34,6 +35,7 @@ export function ClientDetailPage() {
   const query = useRepositoryQuery((r) => r.clients.get(clientId), [clientId])
   const [editing, setEditing] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [reporting, setReporting] = useState(false)
 
   if (query.status === 'loading') return <LoadingState />
   if (query.status === 'error' && !query.data) {
@@ -83,6 +85,10 @@ export function ClientDetailPage() {
         description={archived ? <Badge>Arşivde</Badge> : <Badge tone="brand">Aktif danışan</Badge>}
         actions={
           <>
+            <Button variant="primary" onClick={() => setReporting(true)}>
+              <FileImage aria-hidden className="size-4" />
+              Haftalık rapor
+            </Button>
             <Button onClick={() => setEditing(true)}>
               <Pencil aria-hidden className="size-4" />
               Düzenle
@@ -124,6 +130,7 @@ export function ClientDetailPage() {
       </div>
 
       <ClientFormDialog open={editing} client={client} onClose={() => setEditing(false)} />
+      <WeeklyReportDialog open={reporting} client={client} onClose={() => setReporting(false)} />
       <ConfirmDialog
         open={deleting}
         title="Danışan silinsin mi?"

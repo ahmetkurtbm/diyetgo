@@ -25,6 +25,7 @@ Diyetisyenler için danışan, ölçüm, besin, beslenme planı, randevu ve besl
 - **Genel bakış:** Aktif danışan, bugünkü ve yaklaşan randevu, aktif plan özetleri; bugünün zaman çizelgesi ve son işlemler.
 - **Danışanlar:** Ekleme, düzenleme, arama, arşivleme; ilişkili kaydı olmayan danışanı silme.
 - **Ölçümler:** Boy, kilo, bel, kalça ve vücut yağ oranı; kilo değişim grafiği.
+- **Haftalık rapor:** Danışan detayından, danışana gönderilecek görsel bir özet (kilo grafiği ve değişimi, vücut ölçüleri, planın haftalık kalori ve makro ortalaması, sonraki randevu, diyetisyen notu). PNG olarak indirilir; telefonda doğrudan paylaşılabilir. Rapor kaydedilmez, her seferinde güncel veriden üretilir.
 - **Besinler:** 100 g veya 100 ml başına enerji ve makro değerleri, porsiyon bilgisi, arşivleme.
 - **Beslenme planları:** Göreli günler (1. gün = başlangıç tarihi), öğünler, porsiyonlar, günlük ve öğün toplamları, plan kopyalama.
 - **Randevular:** Oluşturma, düzenleme, iptal, silme; çakışma kontrolü ve filtreler.
