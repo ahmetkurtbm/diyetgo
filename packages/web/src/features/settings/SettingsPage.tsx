@@ -243,7 +243,7 @@ function DemoDataSection() {
           </dl>
         )}
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-red-200 bg-red-50 p-4">
-          <p className="text-sm text-red-800">Sıfırlama, bu tarayıcıdaki tüm Dietgo demo verilerini siler ve örnek verileri yeniden yükler. Bu işlem geri alınamaz.</p>
+          <p className="text-sm text-red-800">Sıfırlama, bu tarayıcıdaki tüm Diyetgo demo verilerini siler ve örnek verileri yeniden yükler. Bu işlem geri alınamaz.</p>
           <Button variant="danger" onClick={() => setConfirming(true)}>
             <RotateCcw aria-hidden className="size-4" />
             Demo verilerini sıfırla

@@ -8,5 +8,5 @@ const port = Number(process.env.PORT ?? 3001)
 const host = '127.0.0.1'
 
 createApp(createDb(databaseUrl)).listen(port, host, () => {
-  console.log(`Dietgo API: http://${host}:${port}/api (veritabanı: ${describeDatabaseUrl(databaseUrl)})`)
+  console.log(`Diyetgo API: http://${host}:${port}/api (veritabanı: ${describeDatabaseUrl(databaseUrl)})`)
 })

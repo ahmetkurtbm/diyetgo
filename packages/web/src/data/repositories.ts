@@ -139,7 +139,7 @@ export type DemoInfo = { persistent: boolean; seededAt: string; counts: Record<s
 /** Yalnızca demo modunda bulunur. */
 export interface DemoControls {
   info(): Promise<DemoInfo>
-  /** Yalnızca Dietgo demo verilerini siler ve örnek verileri yeniden yükler. */
+  /** Yalnızca Diyetgo demo verilerini siler ve örnek verileri yeniden yükler. */
   reset(): Promise<void>
 }
 

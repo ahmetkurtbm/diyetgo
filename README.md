@@ -1,4 +1,6 @@
-# Dietgo
+# Diyetgo
+
+<p align="center"><img src="docs/diyetgo-logo.png" alt="Diyetgo logosu" width="480"></p>
 
 Diyetisyenler için danışan, ölçüm, besin, beslenme planı, randevu ve beslenme hedefi yönetimi sunan bir web uygulaması.
 
@@ -127,13 +129,13 @@ Kimlik doğrulama olmadığı için API dış ağa açılmamalıdır. API yalnı
 - Veriler tarayıcının localStorage alanında, tek bir `diyetgo:demo:v1` anahtarı altında tutulur. Başka bir tarayıcıda, cihazda veya gizli pencerede veriler görünmez.
 - Tarayıcı depolaması kullanılamıyorsa (ör. engellenmişse) uygulama verileri yalnızca bellekte tutar ve bunu kırmızı bir uyarıyla belirtir; değişiklikler sayfa yenilenince kaybolur.
 - Kayıtlı veri bozulmuşsa veya tanınmayan bir sürümdeyse uygulama verinin üzerine yazmaz; açılış ekranında sıfırlama seçeneği sunar.
-- **Ayarlar → Demo verilerini sıfırla** yalnızca Dietgo'ya ait (`diyetgo:` önekli) anahtarları siler ve örnek verileri yeniden yükler. Bu işlem geri alınamaz.
+- **Ayarlar → Demo verilerini sıfırla** yalnızca Diyetgo'ya ait (`diyetgo:` önekli) anahtarları siler ve örnek verileri yeniden yükler. Bu işlem geri alınamaz.
 - Örnek besin değerleri **"Örnek veri – doğrulanmamış"** olarak işaretlidir; gerçek ve doğrulanmış besin değerleri olarak kullanılmamalıdır.
 - Demo modu, veritabanındaki bütünlük kurallarını da uygular: ilişkili kaydı olan danışan, besin ve öğün türü silinemez (arşivlenebilir); arşivdeki danışana yeni plan veya randevu, arşivdeki besin yeni öğüne eklenemez.
 
 ## Mobil uygulama (PWA)
 
-Dietgo, telefonda ana ekrana eklenebilen bir web uygulamasıdır (PWA). Mağaza veya Android Studio gerekmez; kendi ikonuyla, adres çubuğu olmadan tam ekran açılır.
+Diyetgo, telefonda ana ekrana eklenebilen bir web uygulamasıdır (PWA). Mağaza veya Android Studio gerekmez; kendi ikonuyla, adres çubuğu olmadan tam ekran açılır.
 
 - **Android (Chrome):** Demo adresini açın → menü (⋮) → **Uygulamayı yükle** veya **Ana ekrana ekle**.
 - **iPhone (Safari):** Demo adresini açın → Paylaş düğmesi → **Ana Ekrana Ekle**.
@@ -141,7 +143,7 @@ Dietgo, telefonda ana ekrana eklenebilen bir web uygulamasıdır (PWA). Mağaza 
 Notlar:
 
 - Uygulama dosyaları önbelleğe alınır; ilk açılıştan sonra internet olmadan da açılır. Veriler önbelleğe alınmaz: demo modunda veriler zaten cihazdadır.
-- Yeni sürüm yayınlandığında uygulama "Dietgo'nun yeni sürümü hazır" bildirimi gösterir; **Yenile** ile güncellenir. Sayfa kendiliğinden yenilenmez, böylece yarım kalan form kaybolmaz.
+- Yeni sürüm yayınlandığında uygulama "Diyetgo'nun yeni sürümü hazır" bildirimi gösterir; **Yenile** ile güncellenir. Sayfa kendiliğinden yenilenmez, böylece yarım kalan form kaybolmaz.
 - Demo verileri o cihazdaki tarayıcıya aittir. iPhone'da ana ekrandan açılan uygulama, Safari'den ayrı bir depolama kullanır; Safari'de girilen demo verileri orada görünmez.
 - Service worker yalnızca derlenmiş uygulamada çalışır (`npm run build` ve `npm run preview -w @diyetgo/web`, ya da Vercel); `npm run dev` sırasında devre dışıdır.
 - Yapılandırma `packages/web/vite.config.ts` (`vite-plugin-pwa`), ikonlar `packages/web/public/` içindedir.

@@ -2,7 +2,7 @@
 
 ## 1. Proje Tanımı
 
-Dietgo, diyetisyenlerin danışanlarını yönetmesini, beslenme planları oluşturmasını, öğün ve menü içeriklerini düzenlemesini, randevularını takip etmesini ve beslenme hedeflerini hesaplamasını sağlayan bir web uygulamasıdır.
+Diyetgo, diyetisyenlerin danışanlarını yönetmesini, beslenme planları oluşturmasını, öğün ve menü içeriklerini düzenlemesini, randevularını takip etmesini ve beslenme hedeflerini hesaplamasını sağlayan bir web uygulamasıdır.
 
 Projenin amacı yalnızca çalışan bir demo oluşturmak değil; gerçek bir yazılım projesinde kullanılabilecek düzenli, sürdürülebilir, test edilebilir ve genişletilebilir bir mimari kurmaktır.
 
@@ -75,7 +75,7 @@ diyetgo/
 
 ## 3. İki Çalışma Modu
 
-Dietgo iki ayrı veri sağlayıcısıyla çalışır. Mod, build zamanında `VITE_DATA_MODE` ortam değişkeniyle seçilir: `api` (yerel) veya `demo` (Vercel).
+Diyetgo iki ayrı veri sağlayıcısıyla çalışır. Mod, build zamanında `VITE_DATA_MODE` ortam değişkeniyle seçilir: `api` (yerel) veya `demo` (Vercel).
 
 ### 3.1. Yerel PostgreSQL modu
 
@@ -404,4 +404,4 @@ Bu dosya proje genelindeki başlangıç talimatıdır. Gerçek kod, mevcut yapı
 
 Temel öncelik:
 
-**Doğru çalışan, güvenli, anlaşılır ve sürdürülebilir bir Dietgo geliştirmek. Gereksiz karmaşıklık üretmeden gerçek ihtiyaçları karşılamak.**
+**Doğru çalışan, güvenli, anlaşılır ve sürdürülebilir bir Diyetgo geliştirmek. Gereksiz karmaşıklık üretmeden gerçek ihtiyaçları karşılamak.**

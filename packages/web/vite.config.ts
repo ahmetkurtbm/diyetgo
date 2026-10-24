@@ -16,14 +16,14 @@ export default defineConfig(({ mode }) => ({
       registerType: 'prompt',
       includeAssets: ['favicon.svg', 'apple-touch-icon-180x180.png'],
       manifest: {
-        name: 'Dietgo',
-        short_name: 'Dietgo',
+        name: 'Diyetgo',
+        short_name: 'Diyetgo',
         description: 'Diyetisyenler için danışan, beslenme planı ve randevu yönetimi (demo).',
         lang: 'tr',
         start_url: '/',
         scope: '/',
         display: 'standalone',
-        theme_color: '#047857',
+        theme_color: '#13301f',
         background_color: '#f8fafc',
         icons: [
           { src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' },

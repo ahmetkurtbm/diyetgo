@@ -1,4 +1,4 @@
-import { CalendarDays, Info, LayoutDashboard, Leaf, Menu, NotebookPen, Settings, Users, UtensilsCrossed, X } from 'lucide-react'
+import { CalendarDays, Info, LayoutDashboard, Menu, NotebookPen, Settings, Users, UtensilsCrossed, X } from 'lucide-react'
 import { useEffect, useId, useRef, useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router'
 import { useRepositoryQuery } from '../../data/context'
@@ -23,13 +23,16 @@ const navigation = [
   { title: 'Sistem', items: [{ to: '/settings', label: 'Ayarlar', icon: Settings }] },
 ]
 
+/** Diyetgo logosu: işaret `public/favicon.svg`, yazı logodaki gibi "diyet" koyu, "go" yeşil. */
 function Brand() {
   return (
-    <span className="flex items-center gap-2 text-lg font-semibold text-slate-900">
-      <span className="rounded-lg bg-linear-to-br from-emerald-500 to-teal-700 p-1.5 text-white shadow-md shadow-emerald-600/30">
-        <Leaf aria-hidden className="size-4" />
+    <span className="flex items-center gap-2.5">
+      <img src="/favicon.svg" alt="" className="size-9 shadow-md shadow-emerald-950/20 rounded-[10px]" />
+      {/* "go", 20 px kalın yazı (büyük metin) için WCAG AA'nın 3:1 kontrastını sağlayan lime-600 tonundadır. */}
+      <span className="text-xl font-extrabold tracking-tight lowercase">
+        <span className="text-[#13301f]">diyet</span>
+        <span className="text-lime-600">go</span>
       </span>
-      Dietgo
     </span>
   )
 }

@@ -57,7 +57,7 @@ export type DemoStore = {
 export type OpenError = { reason: 'corrupt' | 'unsupported_version' | 'invalid'; message: string }
 export type OpenResult = { ok: true; store: DemoStore } | { ok: false; error: OpenError }
 
-/** Yalnızca Dietgo'ya ait (`diyetgo:` önekli) anahtarları siler; diğer siteler/uygulamalar etkilenmez. */
+/** Yalnızca Diyetgo'ya ait (`diyetgo:` önekli) anahtarları siler; diğer siteler/uygulamalar etkilenmez. */
 export function clearDemoStorage(storage: Storage): void {
   const keys: string[] = []
   for (let i = 0; i < storage.length; i++) {
