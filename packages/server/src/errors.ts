@@ -4,10 +4,11 @@
  */
 import type { ErrorRequestHandler } from 'express'
 
-export type ApiErrorCode = 'validation' | 'not_found' | 'conflict' | 'restricted' | 'internal'
+export type ApiErrorCode = 'validation' | 'forbidden' | 'not_found' | 'conflict' | 'restricted' | 'internal'
 
 const STATUS: Record<ApiErrorCode, number> = {
   validation: 400,
+  forbidden: 403,
   not_found: 404,
   conflict: 409,
   restricted: 409,
@@ -70,6 +71,13 @@ export const errorHandler: ErrorRequestHandler = (error, _req, res, _next) => {
     apiError = error
   } else if (error?.type === 'entity.parse.failed') {
     apiError = new ApiError('validation', 'İstek gövdesi geçerli JSON değil.')
+  } else if (error?.type === 'entity.too.large') {
+    apiError = new ApiError('validation', 'İstek gövdesi çok büyük.')
+  } else if (pgErrorCode(error) === '23505') {
+    // Servis kontrolünü eşzamanlı bir istek geçtiyse benzersizlik kuralı veritabanında yakalanır.
+    apiError = new ApiError('conflict', 'Bu kayıt mevcut bir kayıtla çakışıyor. Sayfayı yenileyip tekrar deneyin.')
+  } else if (isRestrictViolation(error)) {
+    apiError = new ApiError('restricted', 'İlişkili kayıtlar nedeniyle bu işlem yapılamadı. Sayfayı yenileyip tekrar deneyin.')
   } else {
     // Ayrıntılar yalnızca sunucu günlüğüne yazılır; yanıtta sızdırılmaz.
     console.error(error)
