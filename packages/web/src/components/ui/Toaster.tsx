@@ -30,7 +30,7 @@ export function Toaster({ children }: { children: ReactNode }) {
           <div
             key={toast.id}
             role={toast.tone === 'error' ? 'alert' : 'status'}
-            className="pointer-events-auto flex w-full max-w-sm items-start gap-3 rounded-lg border border-slate-200 bg-white p-3 text-sm shadow-lg"
+            className={`pointer-events-auto flex w-full max-w-sm animate-pop-in items-start gap-3 rounded-lg border-l-4 bg-white p-3 text-sm shadow-lg ring-1 ring-slate-200 ${toast.tone === 'success' ? 'border-l-brand-600' : 'border-l-red-600'}`}
           >
             {toast.tone === 'success' ? (
               <CheckCircle2 aria-hidden className="mt-0.5 size-4 shrink-0 text-brand-600" />

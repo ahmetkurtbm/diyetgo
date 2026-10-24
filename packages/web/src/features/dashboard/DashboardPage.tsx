@@ -5,6 +5,7 @@ import { Link } from 'react-router'
 import { useRepositoryQuery } from '../../data/context'
 import { Badge, EmptyState, ErrorState, LoadingState } from '../../components/ui/feedback'
 import { Card, CardHeader, PageHeader } from '../../components/ui/layout'
+import { AnimatedBar, AnimatedNumber, Stagger, StaggerItem } from '../../components/ui/motion'
 import { formatDate, formatDateTime, formatTime, formatWeekday, formatWeekdayDate, today } from '../../lib/format'
 import { appointmentStatusLabels, appointmentStatusTones, fullName, planStatus } from '../../lib/labels'
 
@@ -12,16 +13,33 @@ type Activity = { id: string; at: string; title: string; detail: string; to: str
 
 const cardLink = 'text-sm font-medium text-brand-700 hover:underline'
 
-function StatCard({ icon: Icon, label, value, detail, children }: { icon: LucideIcon; label: string; value: number; detail: ReactNode; children?: ReactNode }) {
+/**
+ * Kart renkleri. Renk yalnızca dekoratif yüzeylerdedir (şerit, ikon, çubuk); metin slate tonunda
+ * kalır, böylece kontrast WCAG AA'yı korur. İkon zemini beyaz ikonla en az 3:1 kontrastlıdır.
+ */
+const statTones = {
+  sky: { surface: 'from-sky-50', accent: 'from-sky-400 to-sky-600', icon: 'bg-sky-600 shadow-sky-600/30', bar: 'bg-linear-to-r from-sky-400 to-sky-600' },
+  violet: { surface: 'from-violet-50', accent: 'from-violet-400 to-violet-600', icon: 'bg-violet-600 shadow-violet-600/30', bar: 'bg-linear-to-r from-violet-400 to-violet-600' },
+  amber: { surface: 'from-amber-50', accent: 'from-amber-300 to-orange-500', icon: 'bg-orange-600 shadow-orange-600/30', bar: 'bg-linear-to-t from-amber-400 to-orange-500' },
+  emerald: { surface: 'from-emerald-50', accent: 'from-emerald-400 to-teal-600', icon: 'bg-emerald-600 shadow-emerald-600/30', bar: 'bg-linear-to-r from-emerald-400 to-teal-500' },
+} as const
+
+type StatTone = keyof typeof statTones
+
+function StatCard({ icon: Icon, tone, label, value, detail, children }: { icon: LucideIcon; tone: StatTone; label: string; value: number; detail: ReactNode; children?: ReactNode }) {
+  const colors = statTones[tone]
   return (
-    <Card className="flex flex-col p-5">
+    <Card className={`relative flex h-full flex-col overflow-hidden bg-linear-to-br ${colors.surface} via-white to-white p-5 transition duration-200 hover:-translate-y-0.5 hover:shadow-md`}>
+      <span aria-hidden className={`absolute inset-x-0 top-0 h-1 bg-linear-to-r ${colors.accent}`} />
       <div className="flex items-center justify-between gap-2">
-        <p className="text-sm font-medium text-slate-500">{label}</p>
-        <span className="rounded-md bg-brand-50 p-1.5 text-brand-700">
+        <p className="text-sm font-medium text-slate-600">{label}</p>
+        <span className={`rounded-lg p-2 text-white shadow-md ${colors.icon}`}>
           <Icon aria-hidden className="size-4" />
         </span>
       </div>
-      <p className="mt-2 text-3xl font-semibold tabular-nums text-slate-900">{value}</p>
+      <p className="mt-2 text-3xl font-semibold tabular-nums text-slate-900">
+        <AnimatedNumber value={value} />
+      </p>
       <p className="mt-1 text-xs text-slate-500" data-testid="stat-detail">
         {detail}
       </p>
@@ -31,7 +49,7 @@ function StatCard({ icon: Icon, label, value, detail, children }: { icon: Lucide
 }
 
 /** Gerçek bir pay ve paydaya dayanan ilerleme çubuğu. */
-function Meter({ value, max, label }: { value: number; max: number; label: string }) {
+function Meter({ value, max, label, tone = 'emerald' }: { value: number; max: number; label: string; tone?: StatTone }) {
   return (
     <span
       role="progressbar"
@@ -41,7 +59,7 @@ function Meter({ value, max, label }: { value: number; max: number; label: strin
       aria-valuenow={value}
       className="block h-1.5 overflow-hidden rounded-full bg-slate-100"
     >
-      <span className="block h-full rounded-full bg-brand-600" style={{ width: `${(value / max) * 100}%` }} />
+      <AnimatedBar percent={(value / max) * 100} className={statTones[tone].bar} />
     </span>
   )
 }
@@ -55,7 +73,7 @@ function DayBars({ days }: { days: { date: string; count: number }[] }) {
       {days.map((d) => (
         <div key={d.date} className="flex flex-1 flex-col items-center gap-1" title={`${formatDate(d.date)}: ${d.count} randevu`}>
           <div className="flex h-8 w-full items-end rounded-sm bg-slate-100">
-            {d.count > 0 && <div className="w-full rounded-sm bg-brand-600" style={{ height: `${(d.count / max) * 100}%` }} />}
+            {d.count > 0 && <div className={`w-full origin-bottom animate-grow-up rounded-sm ${statTones.amber.bar}`} style={{ height: `${(d.count / max) * 100}%` }} />}
           </div>
           <span className="text-[10px] text-slate-500">{formatWeekday(d.date)}</span>
         </div>
@@ -66,7 +84,7 @@ function DayBars({ days }: { days: { date: string; count: number }[] }) {
 
 function ListCard({ title, description, actions, empty, children }: { title: string; description?: string; actions?: ReactNode; empty: ReactNode | null; children: ReactNode }) {
   return (
-    <Card>
+    <Card className="h-full">
       <CardHeader title={title} description={description} actions={actions} />
       {empty ?? children}
     </Card>
@@ -125,7 +143,7 @@ function TodayTimeline({ appointments, clientsById, now }: { appointments: Appoi
             <span className="w-12 shrink-0 pt-2 text-right text-sm font-medium text-slate-900 tabular-nums">{formatTime(a.startsAt)}</span>
             <span className="relative flex w-3 shrink-0 justify-center">
               <span className="absolute inset-y-0 w-px bg-slate-200" />
-              <span className={`relative mt-3 size-3 rounded-full ring-2 ring-white ${cancelled ? 'bg-slate-300' : 'bg-brand-600'}`} />
+              <span className={`relative mt-3 size-3 rounded-full ring-2 ring-white ${cancelled ? 'bg-slate-300' : 'bg-violet-600'}`} />
             </span>
             <div className="flex min-w-0 flex-1 flex-wrap items-center justify-between gap-x-3 gap-y-1 py-1.5">
               <div className="min-w-0">
@@ -218,29 +236,40 @@ export function DashboardPage() {
   return (
     <>
       <PageHeader title="Genel bakış" description={formatDate(date)} />
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <Stagger className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <StaggerItem>
         <StatCard
           icon={Users}
+          tone="sky"
           label="Aktif danışan"
           value={activeClients.length}
           detail={archivedCount > 0 ? `Arşivdeki ${archivedCount} danışan hariç` : 'Arşivde danışan yok'}
         />
+        </StaggerItem>
+        <StaggerItem>
         <StatCard
           icon={CalendarCheck}
+          tone="violet"
           label="Bugünkü randevu"
           value={todays.length}
           detail={cancelledToday > 0 ? `${todayDetail} · ${cancelledToday} iptal hariç` : todayDetail}
         />
+        </StaggerItem>
+        <StaggerItem>
         <StatCard
           icon={CalendarClock}
+          tone="amber"
           label="Yaklaşan randevu"
           value={upcoming.length}
           detail={nextUpcoming ? `En yakın: ${formatWeekdayDate(nextUpcoming.startsAt)} ${formatTime(nextUpcoming.startsAt)}` : 'Planlanmış randevu yok'}
         >
           <DayBars days={upcomingDays} />
         </StatCard>
+        </StaggerItem>
+        <StaggerItem>
         <StatCard
           icon={NotebookPen}
+          tone="emerald"
           label="Aktif plan"
           value={activePlans.length}
           detail={activePlans.length > 0 ? `${datedPlans} bitiş tarihli · ${activePlans.length - datedPlans} açık uçlu` : 'Bugünü kapsayan plan yok'}
@@ -257,9 +286,11 @@ export function DashboardPage() {
             </div>
           )}
         </StatCard>
-      </div>
+        </StaggerItem>
+      </Stagger>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-2">
+      <Stagger className="mt-6 grid gap-6 lg:grid-cols-2">
+        <StaggerItem>
         <ListCard
           title="Bugünkü randevular"
           description="Saat sırasıyla; iptal edilenler soluk gösterilir."
@@ -285,6 +316,8 @@ export function DashboardPage() {
         >
           <TodayTimeline appointments={todayAll} clientsById={clientsById} now={now} />
         </ListCard>
+        </StaggerItem>
+        <StaggerItem>
         <ListCard
           title="Yaklaşan randevular"
           description="Önümüzdeki 7 gün"
@@ -296,6 +329,8 @@ export function DashboardPage() {
             ))}
           </ul>
         </ListCard>
+        </StaggerItem>
+        <StaggerItem>
         <ListCard
           title="Aktif beslenme planları"
           actions={
@@ -345,6 +380,8 @@ export function DashboardPage() {
             })}
           </ul>
         </ListCard>
+        </StaggerItem>
+        <StaggerItem>
         <ListCard title="Son işlemler" empty={activities.length === 0 ? <EmptyState icon={History} title="Henüz işlem yok" /> : null}>
           <ul className="divide-y divide-slate-100">
             {activities.map((activity) => (
@@ -360,7 +397,8 @@ export function DashboardPage() {
             ))}
           </ul>
         </ListCard>
-      </div>
+        </StaggerItem>
+      </Stagger>
     </>
   )
 }

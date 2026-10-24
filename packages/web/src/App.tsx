@@ -1,3 +1,4 @@
+import { MotionConfig } from 'motion/react'
 import type { ReactNode } from 'react'
 import { BrowserRouter, Route, Routes } from 'react-router'
 import { AppShell } from './components/layout/AppShell'
@@ -36,7 +37,9 @@ export function AppRoutes() {
 export function AppProviders({ repositories, children }: { repositories: Repositories; children: ReactNode }) {
   return (
     <RepositoryContext value={repositories}>
-      <Toaster>{children}</Toaster>
+      <MotionConfig reducedMotion="user">
+        <Toaster>{children}</Toaster>
+      </MotionConfig>
     </RepositoryContext>
   )
 }

@@ -43,7 +43,7 @@ export function Dialog({
         event.preventDefault()
         onClose()
       }}
-      className={`m-auto w-[calc(100%-2rem)] ${sizes[size]} rounded-lg bg-white p-0 shadow-xl backdrop:bg-slate-900/40`}
+      className={`m-auto w-[calc(100%-2rem)] ${sizes[size]} rounded-lg bg-white p-0 shadow-xl backdrop:bg-slate-900/40 backdrop:backdrop-blur-[2px] open:animate-pop-in`}
     >
       {open && (
         <div className="flex max-h-[85dvh] flex-col">

@@ -10,6 +10,45 @@
   --color-brand-600: var(--color-emerald-600);
   --color-brand-700: var(--color-emerald-700);
   --color-brand-800: var(--color-emerald-800);
+
+  /* Makro renkleri: çubuk ve noktalarda kullanılır; metin her zaman slate tonundadır (kontrast). */
+  --color-macro-energy: var(--color-emerald-500);
+  --color-macro-protein: var(--color-sky-500);
+  --color-macro-carbs: var(--color-violet-500);
+  --color-macro-fat: var(--color-rose-500);
+  /* Hedefin %110'unu aşan değer. */
+  --color-macro-over: var(--color-amber-500);
+
+  --animate-pop-in: pop-in 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+  --animate-grow-up: grow-up 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+
+  @keyframes grow-up {
+    from {
+      transform: scaleY(0);
+    }
+  }
+
+  @keyframes pop-in {
+    from {
+      opacity: 0;
+      transform: translateY(8px) scale(0.97);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+}
+
+/* Hareket istemeyen kullanıcılarda CSS animasyon ve geçişleri kapatılır (motion için bkz. MotionConfig). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 /*

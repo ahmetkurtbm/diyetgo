@@ -2,6 +2,7 @@ import { CalendarDays, Info, LayoutDashboard, Leaf, Menu, NotebookPen, Settings,
 import { useEffect, useId, useRef, useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router'
 import { useRepositoryQuery } from '../../data/context'
+import { PageTransition } from '../ui/motion'
 
 const navigation = [
   {
@@ -25,7 +26,7 @@ const navigation = [
 function Brand() {
   return (
     <span className="flex items-center gap-2 text-lg font-semibold text-slate-900">
-      <span className="rounded-md bg-brand-700 p-1.5 text-white">
+      <span className="rounded-lg bg-linear-to-br from-emerald-500 to-teal-700 p-1.5 text-white shadow-md shadow-emerald-600/30">
         <Leaf aria-hidden className="size-4" />
       </span>
       Dietgo
@@ -50,8 +51,10 @@ function NavGroups({ onNavigate }: { onNavigate?: () => void }) {
                   end={end}
                   onClick={onNavigate}
                   className={({ isActive }) =>
-                    `flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium ${
-                      isActive ? 'bg-brand-50 text-brand-800' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                    `flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors duration-150 ${
+                      isActive
+                        ? 'bg-linear-to-r from-brand-700 to-teal-700 text-white shadow-sm shadow-emerald-700/30'
+                        : 'text-slate-600 hover:bg-brand-50 hover:text-brand-800'
                     }`
                   }
                 >
@@ -192,7 +195,9 @@ export function AppShell() {
       <MobileMenu open={menuOpen} onClose={() => setMenuOpen(false)} isDemo={isDemo} persistent={persistent} />
 
       <main key={pathname} className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:py-8">
-        <Outlet />
+        <PageTransition>
+          <Outlet />
+        </PageTransition>
       </main>
     </div>
   )
