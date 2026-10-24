@@ -71,7 +71,7 @@ describe('bozuk veya tanınmayan veri asla ezilmez', () => {
     const storage = new MemoryStorage()
     const data = createSeedData('2026-03-10')
     data.foods[0]!.energyKcal = -5
-    const raw = JSON.stringify({ version: 3, seededAt: NOW.toISOString(), data })
+    const raw = JSON.stringify({ version: 4, seededAt: NOW.toISOString(), data })
     storage.setItem(STORAGE_KEY, raw)
     const result = openDemoStore({ storage, now })
     expect(result.ok).toBe(false)
@@ -87,6 +87,8 @@ describe('sürüm yükseltme', () => {
       ...data,
       measurements: data.measurements.map(({ thighCm: _t, ...m }) => m),
       foods: data.foods.filter((f) => f.recipeYieldG === null).map(({ cookingMethod: _cm, recipeYieldG: _y, ...f }) => f),
+      mealPlans: data.mealPlans.filter((p) => p.kind === 'daily').map(({ kind: _k, weeklyQuotas: _q, ...p }) => p),
+      planMeals: data.planMeals.filter((m) => data.mealPlans.find((p) => p.id === m.mealPlanId)?.kind === 'daily'),
     }
   }
 
@@ -98,14 +100,15 @@ describe('sürüm yükseltme', () => {
 
     const store = open(storage)
     const { version, seededAt, data } = store.read()
-    expect(version).toBe(3)
+    expect(version).toBe(4)
     expect(seededAt).toBe('2026-01-01T00:00:00.000Z')
     expect(data.clients[0]!.firstName).toBe('Kullanıcının değişikliği')
     expect(data.measurements).toHaveLength(old.measurements.length)
     expect(data.measurements.every((m) => m.thighCm === null)).toBe(true)
     expect(data).toMatchObject({ clientMedications: [], clientConditions: [], clientRecommendations: [], recipeIngredients: [] })
     expect(data.foods.every((f) => f.cookingMethod === null && f.recipeYieldG === null)).toBe(true)
-    expect(JSON.parse(storage.getItem(STORAGE_KEY)!).version).toBe(3)
+    expect(data.mealPlans.every((p) => p.kind === 'daily' && p.weeklyQuotas.length === 0)).toBe(true)
+    expect(JSON.parse(storage.getItem(STORAGE_KEY)!).version).toBe(4)
   })
 
   it('yükseltmeden sonra da geçersiz olan sürüm 1 veriyi ezmez', () => {

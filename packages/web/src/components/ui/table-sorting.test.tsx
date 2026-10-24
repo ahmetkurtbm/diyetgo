@@ -66,10 +66,10 @@ describe('Tablo sıralama', () => {
   it('planları başlangıç tarihine göre sıralar', async () => {
     const { user } = renderApp('/plans')
     await screen.findByRole('table', { name: 'Plan listesi' })
-    // Varsayılan: en yeni başlangıç önce (7 Mart, 3 Mart).
-    expect(firstCells('Plan listesi')).toEqual(['Başlangıç planı (örnek)', 'Dengeli beslenme planı (örnek)'])
+    // Varsayılan: en yeni başlangıç önce (8 Mart, 7 Mart, 3 Mart).
+    expect(firstCells('Plan listesi')).toEqual(['Seçenekli haftalık menü (örnek)', 'Başlangıç planı (örnek)', 'Dengeli beslenme planı (örnek)'])
     await user.click(within(header('Plan listesi', 'Tarihler')).getByRole('button'))
-    expect(firstCells('Plan listesi')).toEqual(['Dengeli beslenme planı (örnek)', 'Başlangıç planı (örnek)'])
+    expect(firstCells('Plan listesi')).toEqual(['Dengeli beslenme planı (örnek)', 'Başlangıç planı (örnek)', 'Seçenekli haftalık menü (örnek)'])
   })
 
   it('ölçümleri tarihe ve kiloya göre sıralar; boş değerler sonda kalır', async () => {

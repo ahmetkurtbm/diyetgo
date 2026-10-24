@@ -162,13 +162,21 @@ describe('food', () => {
 })
 
 describe('mealPlan / planMeal / planMealItem', () => {
-  const plan = { clientId: ID, title: 'Plan', startDate: '2026-03-10', endDate: '2026-03-16', notes: null }
+  const plan = { clientId: ID, title: 'Plan', startDate: '2026-03-10', endDate: '2026-03-16', notes: null, kind: 'daily', weeklyQuotas: [] }
 
   it('bitiş başlangıçtan önce olamaz; aynı gün olabilir', () => {
     ok(mealPlanInputSchema, plan)
     ok(mealPlanInputSchema, { ...plan, endDate: '2026-03-10' })
     ok(mealPlanInputSchema, { ...plan, endDate: null })
     fail(mealPlanInputSchema, { ...plan, endDate: '2026-03-09' })
+  })
+
+  it('seçenekli planda haftalık adet 0–21 arasıdır ve her öğün türü bir kez girilir', () => {
+    ok(mealPlanInputSchema, { ...plan, kind: 'options', weeklyQuotas: [{ mealTypeId: ID, perWeek: 7 }, { mealTypeId: ID2, perWeek: 21 }] })
+    fail(mealPlanInputSchema, { ...plan, kind: 'options', weeklyQuotas: [{ mealTypeId: ID, perWeek: 22 }] })
+    fail(mealPlanInputSchema, { ...plan, kind: 'options', weeklyQuotas: [{ mealTypeId: ID, perWeek: 2.5 }] })
+    fail(mealPlanInputSchema, { ...plan, kind: 'options', weeklyQuotas: [{ mealTypeId: ID, perWeek: 3 }, { mealTypeId: ID, perWeek: 4 }] })
+    fail(mealPlanInputSchema, { ...plan, kind: 'weekly' })
   })
 
   const meal = { mealPlanId: ID, dayNumber: 1, mealTypeId: ID2, time: '08:30', notes: null }

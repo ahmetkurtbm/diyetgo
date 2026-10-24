@@ -22,15 +22,17 @@ type Props = {
   selectableFoods: Food[]
   onEdit: () => void
   onDelete: () => void
+  /** Varsayılan başlık öğün türünün adıdır; seçenekli planda "Kahvaltı · 2. seçenek" gibi verilir. */
+  title?: string
 }
 
 const foodLabel = (food: Food) => (food.brand ? `${food.name} (${food.brand})` : food.name)
 
-export function MealCard({ meal, mealType, items, foodsById, selectableFoods, onEdit, onDelete }: Props) {
+export function MealCard({ meal, mealType, items, foodsById, selectableFoods, onEdit, onDelete, title: customTitle }: Props) {
   const [adding, setAdding] = useState(false)
   const mealItems = items.filter((i) => i.planMealId === meal.id)
   const totals = mealTotals(meal.id, items, foodsById)
-  const title = mealType?.name ?? 'Öğün'
+  const title = customTitle ?? mealType?.name ?? 'Öğün'
 
   return (
     <Card aria-label={title}>

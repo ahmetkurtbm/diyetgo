@@ -31,6 +31,9 @@ export const LIMITS = {
   macroSumGPer100g: 100,
   quantity: 10_000,
   recipeYieldG: 50_000,
+  /** Bir öğün türü haftada en fazla 21 kez (günde 3) planlanabilir. */
+  weeklyQuota: 21,
+  weeklyQuotaTypes: 20,
   recipeIngredients: 60,
   planDays: 366,
   sortOrder: 1000,
@@ -175,16 +178,37 @@ export type MealType = z.infer<typeof mealTypeSchema>
 
 // ---------- Beslenme planı ----------
 
+/**
+ * - `daily`: Gün gün menü; öğünlerin `dayNumber` alanı plan günüdür.
+ * - `options`: Seçenekli haftalık menü; her öğün türü için birkaç seçenek ve haftalık adet girilir,
+ *   danışan seçer. Öğünlerin `dayNumber` alanı o öğün türündeki seçenek numarasıdır (1, 2, …).
+ */
+export const mealPlanKindSchema = z.enum(['daily', 'options'])
+export type MealPlanKind = z.infer<typeof mealPlanKindSchema>
+
+/** Seçenekli planda bir öğün türünün haftada kaç kez yeneceği. */
+export const weeklyQuotaSchema = z.object({
+  mealTypeId: idSchema,
+  perWeek: z.int().min(0).max(LIMITS.weeklyQuota),
+})
+export type WeeklyQuota = z.infer<typeof weeklyQuotaSchema>
+
 const mealPlanFields = z.object({
   clientId: idSchema,
   title: requiredText(LIMITS.name),
   startDate: calendarDateSchema,
   endDate: calendarDateSchema.nullable(),
   notes: optionalText(LIMITS.notes),
+  kind: mealPlanKindSchema,
+  /** Yalnızca seçenekli planda kullanılır; her öğün türü en fazla bir kez. */
+  weeklyQuotas: z.array(weeklyQuotaSchema).max(LIMITS.weeklyQuotaTypes),
 })
 
 function checkMealPlan(p: z.infer<typeof mealPlanFields>, ctx: Ctx) {
   checkDateOrder(p.startDate, p.endDate, ctx, 'endDate')
+  if (new Set(p.weeklyQuotas.map((q) => q.mealTypeId)).size !== p.weeklyQuotas.length) {
+    ctx.addIssue({ code: 'custom', path: ['weeklyQuotas'], message: 'Her öğün türü için tek bir haftalık adet girilir' })
+  }
 }
 
 export const mealPlanInputSchema = mealPlanFields.superRefine(checkMealPlan)

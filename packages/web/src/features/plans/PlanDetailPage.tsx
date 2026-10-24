@@ -28,6 +28,7 @@ import { CopyPlanDialog } from './CopyPlanDialog'
 import { MealCard } from './MealCard'
 import { MealFormDialog } from './MealFormDialog'
 import { NutrientSummary } from './NutrientSummary'
+import { OptionPlanView } from './OptionPlanView'
 import { PlanFormDialog } from './PlanFormDialog'
 
 const weekTotalMetrics = [
@@ -158,102 +159,119 @@ export function PlanDetailPage() {
         }
       />
 
-      <nav aria-label="Plan günleri" className="-mx-4 mb-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
-        <ol className="flex gap-2 pb-1">
-          {Array.from({ length: dayCount }, (_, i) => i + 1).map((n) => {
-            const hasMeals = meals.some((m) => m.dayNumber === n)
-            return (
-              <li key={n}>
-                <button
-                  type="button"
-                  aria-current={n === day ? 'page' : undefined}
-                  onClick={() => setSearchParams({ day: String(n) }, { replace: true })}
-                  className={`flex w-16 flex-col items-center rounded-md border px-2 py-1.5 text-xs ${
-                    n === day ? 'border-brand-600 bg-brand-50 text-brand-800' : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
-                  }`}
-                >
-                  <span className="font-semibold">{n}. gün</span>
-                  <span className="text-slate-500">{formatShortDate(planDayDate(plan.startDate, n))}</span>
-                  <span aria-hidden className={`mt-0.5 size-1.5 rounded-full ${hasMeals ? 'bg-brand-600' : 'bg-transparent'}`} />
-                </button>
-              </li>
-            )
-          })}
-        </ol>
-      </nav>
-
-      <Card className="mb-6">
-        <CardHeader title={`${day}. gün toplamı`} description={formatLongDate(dayDate)} />
-        <div className="px-5 py-4">
-          <NutrientSummary totals={dayTotals(day, meals, items, foodsById)} goal={findActiveGoal(goals, dayDate)} />
-        </div>
-      </Card>
-
-      <Card className="mb-6">
-        <CardHeader
-          title={`${week.week}. hafta toplamı`}
-          description={`${week.fromDay}–${week.toDay}. günler (${formatShortDate(planDayDate(plan.startDate, week.fromDay))} – ${formatShortDate(planDayDate(plan.startDate, week.toDay))}) · ${week.daysWithMeals} günde öğün var`}
+      {plan.kind === 'options' ? (
+        <OptionPlanView
+          plan={plan}
+          meals={meals}
+          items={items}
+          foodsById={foodsById}
+          selectableFoods={selectableFoods}
+          mealTypes={mealTypes}
+          goal={findActiveGoal(goals, today())}
+          onEditMeal={setEditingMeal}
+          onDeleteMeal={setDeletingMeal}
         />
-        <div className="space-y-4 px-5 py-4">
-          <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            {weekTotalMetrics.map(({ key, label, unit, digits }) => (
-              <div key={key} className="rounded-lg bg-slate-50 p-3 ring-1 ring-slate-100">
-                <dt className="text-xs font-medium text-slate-600">Haftalık {label.toLocaleLowerCase('tr-TR')}</dt>
-                <dd className="mt-1">
-                  <span className="text-lg font-semibold text-slate-900 tabular-nums">{formatNumber(week.total[key], digits)}</span>{' '}
-                  <span className="text-xs text-slate-500">{unit}</span>
-                </dd>
-              </div>
-            ))}
-          </dl>
-          {week.daysWithMeals > 0 && (
-            <div>
-              <h3 className="mb-2 text-sm font-semibold text-slate-700">Günlük ortalama (öğünü olan {week.daysWithMeals} gün)</h3>
-              <NutrientSummary totals={week.average} goal={findActiveGoal(goals, dayDate)} />
-            </div>
-          )}
-        </div>
-      </Card>
-
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <h2 className="text-base font-semibold text-slate-900">Öğünler</h2>
-        <Button variant="primary" size="sm" disabled={availableTypes().length === 0} onClick={() => setDialog('meal')}>
-          <Plus aria-hidden className="size-4" />
-          Öğün ekle
-        </Button>
-      </div>
-      {availableTypes().length === 0 && dayMeals.length > 0 && <p className="mb-3 text-xs text-slate-500">Bu gün için tüm öğün türleri eklendi.</p>}
-
-      {dayMeals.length === 0 ? (
-        <Card>
-          <EmptyState
-            icon={Utensils}
-            title="Bu gün için öğün yok"
-            description="Öğün ekleyip besinleri porsiyonlarıyla girin."
-            action={
-              availableTypes().length > 0 && (
-                <Button variant="primary" onClick={() => setDialog('meal')}>
-                  Öğün ekle
-                </Button>
-              )
-            }
-          />
-        </Card>
       ) : (
-        <div className="space-y-4">
-          {dayMeals.map((meal) => (
-            <MealCard
-              key={meal.id}
-              meal={meal}
-              mealType={mealTypesById.get(meal.mealTypeId)}
-              items={items}
-              foodsById={foodsById}
-              selectableFoods={selectableFoods}
-              onEdit={() => setEditingMeal(meal)}
-              onDelete={() => setDeletingMeal(meal)}
-            />
-          ))}
+        <>
+        <nav aria-label="Plan günleri" className="-mx-4 mb-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+          <ol className="flex gap-2 pb-1">
+            {Array.from({ length: dayCount }, (_, i) => i + 1).map((n) => {
+              const hasMeals = meals.some((m) => m.dayNumber === n)
+              return (
+                <li key={n}>
+                  <button
+                    type="button"
+                    aria-current={n === day ? 'page' : undefined}
+                    onClick={() => setSearchParams({ day: String(n) }, { replace: true })}
+                    className={`flex w-16 flex-col items-center rounded-md border px-2 py-1.5 text-xs ${
+                      n === day ? 'border-brand-600 bg-brand-50 text-brand-800' : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
+                    }`}
+                  >
+                    <span className="font-semibold">{n}. gün</span>
+                    <span className="text-slate-500">{formatShortDate(planDayDate(plan.startDate, n))}</span>
+                    <span aria-hidden className={`mt-0.5 size-1.5 rounded-full ${hasMeals ? 'bg-brand-600' : 'bg-transparent'}`} />
+                  </button>
+                </li>
+              )
+            })}
+          </ol>
+        </nav>
+
+        <Card className="mb-6">
+          <CardHeader title={`${day}. gün toplamı`} description={formatLongDate(dayDate)} />
+          <div className="px-5 py-4">
+            <NutrientSummary totals={dayTotals(day, meals, items, foodsById)} goal={findActiveGoal(goals, dayDate)} />
+          </div>
+        </Card>
+
+        <Card className="mb-6">
+          <CardHeader
+            title={`${week.week}. hafta toplamı`}
+            description={`${week.fromDay}–${week.toDay}. günler (${formatShortDate(planDayDate(plan.startDate, week.fromDay))} – ${formatShortDate(planDayDate(plan.startDate, week.toDay))}) · ${week.daysWithMeals} günde öğün var`}
+          />
+          <div className="space-y-4 px-5 py-4">
+            <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              {weekTotalMetrics.map(({ key, label, unit, digits }) => (
+                <div key={key} className="rounded-lg bg-slate-50 p-3 ring-1 ring-slate-100">
+                  <dt className="text-xs font-medium text-slate-600">Haftalık {label.toLocaleLowerCase('tr-TR')}</dt>
+                  <dd className="mt-1">
+                    <span className="text-lg font-semibold text-slate-900 tabular-nums">{formatNumber(week.total[key], digits)}</span>{' '}
+                    <span className="text-xs text-slate-500">{unit}</span>
+                  </dd>
+                </div>
+              ))}
+            </dl>
+            {week.daysWithMeals > 0 && (
+              <div>
+                <h3 className="mb-2 text-sm font-semibold text-slate-700">Günlük ortalama (öğünü olan {week.daysWithMeals} gün)</h3>
+                <NutrientSummary totals={week.average} goal={findActiveGoal(goals, dayDate)} />
+              </div>
+            )}
+          </div>
+        </Card>
+
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <h2 className="text-base font-semibold text-slate-900">Öğünler</h2>
+          <Button variant="primary" size="sm" disabled={availableTypes().length === 0} onClick={() => setDialog('meal')}>
+            <Plus aria-hidden className="size-4" />
+            Öğün ekle
+          </Button>
         </div>
+        {availableTypes().length === 0 && dayMeals.length > 0 && <p className="mb-3 text-xs text-slate-500">Bu gün için tüm öğün türleri eklendi.</p>}
+
+        {dayMeals.length === 0 ? (
+          <Card>
+            <EmptyState
+              icon={Utensils}
+              title="Bu gün için öğün yok"
+              description="Öğün ekleyip besinleri porsiyonlarıyla girin."
+              action={
+                availableTypes().length > 0 && (
+                  <Button variant="primary" onClick={() => setDialog('meal')}>
+                    Öğün ekle
+                  </Button>
+                )
+              }
+            />
+          </Card>
+        ) : (
+          <div className="space-y-4">
+            {dayMeals.map((meal) => (
+              <MealCard
+                key={meal.id}
+                meal={meal}
+                mealType={mealTypesById.get(meal.mealTypeId)}
+                items={items}
+                foodsById={foodsById}
+                selectableFoods={selectableFoods}
+                onEdit={() => setEditingMeal(meal)}
+                onDelete={() => setDeletingMeal(meal)}
+              />
+            ))}
+          </div>
+        )}
+
+        </>
       )}
 
       <PlanFormDialog open={dialog === 'edit'} plan={plan} onClose={() => setDialog(null)} />
@@ -264,7 +282,7 @@ export function PlanDetailPage() {
         planId={plan.id}
         dayNumber={editingMeal?.dayNumber ?? day}
         meal={editingMeal ?? undefined}
-        mealTypes={availableTypes(editingMeal ?? undefined)}
+        mealTypes={plan.kind === 'options' ? mealTypes.filter((t) => t.id === editingMeal?.mealTypeId) : availableTypes(editingMeal ?? undefined)}
         onClose={() => setEditingMeal(null)}
       />
       <ConfirmDialog

@@ -11,9 +11,11 @@ import {
   isDayWithinPlan,
   isAppointmentOverdue,
   isGoalActiveOn,
+  isMealSlotValid,
   recipeIngredientIssue,
   isMealTypeNameTaken,
   mealsOutsidePlan,
+  planKindChangeIssue,
   planDayDate,
   planLengthDays,
   planNewGoal,
@@ -188,8 +190,22 @@ describe('plan günleri: gün 1 = başlangıç tarihi', () => {
 describe('plan süresi değişikliği', () => {
   it('yeni sürenin dışında kalan öğünleri döndürür', () => {
     const meals = [{ id: 'a', dayNumber: 1 }, { id: 'b', dayNumber: 5 }, { id: 'c', dayNumber: 7 }]
-    expect(mealsOutsidePlan({ startDate: '2026-03-10', endDate: '2026-03-14' }, meals).map((m) => m.id)).toEqual(['c'])
-    expect(mealsOutsidePlan({ startDate: '2026-03-10', endDate: null }, meals)).toEqual([])
+    expect(mealsOutsidePlan({ startDate: '2026-03-10', endDate: '2026-03-14', kind: 'daily' }, meals).map((m) => m.id)).toEqual(['c'])
+    expect(mealsOutsidePlan({ startDate: '2026-03-10', endDate: null, kind: 'daily' }, meals)).toEqual([])
+  })
+
+  it('seçenekli planda gün numarası seçenek numarasıdır; plan süresiyle sınırlanmaz', () => {
+    const plan = { startDate: '2026-03-10', endDate: '2026-03-11', kind: 'options' } as const
+    expect(isMealSlotValid(plan, 5)).toBe(true)
+    expect(isMealSlotValid(plan, 0)).toBe(false)
+    expect(isMealSlotValid({ ...plan, kind: 'daily' }, 5)).toBe(false)
+    expect(mealsOutsidePlan(plan, [{ dayNumber: 9 }])).toEqual([])
+  })
+
+  it('öğünleri olan planın türü değiştirilemez', () => {
+    expect(planKindChangeIssue('daily', 'options', 3)).toMatch(/değiştirilemez/)
+    expect(planKindChangeIssue('daily', 'options', 0)).toBeNull()
+    expect(planKindChangeIssue('options', 'options', 3)).toBeNull()
   })
 })
 

@@ -69,6 +69,8 @@ export function describeRepositoryContract(name: string, setup: () => Promise<Re
         startDate: '2031-05-01',
         endDate: '2031-05-07',
         notes: null,
+        kind: 'daily',
+        weeklyQuotas: [],
         ...overrides,
       })
       const mealType = await repos.mealTypes.create({ name: `Öğün ${crypto.randomUUID().slice(0, 8)}`, sortOrder: 1 })
@@ -231,7 +233,7 @@ export function describeRepositoryContract(name: string, setup: () => Promise<Re
         const client = await createClient()
         await repos.clients.setArchived(client.id, true)
         await expectError(
-          repos.mealPlans.create({ clientId: client.id, title: 'Plan', startDate: '2031-05-01', endDate: null, notes: null }),
+          repos.mealPlans.create({ clientId: client.id, title: 'Plan', startDate: '2031-05-01', endDate: null, notes: null, kind: 'daily', weeklyQuotas: [] }),
           'restricted',
         )
       })
@@ -266,6 +268,27 @@ export function describeRepositoryContract(name: string, setup: () => Promise<Re
         expect(detail.meals[0]).toMatchObject({ dayNumber: 3, mealTypeId: mealType.id, time: '12:30', notes: 'Not' })
         expect(detail.meals[0]!.id).not.toBe(meal.id)
         expect(detail.items).toEqual([expect.objectContaining({ planMealId: detail.meals[0]!.id, foodId: food.id, quantity: 150 })])
+      })
+
+      it('seçenekli planda gün numarası seçenek numarasıdır; adetler ve tür kopyalanır', async () => {
+        const { plan, mealType } = await createPlan({ kind: 'options', endDate: '2031-05-02' })
+        // Plan iki günlük olsa da seçenek numarası süreye bağlı değildir.
+        const option = await repos.mealPlans.addMeal({ mealPlanId: plan.id, dayNumber: 5, mealTypeId: mealType.id, time: null, notes: null })
+        await expectError(repos.mealPlans.addMeal({ mealPlanId: plan.id, dayNumber: 5, mealTypeId: mealType.id, time: null, notes: null }), 'conflict')
+
+        const updated = await repos.mealPlans.update(plan.id, { ...plan, weeklyQuotas: [{ mealTypeId: mealType.id, perWeek: 4 }] })
+        expect(updated).toMatchObject({ kind: 'options', weeklyQuotas: [{ mealTypeId: mealType.id, perWeek: 4 }] })
+        await expectError(repos.mealPlans.update(plan.id, { ...plan, weeklyQuotas: [{ mealTypeId: crypto.randomUUID(), perWeek: 1 }] }), 'not_found')
+        await expectError(repos.mealPlans.update(plan.id, { ...plan, weeklyQuotas: [{ mealTypeId: mealType.id, perWeek: 22 }] }), 'validation')
+        const kindChange = await expectError(repos.mealPlans.update(plan.id, { ...plan, kind: 'daily' }), 'validation')
+        expect(kindChange.fieldErrors.kind).toBeTruthy()
+
+        const copy = await repos.mealPlans.copy(plan.id, { clientId: plan.clientId, startDate: '2031-06-01', title: 'Kopya' })
+        expect(copy).toMatchObject({ kind: 'options', weeklyQuotas: [{ mealTypeId: mealType.id, perWeek: 4 }] })
+        expect((await repos.mealPlans.get(copy.id)).meals).toEqual([expect.objectContaining({ dayNumber: option.dayNumber, mealTypeId: mealType.id })])
+
+        await repos.mealPlans.removeMeal(option.id)
+        expect(await repos.mealPlans.update(plan.id, { ...plan, kind: 'daily' })).toMatchObject({ kind: 'daily' })
       })
 
       it('öğün silinince içerikleri, plan silinince öğünleri silinir', async () => {

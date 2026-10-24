@@ -27,7 +27,7 @@ describe('Genel bakış', () => {
     expect(statValue('Bugünkü randevu')).toBe('1')
     // +2. gün ve +7. gün planlanmış; +1. gündeki iptal edilmiş randevu sayılmaz.
     expect(statValue('Yaklaşan randevu')).toBe('2')
-    expect(statValue('Aktif plan')).toBe('2')
+    expect(statValue('Aktif plan')).toBe('3')
   })
 
   it('kartlarda yalnızca veriden hesaplanan bağlamı ve gerçek paydalı ilerlemeyi gösterir', async () => {
@@ -40,13 +40,15 @@ describe('Genel bakış', () => {
     const bars = screen.getByRole('img', { name: /^Günlere göre randevu sayısı/ }).getAttribute('aria-label')!
     expect(bars).toContain(`${formatWeekday('2026-03-11')} 0`) // iptal edilen randevu sayılmaz
     expect(bars).toContain(`${formatWeekday('2026-03-12')} 1`)
-    expect(statDetail('Aktif plan')).toBe('1 bitiş tarihli · 1 açık uçlu')
-    // Aktif danışanlar: Deniz, Ece, Kaan; aktif planı olanlar: Deniz, Ece.
-    expect(progress('Aktif planı olan aktif danışanlar')).toEqual(['2', '3'])
+    expect(statDetail('Aktif plan')).toBe('1 bitiş tarihli · 2 açık uçlu')
+    // Aktif danışanlar: Deniz, Ece, Kaan; üçünün de aktif planı var (Kaan'ınki seçenekli).
+    expect(progress('Aktif planı olan aktif danışanlar')).toEqual(['3', '3'])
     // Deniz planı 3–30 Mart (28 gün); 10 Mart 8. gün. Ece planı açık uçlu olduğu için ilerleme çubuğu yok.
     expect(progress('Dengeli beslenme planı (örnek) ilerlemesi')).toEqual(['8', '28'])
     expect(screen.getByText('4. gün · açık uçlu')).toBeDefined()
     expect(screen.queryByRole('progressbar', { name: 'Başlangıç planı (örnek) ilerlemesi' })).toBeNull()
+    // Seçenekli planda gün sayılmaz.
+    expect(screen.getByText('Seçenekli haftalık menü')).toBeDefined()
   })
 
   it('bugünkü randevuyu İstanbul saatiyle ve danışan bağlantısıyla gösterir', async () => {

@@ -5,7 +5,7 @@
  * sınıflandırılmaz, çünkü hedef danışana göre değişir.
  */
 import { addDays } from './dates'
-import { dayTotals, sumNutrients, ZERO_NUTRIENTS, type Nutrients } from './nutrition'
+import { dayTotals, mealTotals, sumNutrients, ZERO_NUTRIENTS, type Nutrients } from './nutrition'
 import type { Food, Measurement, PlanMeal, PlanMealItem } from './schemas'
 
 export type DatedValue = { date: string; value: number }
@@ -101,4 +101,57 @@ export function planWeekTotals(
   const average = { ...ZERO_NUTRIENTS }
   if (days.length > 0) for (const key of Object.keys(average) as (keyof Nutrients)[]) average[key] = total[key] / days.length
   return { week, fromDay, toDay, total, average, daysWithMeals: days.length }
+}
+
+// ---------- Seçenekli haftalık menü ----------
+
+export type NutrientRange = { min: Nutrients; average: Nutrients; max: Nutrients }
+
+export type OptionPlanSummary = {
+  /** Öğün türü başına: seçenek sayısı, haftalık adet ve haftalık aralık. */
+  mealTypes: { mealTypeId: string; options: number; perWeek: number; weekly: NutrientRange }[]
+  /** Haftalık toplam aralık; danışan her seferinde en düşük / ortalama / en yüksek seçeneği seçerse. */
+  weekly: NutrientRange
+  /** Haftalık aralığın 7 güne bölünmüş hâli. */
+  daily: NutrientRange
+}
+
+const scale = (n: Nutrients, factor: number): Nutrients => ({
+  energyKcal: n.energyKcal * factor,
+  proteinG: n.proteinG * factor,
+  carbsG: n.carbsG * factor,
+  fatG: n.fatG * factor,
+})
+
+/**
+ * Seçenekli planın haftalık aralığı. Her öğün türü için seçeneklerin enerjisine göre en düşük ve en
+ * yüksek seçenek alınır, haftalık adetle çarpılır; ortalama tüm seçeneklerin ortalamasıdır. Adedi
+ * olup seçeneği olmayan öğün türü toplama katılmaz (aralık sıfır).
+ */
+export function optionPlanSummary(
+  meals: readonly Pick<PlanMeal, 'id' | 'mealTypeId'>[],
+  items: readonly Pick<PlanMealItem, 'planMealId' | 'foodId' | 'quantity'>[],
+  foodsById: ReadonlyMap<string, FoodValues>,
+  quotas: readonly { mealTypeId: string; perWeek: number }[],
+): OptionPlanSummary {
+  const typeIds = [...new Set([...quotas.map((q) => q.mealTypeId), ...meals.map((m) => m.mealTypeId)])]
+  const mealTypes = typeIds.map((mealTypeId) => {
+    const perWeek = quotas.find((q) => q.mealTypeId === mealTypeId)?.perWeek ?? 0
+    const totals = meals.filter((m) => m.mealTypeId === mealTypeId).map((m) => mealTotals(m.id, items, foodsById))
+    if (totals.length === 0) return { mealTypeId, options: 0, perWeek, weekly: { min: { ...ZERO_NUTRIENTS }, average: { ...ZERO_NUTRIENTS }, max: { ...ZERO_NUTRIENTS } } }
+    const byEnergy = [...totals].sort((a, b) => a.energyKcal - b.energyKcal)
+    const average = scale(sumNutrients(totals), 1 / totals.length)
+    return {
+      mealTypeId,
+      options: totals.length,
+      perWeek,
+      weekly: { min: scale(byEnergy[0]!, perWeek), average: scale(average, perWeek), max: scale(byEnergy.at(-1)!, perWeek) },
+    }
+  })
+  const weekly: NutrientRange = {
+    min: sumNutrients(mealTypes.map((t) => t.weekly.min)),
+    average: sumNutrients(mealTypes.map((t) => t.weekly.average)),
+    max: sumNutrients(mealTypes.map((t) => t.weekly.max)),
+  }
+  return { mealTypes, weekly, daily: { min: scale(weekly.min, 1 / 7), average: scale(weekly.average, 1 / 7), max: scale(weekly.max, 1 / 7) } }
 }

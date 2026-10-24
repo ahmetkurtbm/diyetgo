@@ -33,8 +33,9 @@ export const STORAGE_PREFIX = 'diyetgo:'
  * Veri biçiminin sürümü. Eski sürümler açılışta kayıpsız yükseltilir (bkz. `upgrade`):
  * - 2: ölçümlere uyluk çevresi (`thighCm`); danışanlara ilaç, hastalık ve öneri koleksiyonları.
  * - 3: besinlere pişirme yöntemi ve tarif alanları (`cookingMethod`, `recipeYieldG`); tarif malzemeleri.
+ * - 4: planlara tür ve haftalık adetler (`kind`, `weeklyQuotas`); mevcut planlar günlük menüdür.
  */
-const VERSION = 3
+const VERSION = 4
 
 export type DemoData = SeedData
 type Envelope = { version: typeof VERSION; seededAt: string; data: DemoData }
@@ -52,6 +53,7 @@ const upgrades: Record<number, (data: Record<string, unknown>) => Record<string,
     clientRecommendations: [],
   }),
   2: (data) => ({ ...data, foods: withDefaults(data.foods, { cookingMethod: null, recipeYieldG: null }), recipeIngredients: [] }),
+  3: (data) => ({ ...data, mealPlans: withDefaults(data.mealPlans, { kind: 'daily', weeklyQuotas: [] }) }),
 }
 
 /**

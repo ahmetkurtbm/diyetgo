@@ -184,13 +184,31 @@ export function createSeedData(today: string): SeedData {
     return t.id
   }
 
-  const p = { deniz: seedId('mealPlan', 1), ece: seedId('mealPlan', 2) }
+  const p = { deniz: seedId('mealPlan', 1), ece: seedId('mealPlan', 2), kaan: seedId('mealPlan', 3) }
+  const daily = () => ({ kind: 'daily' as const, weeklyQuotas: [] })
   const mealPlans: MealPlan[] = [
-    { id: p.deniz, clientId: c.deniz, title: 'Dengeli beslenme planı (örnek)', startDate: day(-7), endDate: day(20), notes: null, archivedAt: null, ...stamps },
-    { id: p.ece, clientId: c.ece, title: 'Başlangıç planı (örnek)', startDate: day(-3), endDate: null, notes: null, archivedAt: null, ...stamps },
+    { id: p.deniz, clientId: c.deniz, title: 'Dengeli beslenme planı (örnek)', startDate: day(-7), endDate: day(20), notes: null, archivedAt: null, ...daily(), ...stamps },
+    { id: p.ece, clientId: c.ece, title: 'Başlangıç planı (örnek)', startDate: day(-3), endDate: null, notes: null, archivedAt: null, ...daily(), ...stamps },
+    {
+      id: p.kaan,
+      clientId: c.kaan,
+      title: 'Seçenekli haftalık menü (örnek)',
+      startDate: day(-2),
+      endDate: null,
+      notes: 'Danışan her öğünde seçeneklerden birini seçer.',
+      archivedAt: null,
+      kind: 'options',
+      weeklyQuotas: [
+        { mealTypeId: mealType('Kahvaltı'), perWeek: 7 },
+        { mealTypeId: mealType('Öğle'), perWeek: 7 },
+        { mealTypeId: mealType('Akşam'), perWeek: 7 },
+        { mealTypeId: mealType('Ara öğün 2'), perWeek: 4 },
+      ],
+      ...stamps,
+    },
   ]
 
-  // [plan, gün, öğün türü, saat, içerik: [besin, miktar(g/ml)]]
+  // [plan, gün (seçenekli planda seçenek numarası), öğün türü, saat, içerik: [besin, miktar(g/ml)]]
   type MealRow = [planId: string, dayNumber: number, type: string, time: string | null, items: [string, number][]]
   const mealRows: MealRow[] = [
     [p.deniz, 1, 'Kahvaltı', '08:00', [['Yulaf ezmesi', 40], ['Süt (yarım yağlı)', 200], ['Muz', 120], ['Ceviz', 12]]],
@@ -201,6 +219,15 @@ export function createSeedData(today: string): SeedData {
     [p.deniz, 2, 'Akşam', '19:00', [['Tavuk göğsü (pişmiş)', 120], ['Salatalık', 150], ['Zeytinyağı', 10]]],
     [p.ece, 1, 'Kahvaltı', '08:30', [['Yumurta', 50], ['Beyaz peynir', 30], ['Tam buğday ekmeği', 30], ['Domates', 120]]],
     [p.ece, 1, 'Öğle', '13:00', [['Mercimek çorbası', 250], ['Yoğurt (tam yağlı)', 150]]],
+    // Seçenekli plan sonda: önceki seed kimlikleri değişmesin (seed tekrar çalıştırılabilir).
+    [p.kaan, 1, 'Kahvaltı', null, [['Yumurta', 100], ['Beyaz peynir', 30], ['Domates', 120], ['Tam buğday ekmeği', 60]]],
+    [p.kaan, 2, 'Kahvaltı', null, [['Yulaf ezmesi', 50], ['Süt (yarım yağlı)', 200], ['Ceviz', 12]]],
+    [p.kaan, 3, 'Kahvaltı', null, [['Yoğurt (tam yağlı)', 200], ['Muz', 120], ['Yulaf ezmesi', 30]]],
+    [p.kaan, 1, 'Öğle', null, [['Tavuk göğsü (pişmiş)', 150], ['Bulgur pilavı', 150], ['Salatalık', 150]]],
+    [p.kaan, 2, 'Öğle', null, [['Mercimek çorbası', 300], ['Tam buğday ekmeği', 60], ['Yoğurt (tam yağlı)', 150]]],
+    [p.kaan, 1, 'Akşam', null, [['Tavuk göğsü (pişmiş)', 120], ['Salatalık', 150], ['Domates', 120], ['Zeytinyağı', 10]]],
+    [p.kaan, 2, 'Akşam', null, [['Mercimek çorbası', 250], ['Yoğurt (tam yağlı)', 200], ['Tam buğday ekmeği', 30]]],
+    [p.kaan, 1, 'Ara öğün 2', null, [['Elma', 150], ['Ceviz', 12]]],
   ]
   const planMeals: PlanMeal[] = []
   const planMealItems: PlanMealItem[] = []

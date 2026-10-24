@@ -28,7 +28,10 @@ Diyetisyenler için danışan, ölçüm, besin, beslenme planı, randevu ve besl
 - **Sağlık bilgileri ve öneriler:** Danışanın kullandığı ilaç ve takviyeler, hastalıkları ve diyetisyenin tarihli önerileri. Kayıt amaçlıdır; uygulama ilaç etkileşimi veya tedavi önerisi üretmez.
 - **Haftalık rapor:** Danışan detayından, danışana gönderilecek görsel bir özet (kilo grafiği ve değişimi, vücut ölçüleri, planın haftalık kalori ve makro ortalaması, sonraki randevu, diyetisyen notu). PNG olarak indirilir; telefonda doğrudan paylaşılabilir. Rapor kaydedilmez, her seferinde güncel veriden üretilir.
 - **Besinler ve tarifler:** 100 g veya 100 ml başına enerji ve makro değerleri, porsiyon bilgisi, hazırlama yöntemi (çiğ, haşlama, ızgara, fırın, kızartma vb.), arşivleme. Tarif / yemek, malzemeleri (besin + miktar) ve pişmiş toplam ağırlığıyla girilir; 100 g değeri malzemelerden hesaplanır ve plana besin gibi eklenir.
-- **Beslenme planları:** Göreli günler (1. gün = başlangıç tarihi), öğünler, porsiyonlar, günlük ve öğün toplamları, plan kopyalama.
+- **Beslenme planları:** İki tür plan vardır, tür plan oluşturulurken seçilir:
+  - *Günlük menü:* Göreli günler (1. gün = başlangıç tarihi), öğünler, porsiyonlar; günlük, öğün ve haftalık toplamlar.
+  - *Seçenekli haftalık menü:* Her öğün türü için birkaç seçenek ve haftalık adet girilir (ör. haftada 3 kahvaltı, 4 ara öğün); danışan seçeneklerden birini seçer. Haftalık değerler, en düşük ve en yüksek kalorili seçeneklere göre aralık ve ortalama olarak gösterilir. API'de `kind: "options"` ve `weeklyQuotas: [{ mealTypeId, perWeek }]` alanlarıyla tutulur; öğünün `dayNumber` alanı seçenek numarasıdır. Öğünleri olan planın türü değiştirilemez.
+  - Her iki türde plan kopyalama (aynı veya başka danışana), arşivleme ve silme.
 - **Randevular:** Oluşturma, düzenleme, iptal, silme; çakışma kontrolü ve filtreler.
 - **Hedefler:** Dönemli enerji ve makro hedefleri, geçmişin korunması, isteğe bağlı Mifflin-St Jeor tahmini.
 - **Ayarlar:** Öğün türleri ve demo verilerini sıfırlama.

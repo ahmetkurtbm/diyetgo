@@ -94,7 +94,7 @@ describe('Besin ekleme ve düzenleme', () => {
 
     await user.click(await screen.findByRole('button', { name: 'Yumurta düzenle' }))
     const dialog = await screen.findByRole('dialog', { name: 'Besini düzenle' })
-    expect(await within(dialog).findByText(/Bu besin 2 planda kullanılıyor/)).toBeDefined()
+    expect(await within(dialog).findByText(/Bu besin 3 planda kullanılıyor/)).toBeDefined()
     const energy = within(dialog).getByLabelText(/^Enerji/)
     await user.clear(energy)
     await user.type(energy, '155')
@@ -111,7 +111,7 @@ describe('Besin silme ve arşivleme', () => {
     const { user } = renderApp('/foods')
     await user.click(await screen.findByRole('button', { name: 'Elma sil' }))
     const dialog = await screen.findByRole('dialog', { name: 'Besin silinemez' })
-    expect(within(dialog).getByText(/1 planda kullanılıyor/)).toBeDefined()
+    expect(within(dialog).getByText(/2 planda kullanılıyor/)).toBeDefined()
     await user.click(within(dialog).getByRole('button', { name: 'Arşivle' }))
     expect(await screen.findByText('Besin arşivlendi.')).toBeDefined()
     expect(screen.queryByText('Elma', { selector: 'span.font-medium' })).toBeNull()

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { chartWindow, metricSeries, planWeekOf, planWeekTotals, reportWeek, summarizeMetric } from './progress'
+import { chartWindow, metricSeries, optionPlanSummary, planWeekOf, planWeekTotals, reportWeek, summarizeMetric } from './progress'
 
 const m = (measuredOn: string, values: { weightKg?: number; waistCm?: number }, createdAt = `${measuredOn}T09:00:00.000Z`) => ({
   measuredOn,
@@ -104,5 +104,50 @@ describe('planWeekTotals', () => {
   it('hafta planın son gününü aşmaz; öğün yoksa ortalama sıfırdır', () => {
     expect(planWeekTotals(2, 10, meals, items, foods)).toMatchObject({ fromDay: 8, toDay: 10, daysWithMeals: 1 })
     expect(planWeekTotals(3, 21, meals, items, foods)).toMatchObject({ daysWithMeals: 0, average: { energyKcal: 0, proteinG: 0, carbsG: 0, fatG: 0 } })
+  })
+})
+
+describe('optionPlanSummary', () => {
+  const foods = new Map([
+    ['egg', { energyKcal: 150, proteinG: 12, carbsG: 1, fatG: 10 }],
+    ['oats', { energyKcal: 380, proteinG: 13, carbsG: 60, fatG: 7 }],
+    ['apple', { energyKcal: 50, proteinG: 0, carbsG: 14, fatG: 0 }],
+  ])
+  // Kahvaltı: seçenek 1 = 150 kcal, seçenek 2 = 380 kcal. Ara öğün: 50 kcal. Akşam: seçenek yok.
+  const meals = [
+    { id: 'b1', mealTypeId: 'breakfast' },
+    { id: 'b2', mealTypeId: 'breakfast' },
+    { id: 's1', mealTypeId: 'snack' },
+  ]
+  const items = [
+    { planMealId: 'b1', foodId: 'egg', quantity: 100 },
+    { planMealId: 'b2', foodId: 'oats', quantity: 100 },
+    { planMealId: 's1', foodId: 'apple', quantity: 100 },
+  ]
+  const quotas = [
+    { mealTypeId: 'breakfast', perWeek: 7 },
+    { mealTypeId: 'snack', perWeek: 4 },
+    { mealTypeId: 'dinner', perWeek: 7 },
+  ]
+
+  it('her öğün türünde en düşük, ortalama ve en yüksek seçeneği haftalık adetle çarpar', () => {
+    const summary = optionPlanSummary(meals, items, foods, quotas)
+    const breakfast = summary.mealTypes.find((t) => t.mealTypeId === 'breakfast')!
+    expect(breakfast).toMatchObject({ options: 2, perWeek: 7 })
+    expect(breakfast.weekly.min.energyKcal).toBe(1050)
+    expect(breakfast.weekly.average.energyKcal).toBe(1855)
+    expect(breakfast.weekly.max.energyKcal).toBe(2660)
+
+    expect(summary.weekly.min.energyKcal).toBe(1050 + 200)
+    expect(summary.weekly.max.energyKcal).toBe(2660 + 200)
+    expect(summary.daily.max.energyKcal).toBeCloseTo(2860 / 7)
+  })
+
+  it('adedi olup seçeneği olmayan öğün türü toplama katılmaz; adedi olmayan seçenekler sıfır sayılır', () => {
+    const summary = optionPlanSummary(meals, items, foods, quotas)
+    expect(summary.mealTypes.find((t) => t.mealTypeId === 'dinner')).toMatchObject({ options: 0, perWeek: 7 })
+    const noQuota = optionPlanSummary(meals, items, foods, [])
+    expect(noQuota.weekly.max.energyKcal).toBe(0)
+    expect(noQuota.mealTypes).toHaveLength(2)
   })
 })

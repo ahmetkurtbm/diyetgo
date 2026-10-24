@@ -12,6 +12,7 @@
  * - Kimlik doğrulama tabloları (`users`, `sessions`, `accounts`, `verifications`) Better Auth'un
  *   beklediği alanlardır; Better Auth bunlara Drizzle adaptörüyle erişir.
  */
+import type { WeeklyQuota } from '@diyetgo/shared'
 import { sql } from 'drizzle-orm'
 import {
   boolean,
@@ -20,6 +21,7 @@ import {
   doublePrecision,
   index,
   integer,
+  jsonb,
   pgEnum,
   pgTable,
   text,
@@ -42,6 +44,7 @@ export const sexEnum = pgEnum('sex', ['female', 'male'])
 export const baseUnitEnum = pgEnum('base_unit', ['g', 'ml'])
 export const appointmentStatusEnum = pgEnum('appointment_status', ['scheduled', 'completed', 'cancelled', 'no_show'])
 export const goalMethodEnum = pgEnum('goal_method', ['manual', 'mifflin_st_jeor'])
+export const mealPlanKindEnum = pgEnum('meal_plan_kind', ['daily', 'options'])
 export const cookingMethodEnum = pgEnum('cooking_method', ['raw', 'boiled', 'steamed', 'grilled', 'baked', 'sauteed', 'stewed', 'fried'])
 
 // ---------- Kimlik doğrulama (Better Auth) ----------
@@ -212,6 +215,10 @@ export const mealPlans = pgTable(
     startDate: calendarDate('start_date').notNull(),
     endDate: calendarDate('end_date'),
     notes: text('notes'),
+    /** `daily`: gün gün menü; `options`: seçenekli haftalık menü (öğünlerin `day_number`'ı seçenek numarasıdır). */
+    kind: mealPlanKindEnum('kind').notNull().default('daily'),
+    /** Seçenekli planda öğün türü başına haftalık adet; öğün türlerinin sahipliği servis katmanında doğrulanır. */
+    weeklyQuotas: jsonb('weekly_quotas').$type<WeeklyQuota[]>().notNull().default([]),
     ...stamps(),
     archivedAt: archivedAt(),
   },

@@ -123,7 +123,11 @@ export function PlansPage() {
                       <Td label="Tarihler">
                         <span>
                           {formatDate(plan.startDate)} – {plan.endDate ? formatDate(plan.endDate) : 'açık uçlu'}
-                          {length !== null && <span className="block text-xs text-slate-500">{length} gün</span>}
+                          {plan.kind === 'options' ? (
+                            <span className="block text-xs text-slate-500">Seçenekli haftalık menü</span>
+                          ) : (
+                            length !== null && <span className="block text-xs text-slate-500">{length} gün</span>
+                          )}
                         </span>
                       </Td>
                       <Td label="Durum">

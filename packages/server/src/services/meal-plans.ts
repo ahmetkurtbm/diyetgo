@@ -6,13 +6,15 @@ import {
   addDays,
   canAddFoodToMeal,
   canUseMealType,
-  isDayWithinPlan,
+  isMealSlotValid,
   mealPlanInputSchema,
   mealsOutsidePlan,
   planLengthDays,
   planMealInputSchema,
+  planKindChangeIssue,
   planMealItemInputSchema,
   type MealPlan,
+  type MealPlanInput,
   type PlanMeal,
   type PlanMealInput,
   type PlanMealItem,
@@ -62,8 +64,9 @@ async function touchPlan(db: Executor, planId: string) {
 /** Gün plan süresinde olmalı, öğün türü arşivlenmemiş olmalı (mevcut seçim korunabilir), aynı gün aynı öğün bir kez bulunur. */
 async function checkMeal(db: Executor, ownerId: string, input: PlanMealInput, selfId: string | null, previousMealTypeId?: string) {
   const plan = await getPlanRow(db, ownerId, input.mealPlanId)
-  if (!isDayWithinPlan(plan, input.dayNumber)) {
-    throw new ApiError('validation', 'Gün plan süresinin dışında.', { fieldErrors: { dayNumber: 'Gün plan süresinin dışında' } })
+  if (!isMealSlotValid(plan, input.dayNumber)) {
+    const message = plan.kind === 'options' ? 'Geçersiz seçenek numarası' : 'Gün plan süresinin dışında'
+    throw new ApiError('validation', `${message}.`, { fieldErrors: { dayNumber: message } })
   }
   checkId(input.mealTypeId, 'Öğün türü')
   const mealType = found((await db.select().from(mealTypes).where(byIdAndOwner(mealTypes, input.mealTypeId, ownerId)))[0], 'Öğün türü')
@@ -87,6 +90,14 @@ async function checkMeal(db: Executor, ownerId: string, input: PlanMealInput, se
 }
 
 /** Arşivlenmiş besin yeni öğüne eklenemez; mevcut içerikte kalan besin korunabilir. */
+/** Seçenekli plandaki haftalık adetlerin öğün türleri bu diyetisyene ait olmalıdır. */
+async function checkQuotaMealTypes(db: Executor, ownerId: string, plan: Pick<MealPlanInput, 'weeklyQuotas'>) {
+  const ids = plan.weeklyQuotas.map((q) => q.mealTypeId)
+  if (ids.length === 0) return
+  const owned = await db.select({ id: mealTypes.id }).from(mealTypes).where(and(eq(mealTypes.ownerId, ownerId), inArray(mealTypes.id, ids)))
+  if (owned.length !== new Set(ids).size) throw new ApiError('not_found', 'Öğün türü bulunamadı.')
+}
+
 async function checkItemFood(db: Executor, ownerId: string, foodId: string, previousFoodId?: string) {
   checkId(foodId, 'Besin')
   const food = found((await db.select().from(foods).where(byIdAndOwner(foods, foodId, ownerId)))[0], 'Besin')
@@ -134,6 +145,7 @@ export function createMealPlanService(db: Db, ownerId: string) {
     async create(input: unknown): Promise<MealPlan> {
       const values = parse(mealPlanInputSchema, input)
       await requireActiveClient(db, ownerId, values.clientId, 'plan')
+      await checkQuotaMealTypes(db, ownerId, values)
       const [row] = await db
         .insert(mealPlans)
         .values({ ...values, ownerId })
@@ -146,7 +158,10 @@ export function createMealPlanService(db: Db, ownerId: string) {
       return db.transaction(async (tx) => {
         const plan = await getPlanRow(tx, ownerId, id)
         if (values.clientId !== plan.clientId) await requireActiveClient(tx, ownerId, values.clientId, 'plan')
+        await checkQuotaMealTypes(tx, ownerId, values)
         const meals = await tx.select().from(planMeals).where(eq(planMeals.mealPlanId, id))
+        const kindIssue = planKindChangeIssue(plan.kind, values.kind, meals.length)
+        if (kindIssue) throw new ApiError('validation', `${kindIssue}.`, { fieldErrors: { kind: kindIssue } })
         const outside = mealsOutsidePlan(values, meals)
         if (outside.length > 0) {
           const days = [...new Set(outside.map((m) => m.dayNumber))].sort((a, b) => a - b).join(', ')
@@ -192,6 +207,8 @@ export function createMealPlanService(db: Db, ownerId: string) {
           startDate,
           endDate: length === null ? null : addDays(startDate, length - 1),
           notes: source.notes,
+          kind: source.kind,
+          weeklyQuotas: source.weeklyQuotas,
         })
         const [plan] = await tx
           .insert(mealPlans)

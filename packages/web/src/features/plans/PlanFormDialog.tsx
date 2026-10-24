@@ -1,4 +1,4 @@
-import type { Client, MealPlan } from '@diyetgo/shared'
+import type { Client, MealPlan, MealPlanKind } from '@diyetgo/shared'
 import { useId, useState, type FormEvent } from 'react'
 import { useRepositories } from '../../data/context'
 import { Button } from '../../components/ui/Button'
@@ -27,7 +27,7 @@ export function PlanFormDialog({ open, plan, clientId, onClose, onSaved }: Props
       open={open}
       onClose={onClose}
       title={plan ? 'Planı düzenle' : 'Yeni beslenme planı'}
-      description="Plan günleri başlangıç tarihinden itibaren numaralanır (1. gün = başlangıç)."
+      description="Günlük menüde günler başlangıç tarihinden itibaren numaralanır; seçenekli menüde her öğün için seçenekler ve haftalık adet girilir."
       footer={
         <>
           <Button onClick={onClose} disabled={busy}>
@@ -89,6 +89,7 @@ function PlanForm({
     startDate: plan?.startDate ?? today(),
     endDate: plan?.endDate ?? '',
     notes: plan?.notes ?? '',
+    kind: plan?.kind ?? ('daily' as MealPlanKind),
   })
   const [clientError, setClientError] = useState<string>()
   const set = (field: keyof typeof values) => (event: { target: { value: string } }) => setValues({ ...values, [field]: event.target.value })
@@ -96,7 +97,8 @@ function PlanForm({
   async function handleSubmit(event: FormEvent) {
     event.preventDefault()
     setClientError(values.clientId ? undefined : 'Bir danışan seçin')
-    const input = { ...values, endDate: emptyToNull(values.endDate), notes: emptyToNull(values.notes) }
+    // Haftalık adetler plan ekranında düzenlenir; burada korunur.
+    const input = { ...values, endDate: emptyToNull(values.endDate), notes: emptyToNull(values.notes), weeklyQuotas: plan?.weeklyQuotas ?? [] }
     let saved: MealPlan | undefined
     onBusyChange(true)
     const ok = await submit(async () => {
@@ -113,6 +115,20 @@ function PlanForm({
           <ClientOptions clients={clients} />
         </SelectField>
         <TextField label="Plan adı" required autoComplete="off" value={values.title} error={errors.title} onChange={set('title')} />
+        <SelectField
+          label="Plan türü"
+          value={values.kind}
+          error={errors.kind}
+          hint={
+            values.kind === 'options'
+              ? 'Her öğün türü için birkaç seçenek ve haftada kaç kez yeneceğini girersiniz; danışan seçeneklerden birini seçer.'
+              : 'Her gün için öğünleri tek tek girersiniz.'
+          }
+          onChange={(e) => setValues({ ...values, kind: e.target.value as MealPlanKind })}
+        >
+          <option value="daily">Günlük menü (gün gün)</option>
+          <option value="options">Seçenekli haftalık menü</option>
+        </SelectField>
       </FormSection>
       <FormSection title="Plan süresi" description="Bitiş günü plana dahildir.">
         <TextField label="Başlangıç tarihi" type="date" required value={values.startDate} error={errors.startDate} onChange={set('startDate')} />

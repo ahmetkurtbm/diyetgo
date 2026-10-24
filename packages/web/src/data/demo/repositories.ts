@@ -20,7 +20,7 @@ import {
   foodInputSchema,
   foodKindChangeIssue,
   goalPeriodsOverlap,
-  isDayWithinPlan,
+  isMealSlotValid,
   isMealTypeNameTaken,
   mealPlanInputSchema,
   mealsOutsidePlan,
@@ -29,6 +29,7 @@ import {
   planLengthDays,
   planMealInputSchema,
   planMealItemInputSchema,
+  planKindChangeIssue,
   planNewGoal,
   recipeIngredientIssue,
   recipeIngredientsInputSchema,
@@ -106,8 +107,9 @@ export function createDemoRepositories(
 
   function checkMeal(data: DemoData, input: ReturnType<typeof planMealInputSchema.parse>, selfId: string | null, previous?: PlanMeal) {
     const plan = find(data.mealPlans, input.mealPlanId, 'Plan')
-    if (!isDayWithinPlan(plan, input.dayNumber)) {
-      throw new RepositoryError('validation', 'Gün plan süresinin dışında.', { fieldErrors: { dayNumber: 'Gün plan süresinin dışında' } })
+    if (!isMealSlotValid(plan, input.dayNumber)) {
+      const message = plan.kind === 'options' ? 'Geçersiz seçenek numarası' : 'Gün plan süresinin dışında'
+      throw new RepositoryError('validation', `${message}.`, { fieldErrors: { dayNumber: message } })
     }
     const mealType = find(data.mealTypes, input.mealTypeId, 'Öğün türü')
     if (!canUseMealType(mealType, previous?.mealTypeId)) {
@@ -119,6 +121,11 @@ export function createDemoRepositories(
     if (duplicate) {
       throw new RepositoryError('conflict', `${input.dayNumber}. gün için "${mealType.name}" öğünü zaten var.`, { conflictingIds: [duplicate.id] })
     }
+  }
+
+  /** Seçenekli plandaki haftalık adetlerin öğün türleri var olmalıdır. */
+  function checkQuotaMealTypes(data: DemoData, plan: Pick<MealPlan, 'weeklyQuotas'>) {
+    for (const quota of plan.weeklyQuotas) find(data.mealTypes, quota.mealTypeId, 'Öğün türü')
   }
 
   function checkItemFood(data: DemoData, foodId: string, previousFoodId?: string) {
@@ -375,6 +382,7 @@ export function createDemoRepositories(
         mutate((data, ts) => {
           const parsed = parse(mealPlanInputSchema, input)
           activeClient(data, parsed.clientId, 'plan')
+          checkQuotaMealTypes(data, parsed)
           const plan = { ...parsed, ...stamp(ts), archivedAt: null }
           data.mealPlans.push(plan)
           return plan
@@ -384,6 +392,9 @@ export function createDemoRepositories(
           const parsed = parse(mealPlanInputSchema, input)
           const plan = find(data.mealPlans, id, 'Plan')
           if (parsed.clientId !== plan.clientId) activeClient(data, parsed.clientId, 'plan')
+          checkQuotaMealTypes(data, parsed)
+          const kindIssue = planKindChangeIssue(plan.kind, parsed.kind, data.planMeals.filter((m) => m.mealPlanId === id).length)
+          if (kindIssue) throw new RepositoryError('validation', `${kindIssue}.`, { fieldErrors: { kind: kindIssue } })
           const outside = mealsOutsidePlan(parsed, data.planMeals.filter((m) => m.mealPlanId === id))
           if (outside.length > 0) {
             const days = [...new Set(outside.map((m) => m.dayNumber))].sort((a, b) => a - b).join(', ')
@@ -417,6 +428,8 @@ export function createDemoRepositories(
             startDate: target.startDate,
             endDate: length === null ? null : addDays(target.startDate, length - 1),
             notes: source.notes,
+            kind: source.kind,
+            weeklyQuotas: source.weeklyQuotas,
           })
           const plan: MealPlan = { ...parsed, ...stamp(ts), archivedAt: null }
           data.mealPlans.push(plan)

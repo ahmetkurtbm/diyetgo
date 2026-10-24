@@ -130,6 +130,7 @@ export function isAppointmentOverdue(appointment: Pick<Appointment, 'status' | '
 // Plan günleri görelidir: gün 1 = `startDate`, gün N = `startDate + (N − 1)`.
 
 type PlanPeriod = Pick<MealPlan, 'startDate' | 'endDate'>
+type PlanSlot = PlanPeriod & Pick<MealPlan, 'kind'>
 
 /** Planın gün sayısı (başlangıç ve bitiş dahil); bitişi olmayan planlarda `null`. */
 export function planLengthDays(plan: PlanPeriod): number | null {
@@ -148,9 +149,23 @@ export function isDayWithinPlan(plan: PlanPeriod, dayNumber: number): boolean {
   return length === null || dayNumber <= length
 }
 
+/**
+ * Öğünün `dayNumber` alanı plan için geçerli mi? Günlük planda gün plan süresinde olmalıdır;
+ * seçenekli planda bu alan seçenek numarasıdır ve 1'den büyük bir tam sayı olması yeter.
+ */
+export function isMealSlotValid(plan: PlanSlot, dayNumber: number): boolean {
+  if (plan.kind === 'options') return Number.isInteger(dayNumber) && dayNumber >= 1
+  return isDayWithinPlan(plan, dayNumber)
+}
+
 /** Plan süresi değişince dışarıda kalacak öğünler; bunlar varken süre değiştirilemez. */
-export function mealsOutsidePlan<T extends Pick<PlanMeal, 'dayNumber'>>(plan: PlanPeriod, meals: readonly T[]): T[] {
-  return meals.filter((m) => !isDayWithinPlan(plan, m.dayNumber))
+export function mealsOutsidePlan<T extends Pick<PlanMeal, 'dayNumber'>>(plan: PlanSlot, meals: readonly T[]): T[] {
+  return meals.filter((m) => !isMealSlotValid(plan, m.dayNumber))
+}
+
+/** Öğünleri olan planın türü (günlük / seçenekli) değiştirilemez; öğünlerin anlamı değişirdi. */
+export function planKindChangeIssue(previous: MealPlan['kind'], next: MealPlan['kind'], mealCount: number): string | null {
+  return previous !== next && mealCount > 0 ? 'Öğünleri olan planın türü değiştirilemez' : null
 }
 
 // ---------- Öğün türleri ----------

@@ -129,8 +129,8 @@ describe('besinler ve canlı hesaplama', () => {
     const { repos } = setup()
     const refs = await seedRefs(repos)
     await expectError(repos.foods.remove(refs.food('Yumurta').id), 'restricted')
-    expect(await repos.foods.countPlansUsing(refs.food('Yumurta').id)).toBe(2)
-    expect(await repos.foods.countPlansUsing(refs.food('Muz').id)).toBe(1)
+    expect(await repos.foods.countPlansUsing(refs.food('Yumurta').id)).toBe(3)
+    expect(await repos.foods.countPlansUsing(refs.food('Muz').id)).toBe(2)
   })
 
   it('besin değeri değişince plan toplamları shared hesaplamasıyla birlikte değişir', async () => {
@@ -186,7 +186,7 @@ describe('beslenme planları ve öğünler', () => {
   it('arşivlenmiş danışana plan eklenemez', async () => {
     const { repos } = setup()
     const refs = await seedRefs(repos)
-    const input = { clientId: refs.selin.id, title: 'Plan', startDate: TODAY, endDate: null, notes: null }
+    const input = { clientId: refs.selin.id, title: 'Plan', startDate: TODAY, endDate: null, notes: null, kind: 'daily' as const, weeklyQuotas: [] }
     await expectError(repos.mealPlans.create(input), 'restricted')
   })
 

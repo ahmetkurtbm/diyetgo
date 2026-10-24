@@ -13,13 +13,15 @@ describe('Plan listesi', () => {
   it('planları durumlarıyla listeler ve danışana göre filtreler', async () => {
     const { user } = renderApp('/plans')
     await screen.findByRole('table', { name: 'Plan listesi' })
-    expect(titles()).toEqual(['Başlangıç planı (örnek)', 'Dengeli beslenme planı (örnek)'])
-    expect(screen.getAllByText('Devam ediyor')).toHaveLength(2)
+    expect(titles()).toEqual(['Seçenekli haftalık menü (örnek)', 'Başlangıç planı (örnek)', 'Dengeli beslenme planı (örnek)'])
+    expect(screen.getAllByText('Devam ediyor')).toHaveLength(3)
+    expect(screen.getByText('Seçenekli haftalık menü')).toBeDefined()
     await user.selectOptions(screen.getByLabelText('Danışan'), 'Deniz Örnek')
     await screen.findByText('Dengeli beslenme planı (örnek)')
     expect(titles()).toEqual(['Dengeli beslenme planı (örnek)'])
     await user.selectOptions(screen.getByLabelText('Danışan'), 'Kaan Taslak')
-    expect(await screen.findByText('Bu ölçütlere uyan plan yok')).toBeDefined()
+    await screen.findByText('Seçenekli haftalık menü (örnek)')
+    expect(titles()).toEqual(['Seçenekli haftalık menü (örnek)'])
   })
 
   it('yeni planı doğrular, oluşturur ve düzenleyiciye gider', async () => {

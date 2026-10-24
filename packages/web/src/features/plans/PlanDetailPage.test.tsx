@@ -1,4 +1,4 @@
-import { dayTotals, mealTotals, type Food } from '@diyetgo/shared'
+import { dayTotals, mealTotals, optionPlanSummary, type Food } from '@diyetgo/shared'
 import { fireEvent, screen, within } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { formatNumber } from '../../lib/format'
@@ -208,5 +208,43 @@ describe('Haftalık toplam', () => {
   it('başka haftadaki bir gün seçilince o haftayı gösterir', async () => {
     await openPlan(`/plans/${PLAN_ID}?day=9`)
     expect(screen.getByRole('heading', { name: '2. hafta toplamı' })).toBeDefined()
+  })
+})
+
+describe('Seçenekli haftalık menü', () => {
+  const OPTION_PLAN_ID = '00000005-0000-4000-8000-000000000003' // Kaan: Kahvaltı 3, Öğle 2, Akşam 2, Ara öğün 2 1 seçenek
+
+  async function openOptionPlan() {
+    const view = renderApp(`/plans/${OPTION_PLAN_ID}`)
+    await screen.findByRole('heading', { name: 'Seçenekli haftalık menü (örnek)' })
+    return view
+  }
+
+  it('haftalık aralığı shared hesaplamasıyla aynı gösterir; gün gezintisi yoktur', async () => {
+    const { repositories } = await openOptionPlan()
+    const { plan, meals, items } = await repositories.mealPlans.get(OPTION_PLAN_ID)
+    const foods = new Map<string, Food>((await repositories.foods.list({ includeArchived: true })).map((f) => [f.id, f]))
+    const summary = optionPlanSummary(meals, items, foods, plan.weeklyQuotas)
+    const range = screen.getByRole('heading', { name: 'Haftalık aralık' }).closest('section')!
+    expect(within(range).getByText(`${formatNumber(summary.weekly.min.energyKcal, 0)} – ${formatNumber(summary.weekly.max.energyKcal, 0)}`)).toBeDefined()
+    expect(screen.queryByRole('heading', { name: '1. gün toplamı' })).toBeNull()
+    expect(within(screen.getByRole('region', { name: 'Kahvaltı seçenekleri' })).getByText('haftada 7 kez · 3 seçenek')).toBeDefined()
+    expect(screen.getByText('Kahvaltı · 3. seçenek')).toBeDefined()
+  })
+
+  it('haftalık adetleri kaydeder ve yeni seçenek ekler', async () => {
+    const { user, repositories } = await openOptionPlan()
+    const input = screen.getByLabelText('Ara öğün 2 haftalık adet')
+    await user.clear(input)
+    await user.type(input, '6')
+    await user.click(screen.getByRole('button', { name: 'Adetleri kaydet' }))
+    expect(await screen.findByText('Haftalık adetler kaydedildi.')).toBeDefined()
+    const types = await repositories.mealTypes.list({ includeArchived: true })
+    const snack = types.find((t) => t.name === 'Ara öğün 2')!
+    expect((await repositories.mealPlans.get(OPTION_PLAN_ID)).plan.weeklyQuotas).toContainEqual({ mealTypeId: snack.id, perWeek: 6 })
+
+    await user.click(within(screen.getByRole('region', { name: 'Öğle seçenekleri' })).getByRole('button', { name: 'Seçenek ekle' }))
+    expect(await screen.findByText('Öğle için 3. seçenek eklendi.')).toBeDefined()
+    expect(await screen.findByText('Öğle · 3. seçenek')).toBeDefined()
   })
 })
