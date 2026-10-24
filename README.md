@@ -13,6 +13,7 @@ Diyetisyenler için danışan, ölçüm, besin, beslenme planı, randevu ve besl
 - [Ortam değişkenleri](#ortam-değişkenleri)
 - [Yerel veritabanı ve backend](#yerel-veritabanı-ve-backend)
 - [Demo modu](#demo-modu)
+- [Mobil uygulama (PWA)](#mobil-uygulama-pwa)
 - [Hesaplamalar ve sınırları](#hesaplamalar-ve-sınırları)
 - [Proje yapısı](#proje-yapısı)
 - [Durum ve planlanan işler](#durum-ve-planlanan-işler)
@@ -129,6 +130,21 @@ Kimlik doğrulama olmadığı için API dış ağa açılmamalıdır. API yalnı
 - **Ayarlar → Demo verilerini sıfırla** yalnızca Dietgo'ya ait (`diyetgo:` önekli) anahtarları siler ve örnek verileri yeniden yükler. Bu işlem geri alınamaz.
 - Örnek besin değerleri **"Örnek veri – doğrulanmamış"** olarak işaretlidir; gerçek ve doğrulanmış besin değerleri olarak kullanılmamalıdır.
 - Demo modu, veritabanındaki bütünlük kurallarını da uygular: ilişkili kaydı olan danışan, besin ve öğün türü silinemez (arşivlenebilir); arşivdeki danışana yeni plan veya randevu, arşivdeki besin yeni öğüne eklenemez.
+
+## Mobil uygulama (PWA)
+
+Dietgo, telefonda ana ekrana eklenebilen bir web uygulamasıdır (PWA). Mağaza veya Android Studio gerekmez; kendi ikonuyla, adres çubuğu olmadan tam ekran açılır.
+
+- **Android (Chrome):** Demo adresini açın → menü (⋮) → **Uygulamayı yükle** veya **Ana ekrana ekle**.
+- **iPhone (Safari):** Demo adresini açın → Paylaş düğmesi → **Ana Ekrana Ekle**.
+
+Notlar:
+
+- Uygulama dosyaları önbelleğe alınır; ilk açılıştan sonra internet olmadan da açılır. Veriler önbelleğe alınmaz: demo modunda veriler zaten cihazdadır.
+- Yeni sürüm yayınlandığında uygulama "Dietgo'nun yeni sürümü hazır" bildirimi gösterir; **Yenile** ile güncellenir. Sayfa kendiliğinden yenilenmez, böylece yarım kalan form kaybolmaz.
+- Demo verileri o cihazdaki tarayıcıya aittir. iPhone'da ana ekrandan açılan uygulama, Safari'den ayrı bir depolama kullanır; Safari'de girilen demo verileri orada görünmez.
+- Service worker yalnızca derlenmiş uygulamada çalışır (`npm run build` ve `npm run preview -w @diyetgo/web`, ya da Vercel); `npm run dev` sırasında devre dışıdır.
+- Yapılandırma `packages/web/vite.config.ts` (`vite-plugin-pwa`), ikonlar `packages/web/public/` içindedir.
 
 ## Hesaplamalar ve sınırları
 

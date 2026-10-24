@@ -2,6 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
+import { UpdatePrompt } from './components/layout/UpdatePrompt'
 import { createDataSource } from './data'
 import { StartupErrorPage } from './features/startup/StartupErrorPage'
 
@@ -24,5 +25,6 @@ createRoot(document.getElementById('root')!).render(
         }
       />
     )}
+    <UpdatePrompt />
   </StrictMode>,
 )
