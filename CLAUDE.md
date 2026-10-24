@@ -37,7 +37,7 @@ Kimlik doğrulama olmadığı için uygulama gerçek kişisel veya sağlık veri
 
 - Monorepo: npm workspaces.
 - Frontend: React, TypeScript, Vite.
-- Arayüz: Tailwind CSS ve gerektiğinde shadcn/ui.
+- Arayüz: Tailwind CSS ve gerektiğinde shadcn/ui. Animasyon: motion.
 - Yerel backend: Express ve TypeScript.
 - Veritabanı: PostgreSQL 18, Docker Compose ile çalıştırılır.
 - ORM ve migration: Drizzle ORM ve Drizzle Kit.
@@ -285,7 +285,7 @@ Temel tasarım ilkeleri:
 - Formlarda anlaşılır doğrulama mesajları.
 - İşlem geri bildirimleri ve uygun boş durum ekranları.
 - Erişilebilir etiketler, klavye navigasyonu ve yeterli kontrast.
-- Gereksiz animasyonlardan ve görsel kalabalıktan kaçınma.
+- Animasyonlar ölçülü ve amaca yöneliktir (sayfa ve kart girişi, sayaç, ilerleme, geri bildirim); `motion` veya CSS ile yapılır ve `prefers-reduced-motion` açıkken kapanır. Görsel kalabalıktan kaçınma.
 
 Her sayfada farklı tasarım dili oluşturma. Ortak bileşenleri ve tasarım token'larını tutarlı kullan.
 
