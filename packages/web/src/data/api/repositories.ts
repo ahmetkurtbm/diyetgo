@@ -9,6 +9,9 @@ import type { ClientGoal, MealPlan } from '@diyetgo/shared'
 import { RepositoryError, type MealPlanDetail, type Repositories, type RepositoryErrorCode } from '../repositories'
 
 const ERROR_CODES = new Set<RepositoryErrorCode>(['validation', 'not_found', 'conflict', 'restricted'])
+
+/** API 401 döndürdüğünde (oturum düştü) yayınlanır; `AuthGate` giriş ekranına döner. */
+export const UNAUTHORIZED_EVENT = 'diyetgo:unauthorized'
 const UNREACHABLE = "Sunucuya ulaşılamadı. Yerel API'nin çalıştığından emin olun (npm run dev:server)."
 
 type ErrorBody = { error?: { code?: string; message?: string; fieldErrors?: Record<string, string>; conflictingIds?: string[] } }
@@ -22,7 +25,9 @@ function queryString(query: Query = {}): string {
   return text ? `?${text}` : ''
 }
 
-export function createApiRepositories(options: { baseUrl?: string; fetch?: typeof fetch } = {}): Repositories {
+export function createApiRepositories(
+  options: { baseUrl?: string; fetch?: typeof fetch; /** Oturum düştüğünde (401) çağrılır. */ onUnauthorized?: () => void } = {},
+): Repositories {
   const baseUrl = options.baseUrl ?? '/api'
   const fetchFn = options.fetch ?? ((input, init) => fetch(input, init))
   const listeners = new Set<() => void>()
@@ -43,6 +48,7 @@ export function createApiRepositories(options: { baseUrl?: string; fetch?: typeo
       const error = (data as ErrorBody | undefined)?.error
       // Gövdesiz 5xx: API kapalıyken Vite proxy'sinin yanıtı.
       if (error === undefined && response.status >= 500) throw new RepositoryError('storage', UNREACHABLE)
+      if (response.status === 401) options.onUnauthorized?.()
       const code = ERROR_CODES.has(error?.code as RepositoryErrorCode) ? (error!.code as RepositoryErrorCode) : 'storage'
       throw new RepositoryError(code, error?.message ?? 'Beklenmeyen bir sunucu hatası oluştu.', {
         fieldErrors: error?.fieldErrors,

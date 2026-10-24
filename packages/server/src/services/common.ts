@@ -1,6 +1,7 @@
 /** Servislerin ortak yardımcıları: satır dönüşümü, kimlik ve tarih doğrulaması, ortak kontroller. */
 import { canAddPlanOrAppointment, idSchema, instantSchema } from '@diyetgo/shared'
-import { eq, sql, type SQLWrapper } from 'drizzle-orm'
+import { and, eq, sql, type SQLWrapper } from 'drizzle-orm'
+import type { AnyPgColumn } from 'drizzle-orm/pg-core'
 import type { Db } from '../db/client'
 import { clients } from '../db/schema'
 import { ApiError } from '../errors'
@@ -13,15 +14,16 @@ const iso = (value: string) => new Date(value).toISOString()
 
 /**
  * Veritabanı satırını API kaydına çevirir: zaman damgaları ISO 8601 (`Z`), öğün saati `HH:MM` olur.
- * Diğer alanlar Drizzle şemasında zaten `@diyetgo/shared` tipleriyle aynıdır.
+ * Sahip kimliği (`ownerId`) yanıtlara konmaz. Diğer alanlar Drizzle şemasında zaten
+ * `@diyetgo/shared` tipleriyle aynıdır.
  */
-export function toRecord<R extends object>(row: R): R {
-  const out: Record<string, unknown> = { ...(row as Record<string, unknown>) }
+export function toRecord<R extends object>(row: R): Omit<R, 'ownerId'> {
+  const { ownerId: _owner, ...out } = row as Record<string, unknown>
   for (const key of ['createdAt', 'updatedAt', 'archivedAt', 'startsAt', 'endsAt']) {
     if (typeof out[key] === 'string') out[key] = iso(out[key])
   }
   if (typeof out.time === 'string') out.time = out.time.slice(0, 5)
-  return out as R
+  return out as Omit<R, 'ownerId'>
 }
 
 export function found<T>(row: T | undefined, label: string): T {
@@ -58,14 +60,22 @@ export async function lock(tx: Tx, key: string) {
   await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${key}))`)
 }
 
-export async function getClientRow(db: Executor, clientId: string) {
+/** Sahibi olan tabloların ortak sütunu; her sorgu bununla süzülür. */
+type Owned = { id: AnyPgColumn; ownerId: AnyPgColumn }
+
+/** Kayıt bu diyetisyene ait mi? Başkasının kaydı "bulunamadı" olarak görünür; varlığı bile sızdırılmaz. */
+export function byIdAndOwner(table: Owned, id: string, ownerId: string) {
+  return and(eq(table.id, id), eq(table.ownerId, ownerId))
+}
+
+export async function getClientRow(db: Executor, ownerId: string, clientId: string) {
   checkId(clientId, 'Danışan')
-  return found((await db.select().from(clients).where(eq(clients.id, clientId)))[0], 'Danışan')
+  return found((await db.select().from(clients).where(byIdAndOwner(clients, clientId, ownerId)))[0], 'Danışan')
 }
 
 /** Arşivlenmiş danışana yeni plan veya randevu eklenemez. */
-export async function requireActiveClient(db: Executor, clientId: string, action: string) {
-  const client = await getClientRow(db, clientId)
+export async function requireActiveClient(db: Executor, ownerId: string, clientId: string, action: string) {
+  const client = await getClientRow(db, ownerId, clientId)
   if (!canAddPlanOrAppointment(client)) {
     throw new ApiError('restricted', `Arşivlenmiş danışana yeni ${action} eklenemez.`)
   }

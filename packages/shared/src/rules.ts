@@ -78,7 +78,8 @@ export function appointmentsOverlap(a: AppointmentSlot, b: AppointmentSlot): boo
 
 /**
  * Aday randevuyla çakışan randevular. İptal edilmiş randevular yer tutmaz; düzenlenen randevunun
- * kendisi (`candidate.id`) karşılaştırmaya alınmaz. Tek diyetisyen olduğu için danışandan bağımsızdır.
+ * kendisi (`candidate.id`) karşılaştırmaya alınmaz. Danışandan bağımsızdır; `existing` yalnızca aynı
+ * diyetisyenin randevularını içermelidir.
  */
 export function findAppointmentConflicts<T extends AppointmentSlot & Pick<Appointment, 'id' | 'status'>>(
   candidate: AppointmentSlot & { id?: string; status?: Appointment['status'] },

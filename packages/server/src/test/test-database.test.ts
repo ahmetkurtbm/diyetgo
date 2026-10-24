@@ -31,6 +31,7 @@ describe('migrations', () => {
       sql`select table_name from information_schema.tables where table_schema = 'public' order by table_name`,
     )
     expect(tables.rows.map((r) => r.table_name)).toEqual([
+      'accounts',
       'appointments',
       'client_goals',
       'clients',
@@ -40,6 +41,9 @@ describe('migrations', () => {
       'measurements',
       'plan_meal_items',
       'plan_meals',
+      'sessions',
+      'users',
+      'verifications',
     ])
   })
 })

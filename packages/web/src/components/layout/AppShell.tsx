@@ -1,7 +1,8 @@
-import { CalendarDays, Info, LayoutDashboard, Menu, NotebookPen, Settings, Users, UtensilsCrossed, X } from 'lucide-react'
+import { CalendarDays, Info, LayoutDashboard, LogOut, Menu, NotebookPen, Settings, Users, UtensilsCrossed, X } from 'lucide-react'
 import { useEffect, useId, useRef, useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router'
-import { useRepositoryQuery } from '../../data/context'
+import { useRepositories, useRepositoryQuery } from '../../data/context'
+import { useAccount } from './account-context'
 import { PageTransition } from '../ui/motion'
 
 const navigation = [
@@ -95,6 +96,47 @@ function DemoNotice({ persistent }: { persistent: boolean }) {
   )
 }
 
+/** Oturum açmış diyetisyen ve çıkış (yalnızca API modunda). */
+function AccountCard() {
+  const account = useAccount()
+  const [leaving, setLeaving] = useState(false)
+  if (!account) return null
+  const initials = account.name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]!.toLocaleUpperCase('tr-TR'))
+    .join('')
+  return (
+    <div className="flex items-center gap-3 rounded-lg bg-slate-50 p-2.5 ring-1 ring-slate-200">
+      <span aria-hidden className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[#13301f] text-sm font-semibold text-lime-300">
+        {initials || '?'}
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-sm font-medium text-slate-900">{account.name}</span>
+        <span className="block truncate text-xs text-slate-500">{account.email}</span>
+      </span>
+      <button
+        type="button"
+        aria-label="Çıkış yap"
+        title="Çıkış yap"
+        disabled={leaving}
+        onClick={async () => {
+          setLeaving(true)
+          try {
+            await account.signOut()
+          } finally {
+            setLeaving(false)
+          }
+        }}
+        className="rounded-md p-2 text-slate-500 hover:bg-white hover:text-slate-900 disabled:opacity-50"
+      >
+        <LogOut aria-hidden className="size-4" />
+      </button>
+    </div>
+  )
+}
+
 /** Mobil menü: yerleşik `<dialog>` odak yakalamayı, Escape'i ve arka planı etkisizleştirmeyi sağlar. */
 function MobileMenu({ open, onClose, isDemo, persistent }: { open: boolean; onClose: () => void; isDemo: boolean; persistent: boolean }) {
   const ref = useRef<HTMLDialogElement>(null)
@@ -146,6 +188,11 @@ function MobileMenu({ open, onClose, isDemo, persistent }: { open: boolean; onCl
               <DemoNotice persistent={persistent} />
             </div>
           )}
+          {!isDemo && (
+            <div className="border-t border-slate-200 p-3">
+              <AccountCard />
+            </div>
+          )}
         </div>
       )}
     </dialog>
@@ -155,8 +202,8 @@ function MobileMenu({ open, onClose, isDemo, persistent }: { open: boolean; onCl
 export function AppShell() {
   const [menuOpen, setMenuOpen] = useState(false)
   const { pathname } = useLocation()
+  const isDemo = useRepositories().mode === 'demo'
   const demo = useRepositoryQuery((r) => (r.demo ? r.demo.info() : Promise.resolve(null)), [])
-  const isDemo = demo.data !== null
   const persistent = demo.data?.persistent ?? true
 
   return (
@@ -168,11 +215,7 @@ export function AppShell() {
         <nav aria-label="Ana menü" className="flex-1 overflow-y-auto px-3 py-2">
           <NavGroups />
         </nav>
-        {isDemo && (
-          <div className="border-t border-slate-200 p-3">
-            <DemoNotice persistent={persistent} />
-          </div>
-        )}
+        <div className="border-t border-slate-200 p-3">{isDemo ? <DemoNotice persistent={persistent} /> : <AccountCard />}</div>
       </aside>
 
       <header className="sticky top-0 z-30 flex h-14 items-center justify-between gap-3 border-b border-slate-200 bg-white px-4 lg:hidden">

@@ -4,7 +4,7 @@
 
 Diyetisyenler için danışan, ölçüm, besin, beslenme planı, randevu ve beslenme hedefi yönetimi sunan bir web uygulaması.
 
-> **Demo uyarısı:** Herkese açık sürüm (Vercel) yalnızca **demo modunda** çalışır; yerel PostgreSQL modu için bkz. [Yerel veritabanı ve backend](#yerel-veritabanı-ve-backend). Demo modunda tüm veriler **yalnızca kullandığınız tarayıcıda** (localStorage) tutulur; sunucuya gönderilmez, cihazlar arasında paylaşılmaz ve yedeklenmez. Örnek veriler **kurgusaldır**. Kimlik doğrulama olmadığı için **gerçek kişisel veya sağlık verisi girmeyin.**
+> **Demo uyarısı:** Herkese açık sürüm (Vercel) yalnızca **demo modunda** çalışır; yerel PostgreSQL modu için bkz. [Yerel veritabanı ve backend](#yerel-veritabanı-ve-backend). Demo modunda tüm veriler **yalnızca kullandığınız tarayıcıda** (localStorage) tutulur; sunucuya gönderilmez, cihazlar arasında paylaşılmaz ve yedeklenmez. Örnek veriler **kurgusaldır**. **Gerçek kişisel veya sağlık verisi girmeyin.**
 
 ## İçindekiler
 
@@ -88,6 +88,9 @@ Yerel veritabanı ve backend değişkenleri kökteki `.env` dosyasında tutulur;
 | `DATABASE_URL` | Geliştirme veritabanı (`diyetgo`). API, migration ve seed bunu kullanır. |
 | `TEST_DATABASE_URL` | Test veritabanı (`diyetgo_test`). Testler yalnızca bunu kullanır; adı `_test` ile bitmezse testler başlamadan durur. |
 | `PORT` | API portu (varsayılan `3001`). |
+| `BETTER_AUTH_SECRET` | Oturum çerezlerini imzalayan gizli anahtar; en az 32 karakterlik rastgele değer. Yalnızca server'da bulunur. |
+| `BETTER_AUTH_URL` | Uygulamanın tarayıcıda açıldığı adres (varsayılan `http://localhost:5173`). Parola sıfırlama bağlantıları ve köken (CSRF) kontrolü buna göre yapılır. |
+| `SEED_DIETITIAN_PASSWORD` | `npm run db:seed` ile oluşturulan demo diyetisyen hesabının parolası (en az 10 karakter). |
 
 ## Yerel veritabanı ve backend
 
@@ -97,12 +100,14 @@ PostgreSQL 18, Docker Compose ile `diyetgo-db` adlı container'da çalışır. Y
 cp .env.example .env        # ardından .env içindeki parolayı değiştirin
 docker compose up -d --wait # PostgreSQL'i başlatır ve hazır olmasını bekler
 npm run db:migrate          # tabloları oluşturur
-npm run db:seed             # kurgusal örnek verileri yükler
+npm run db:seed             # demo diyetisyen hesabını ve kurgusal örnek verileri yükler
 npm run dev:server          # API: http://127.0.0.1:3001/api
 ```
 
 Arayüzü bu API ile açmak için `packages/web/.env.local` dosyasına `VITE_DATA_MODE=api` yazın ve ikinci bir terminalde `npm run dev` çalıştırın. Vite geliştirme sunucusu `/api` isteklerini kökteki `.env` dosyasındaki `PORT`'a (varsayılan `3001`) yönlendirir. API çalışmıyorsa arayüz "Sunucuya ulaşılamadı" hatası gösterir.
 
+- **Diyetisyen hesapları:** API modunda uygulama giriş ekranıyla açılır. Seed, `diyetisyen@example.com` hesabını (parola: `.env` içindeki `SEED_DIETITIAN_PASSWORD`) örnek verilerle oluşturur. "Hesap oluştur" ile açılan yeni hesaplar boş başlar; varsayılan öğün türleri hazır gelir. Her diyetisyen yalnızca kendi danışanlarını, besinlerini, planlarını ve randevularını görür.
+- **Parola sıfırlama:** E-posta servisi henüz yok; "Parolamı unuttum" ile istenen bağlantı `npm run dev:server` terminaline yazılır. Bağlantı açıldığında yeni parola belirlenir.
 - **Bağlantı kontrolü:** `curl http://127.0.0.1:3001/api/health` çağrısı `{"status":"ok","database":"ok"}` döndürmelidir. Container durumunu `docker compose ps` gösterir (`healthy`).
 - **Migration'lar:** Şema `packages/server/src/db/schema.ts` içindedir. Değişiklikten sonra `npm run db:generate -- --name <anlamlı-ad>` ile yeni migration üretilir, `packages/server/drizzle/` altındaki SQL incelenir ve `npm run db:migrate` ile uygulanır. Uygulanmış migration dosyaları değiştirilmez; `drizzle-kit push` kullanılmaz. Uygulama açılışında migration çalışmaz.
 - **Test veritabanı:** `npm test -w @diyetgo/server` önce `TEST_DATABASE_URL` adının `_test` ile bittiğini doğrular, sonra migration'ları test veritabanına uygular ve her testten önce tabloları boşaltır. Geliştirme veritabanına dokunmaz.
@@ -111,7 +116,8 @@ Arayüzü bu API ile açmak için `packages/web/.env.local` dosyasına `VITE_DAT
 
   | Kaynak | Uçlar |
   |---|---|
-  | Sağlık | `GET /api/health` |
+  | Sağlık | `GET /api/health` (oturum gerektirmez) |
+  | Oturum | `/api/auth/*` (Better Auth: `sign-up/email`, `sign-in/email`, `sign-out`, `get-session`, `request-password-reset`, `reset-password`) |
   | Danışanlar | `GET/POST /api/clients`, `GET/PUT/DELETE /api/clients/:id`, `PUT /api/clients/:id/archived`, `GET /api/clients/:id/measurements`, `GET /api/clients/:id/goals` |
   | Ölçümler, hedefler | `POST /api/measurements`, `PUT/DELETE /api/measurements/:id`; `POST /api/goals`, `PUT/DELETE /api/goals/:id` |
   | Besinler | `GET/POST /api/foods`, `GET/PUT/DELETE /api/foods/:id`, `PUT /api/foods/:id/archived`, `GET /api/foods/:id/plan-count` |
@@ -120,10 +126,10 @@ Arayüzü bu API ile açmak için `packages/web/.env.local` dosyasına `VITE_DAT
   | Plan öğünleri ve içerikleri | `POST /api/plan-meals`, `PUT/DELETE /api/plan-meals/:id`; `POST /api/plan-meal-items`, `PUT/DELETE /api/plan-meal-items/:id` |
   | Randevular | `GET/POST /api/appointments` (`from`, `to`, `clientId`, `status` filtreleri), `PUT/DELETE /api/appointments/:id`, `POST /api/appointments/:id/cancel` |
 
-  Hatalar `{ "error": { "code", "message", "fieldErrors", "conflictingIds" } }` biçiminde döner: `validation` (400), `not_found` (404), `conflict` ve `restricted` (409). İlişkili kaydı olan danışan, besin veya öğün türü veritabanındaki `RESTRICT` kuralı nedeniyle silinemez. Randevu çakışması ve hedef dönemi kontrolleri, eşzamanlı istekler birbirini görecek şekilde kilitli işlemlerde yapılır.
+  Sağlık kontrolü ve oturum uçları dışındaki tüm uçlar oturum ister. Hatalar `{ "error": { "code", "message", "fieldErrors", "conflictingIds" } }` biçiminde döner: `validation` (400), `unauthorized` (401), `not_found` (404; başka diyetisyenin kaydı da böyle görünür), `conflict` ve `restricted` (409). İlişkili kaydı olan danışan, besin veya öğün türü veritabanındaki `RESTRICT` kuralı nedeniyle silinemez. Randevu çakışması ve hedef dönemi kontrolleri, eşzamanlı istekler birbirini görecek şekilde kilitli işlemlerde yapılır.
 - **İki modun aynı davranması:** `packages/web/src/data/repository-contract.ts` içindeki senaryolar hem demo implementasyonuna (`npm test -w @diyetgo/web`) hem de gerçek HTTP üzerinden API implementasyonuna (`npm test -w @diyetgo/server`) karşı çalıştırılır.
 
-Kimlik doğrulama olmadığı için API dış ağa açılmamalıdır. API yalnızca `127.0.0.1` adresini dinler ve `Host` başlığı `localhost`, `127.0.0.1` veya `[::1]` olmayan istekleri `403` ile reddeder; böylece başka bir site DNS rebinding ile yerel API'ye erişemez.
+Backend henüz yayına alınmadığı için API dış ağa açılmamalıdır. API yalnızca `127.0.0.1` adresini dinler ve `Host` başlığı `localhost`, `127.0.0.1` veya `[::1]` olmayan istekleri `403` ile reddeder; böylece başka bir site DNS rebinding ile yerel API'ye erişemez.
 
 ## Demo modu
 
@@ -183,5 +189,6 @@ Bileşenler veriye yalnızca `packages/web/src/data/repositories.ts` içindeki r
 
 Tamamlanmayan işler:
 
-- **Kimlik doğrulama ve çoklu kullanıcı:** Kapsam dışıdır (CLAUDE.md §1.1). Bu nedenle yerel API yalnızca `127.0.0.1` üzerinden erişilebilir ve gerçek kişisel veya sağlık verisiyle kullanılmamalıdır.
+- **Yayına alma ve KVKK:** API modundaki diyetisyen hesapları yalnızca yerelde çalışır. Barındırma, e-posta gönderimi (parola sıfırlama), açık rıza ve aydınlatma metinleri, erişim kayıtları ve yedekleme henüz yapılmadı; bu yüzden gerçek kişisel veya sağlık verisi kullanılmamalıdır.
+- **Danışan hesapları:** Danışanın kendi verisini görmesi ve girmesi (danışan uygulaması) henüz yok; danışana şimdilik haftalık rapor görseli gönderilebilir.
 - **Vercel dağıtımı:** Yapılandırma kökteki `vercel.json` dosyasındadır. Vercel depo kökünden `npm install` çalıştırır, yalnızca `@diyetgo/web` paketini `VITE_DATA_MODE=demo` ile derler ve `packages/web/dist` dizinini yayınlar. Tüm adresler `index.html`'e yönlendirilir; böylece `/clients` gibi sayfalar yenilendiğinde de açılır. Demo backend veya veritabanı gerektirmez ve Vercel'de ortam değişkeni ya da gizli bilgi tanımlanması gerekmez.

@@ -19,17 +19,18 @@ Projenin amacı yalnızca çalışan bir demo oluşturmak değil; gerçek bir ya
 
 ### 1.1. İlk sürüm kapsamı ve sınırları
 
-İlk sürüm tek bir diyetisyen için çalışır.
+API modunda (yerel PostgreSQL) birden fazla diyetisyen hesabı vardır: giriş e-posta ve parolayla Better Auth üzerinden yapılır, her diyetisyen yalnızca kendi kayıtlarını görür. Demo modu (Vercel) hesapsız ve tek kullanıcılıdır.
 
 Kapsam dışı olanlar:
 
-- Kimlik doğrulama, kullanıcı hesapları ve çoklu kullanıcı desteği.
+- Danışan hesapları ve danışan uygulaması; klinik içi roller (asistan, yönetici).
+- Backend'in yayına alınması, e-posta gönderimi ve e-posta doğrulaması. Parola sıfırlama bağlantısı yerelde sunucu günlüğüne yazılır.
 - Otomatik menü optimizasyonu algoritması. Temel kalori ve makro hesaplamaları kapsamdadır.
 - Bağımsız öğün şablonu modülü. Tekrar kullanım beslenme planı kopyalamayla sağlanır.
 - Besin değeri snapshot mekanizması. Plan toplamları canlı hesaplanır (bkz. 4.4).
 - PostgreSQL eklentileri ve `btree_gist` exclusion constraint'leri. Çakışma kontrolleri uygulama seviyesindedir.
 
-Kimlik doğrulama olmadığı için uygulama gerçek kişisel veya sağlık verileriyle herkese açık bir ortamda kullanılmamalıdır. Bu sınırlardan birini kaldırmak yeni bir gereksinimdir; önce tasarlanmalı ve onaylanmalıdır.
+Backend henüz yayında olmadığı ve KVKK gereksinimleri (açık rıza, aydınlatma, erişim kaydı) karşılanmadığı için uygulama gerçek kişisel veya sağlık verileriyle kullanılmamalıdır. Bu sınırlardan birini kaldırmak yeni bir gereksinimdir; önce tasarlanmalı ve onaylanmalıdır.
 
 ## 2. Teknoloji ve Proje Yapısı
 
@@ -42,6 +43,7 @@ Kimlik doğrulama olmadığı için uygulama gerçek kişisel veya sağlık veri
 - Veritabanı: PostgreSQL 18, Docker Compose ile çalıştırılır.
 - ORM ve migration: Drizzle ORM ve Drizzle Kit.
 - Doğrulama: Zod; şemalar web ve server arasında ortaktır.
+- Kimlik doğrulama: Better Auth (Drizzle adaptörü, e-posta + parola, `HttpOnly` oturum çerezi); yalnızca API modunda.
 - Demo depolaması: Tarayıcı tarafında localStorage.
 - Yayınlama: Vercel (yalnızca web paketi).
 - Kaynak kodu: Git ve GitHub.
@@ -149,6 +151,8 @@ Server repository arayüzlerini uygulamaz; kendi servis ve veritabanı katmanın
   - `plan_meal_items`
   - `appointments`
   - `client_goals`
+- Kimlik doğrulama tabloları: `users`, `sessions`, `accounts`, `verifications` (Better Auth alanları).
+- Diyetisyen izolasyonu: üst düzey tablolarda (`clients`, `measurements`, `foods`, `meal_types`, `meal_plans`, `appointments`, `client_goals`) `owner_id` vardır ve `users`'a `RESTRICT` ile bağlıdır. Server her sorguyu oturum sahibine göre süzer; başka diyetisyenin kaydı "bulunamadı" (404) olarak görünür. `plan_meals` ve `plan_meal_items` sahipliği plan üzerinden doğrulanır. Kayıt oluştururken başvurulan danışan, plan, öğün türü ve besin de aynı diyetisyene ait olmalıdır. Randevu çakışması ve öğün türü adı benzersizliği diyetisyen başınadır.
 - Plan günleri görelidir: `plan_meals.day_number` 1'den başlar. Planın başlangıç tarihi `meal_plans.start_date` alanında ayrı tutulur. Bir günün takvim tarihi `start_date + (day_number − 1)` olarak bulunur. Bitiş tarihi varsa gün numarası plan süresini aşamaz.
 - Ayrı bir plan günü tablosu yoktur. Menü yapısı plan → öğün (`plan_meals`) → öğün içeriği (`plan_meal_items`) şeklindedir. Aynı gün aynı öğün türü bir kez bulunur.
 - Miktarlar besinin temel biriminde (g veya ml) saklanır. Besin değerleri 100 g veya 100 ml başınadır. Porsiyon bilgisi besin üzerinde tutulur ve arayüzde temel birime çevrilir.
@@ -315,7 +319,8 @@ Mevcut kodu anlamadan büyük çaplı refactor yapma. İstenen değişikliğin k
 - `.env.example` yalnızca örnek değişken adlarını ve sahte değerleri içermelidir.
 - Veritabanı erişim bilgileri yalnızca server tarafında bulunmalıdır; `VITE_` önekli değişkenlere gizli bilgi koyma.
 - Demo, seed ve testlerde gerçek kişisel veya sağlık verileri kullanma.
-- Kimlik doğrulama olmadığı için (bkz. 1.1) yerel API'yi dış ağa açma. Yetkilendirme gerektiren özellikleri güvenliymiş gibi sunma.
+- Backend henüz yayında olmadığı için (bkz. 1.1) yerel API'yi dış ağa açma. API'nin oturum gerektirmesi, onu yayına hazır yapmaz; yayına alma ayrı bir tasarım ve onay gerektirir.
+- Oturum gerektiren her uç, sahip filtresi olmadan veri döndürmemelidir; yeni bir uç eklerken diyetisyenler arası izolasyon testi de eklenir. Better Auth'un köken (CSRF) kontrolü her ortamda açık kalır; `BETTER_AUTH_SECRET` yalnızca server ortamındadır.
 - Herkese açık demoda kullanıcılara gerçek kişisel veya sağlık verisi girmemeleri gerektiğini belirt.
 - Üretim ortamında hata mesajlarıyla gizli bilgileri açığa çıkarma.
 - Silme, sıfırlama ve migration işlemlerinde veri kaybı riskini gözet.

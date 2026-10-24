@@ -7,10 +7,10 @@ import type { AddressInfo } from 'node:net'
 import { afterAll, beforeAll } from 'vitest'
 import { createApiRepositories } from '../../../web/src/data/api/repositories'
 import { describeRepositoryContract } from '../../../web/src/data/repository-contract'
-import { createApp } from '../app'
 import { db, resetDatabase } from '../test/db'
+import { app, signUp } from '../test/session'
 
-const server = createApp(db).listen(0, '127.0.0.1')
+const server = app.listen(0, '127.0.0.1')
 let baseUrl = ''
 
 beforeAll(async () => {
@@ -23,7 +23,13 @@ afterAll(async () => {
   await db.$client.end()
 })
 
+// Her senaryo boş veritabanında, yeni açılmış bir diyetisyen hesabıyla çalışır. Tarayıcı çerezi
+// kendisi gönderir; Node'da oturum çerezi her isteğe elle eklenir.
 describeRepositoryContract('API (Express + PostgreSQL)', async () => {
   await resetDatabase()
-  return createApiRepositories({ baseUrl })
+  const { cookie } = await signUp()
+  return createApiRepositories({
+    baseUrl,
+    fetch: (input, init) => fetch(input, { ...init, headers: { ...(init?.headers as Record<string, string> | undefined), cookie } }),
+  })
 })

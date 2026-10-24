@@ -22,25 +22,37 @@ import { z } from 'zod'
 import type { Db } from '../db/client'
 import { foods, mealPlans, mealTypes, planMealItems, planMeals } from '../db/schema'
 import { ApiError, parse } from '../errors'
-import { checkId, found, isValidId, now, requireActiveClient, setArchivedValue, toRecord, trCollate, type Executor } from './common'
+import { byIdAndOwner, checkId, found, isValidId, now, requireActiveClient, setArchivedValue, toRecord, trCollate, type Executor } from './common'
 
 export type MealPlanDetail = { plan: MealPlan; meals: PlanMeal[]; items: PlanMealItem[] }
 
 const copyTargetSchema = z.object({ clientId: z.string(), startDate: z.string(), title: z.string() })
 
-async function getPlanRow(db: Executor, id: string) {
+async function getPlanRow(db: Executor, ownerId: string, id: string) {
   checkId(id, 'Plan')
-  return found((await db.select().from(mealPlans).where(eq(mealPlans.id, id)))[0], 'Plan')
+  return found((await db.select().from(mealPlans).where(byIdAndOwner(mealPlans, id, ownerId)))[0], 'Plan')
 }
 
-async function getMealRow(db: Executor, id: string) {
+/** Öğünün sahibi, ait olduğu planın sahibidir. */
+async function getMealRow(db: Executor, ownerId: string, id: string) {
   checkId(id, 'Öğün')
-  return found((await db.select().from(planMeals).where(eq(planMeals.id, id)))[0], 'Öğün')
+  const [row] = await db
+    .select({ meal: planMeals })
+    .from(planMeals)
+    .innerJoin(mealPlans, eq(mealPlans.id, planMeals.mealPlanId))
+    .where(and(eq(planMeals.id, id), eq(mealPlans.ownerId, ownerId)))
+  return found(row, 'Öğün').meal
 }
 
-async function getItemRow(db: Executor, id: string) {
+async function getItemRow(db: Executor, ownerId: string, id: string) {
   checkId(id, 'Öğün içeriği')
-  return found((await db.select().from(planMealItems).where(eq(planMealItems.id, id)))[0], 'Öğün içeriği')
+  const [row] = await db
+    .select({ item: planMealItems })
+    .from(planMealItems)
+    .innerJoin(planMeals, eq(planMeals.id, planMealItems.planMealId))
+    .innerJoin(mealPlans, eq(mealPlans.id, planMeals.mealPlanId))
+    .where(and(eq(planMealItems.id, id), eq(mealPlans.ownerId, ownerId)))
+  return found(row, 'Öğün içeriği').item
 }
 
 async function touchPlan(db: Executor, planId: string) {
@@ -48,13 +60,13 @@ async function touchPlan(db: Executor, planId: string) {
 }
 
 /** Gün plan süresinde olmalı, öğün türü arşivlenmemiş olmalı (mevcut seçim korunabilir), aynı gün aynı öğün bir kez bulunur. */
-async function checkMeal(db: Executor, input: PlanMealInput, selfId: string | null, previousMealTypeId?: string) {
-  const plan = await getPlanRow(db, input.mealPlanId)
+async function checkMeal(db: Executor, ownerId: string, input: PlanMealInput, selfId: string | null, previousMealTypeId?: string) {
+  const plan = await getPlanRow(db, ownerId, input.mealPlanId)
   if (!isDayWithinPlan(plan, input.dayNumber)) {
     throw new ApiError('validation', 'Gün plan süresinin dışında.', { fieldErrors: { dayNumber: 'Gün plan süresinin dışında' } })
   }
   checkId(input.mealTypeId, 'Öğün türü')
-  const mealType = found((await db.select().from(mealTypes).where(eq(mealTypes.id, input.mealTypeId)))[0], 'Öğün türü')
+  const mealType = found((await db.select().from(mealTypes).where(byIdAndOwner(mealTypes, input.mealTypeId, ownerId)))[0], 'Öğün türü')
   if (!canUseMealType(mealType, previousMealTypeId)) {
     throw new ApiError('validation', 'Arşivlenmiş öğün türü seçilemez.', { fieldErrors: { mealTypeId: 'Arşivlenmiş öğün türü seçilemez' } })
   }
@@ -75,15 +87,15 @@ async function checkMeal(db: Executor, input: PlanMealInput, selfId: string | nu
 }
 
 /** Arşivlenmiş besin yeni öğüne eklenemez; mevcut içerikte kalan besin korunabilir. */
-async function checkItemFood(db: Executor, foodId: string, previousFoodId?: string) {
+async function checkItemFood(db: Executor, ownerId: string, foodId: string, previousFoodId?: string) {
   checkId(foodId, 'Besin')
-  const food = found((await db.select().from(foods).where(eq(foods.id, foodId)))[0], 'Besin')
+  const food = found((await db.select().from(foods).where(byIdAndOwner(foods, foodId, ownerId)))[0], 'Besin')
   if (!canAddFoodToMeal(food) && previousFoodId !== foodId) {
     throw new ApiError('validation', 'Arşivlenmiş besin yeni öğüne eklenemez.', { fieldErrors: { foodId: 'Arşivlenmiş besin yeni öğüne eklenemez' } })
   }
 }
 
-export function createMealPlanService(db: Db) {
+export function createMealPlanService(db: Db, ownerId: string) {
   return {
     /** En yeni başlangıç tarihi önce. */
     async list({ includeArchived = false, clientId }: { includeArchived?: boolean; clientId?: string } = {}): Promise<MealPlan[]> {
@@ -92,13 +104,19 @@ export function createMealPlanService(db: Db) {
       const rows = await db
         .select()
         .from(mealPlans)
-        .where(and(includeArchived ? undefined : isNull(mealPlans.archivedAt), clientId === undefined ? undefined : eq(mealPlans.clientId, clientId)))
+        .where(
+          and(
+            eq(mealPlans.ownerId, ownerId),
+            includeArchived ? undefined : isNull(mealPlans.archivedAt),
+            clientId === undefined ? undefined : eq(mealPlans.clientId, clientId),
+          ),
+        )
         .orderBy(desc(mealPlans.startDate), trCollate(mealPlans.title))
       return rows.map(toRecord)
     },
 
     async get(id: string): Promise<MealPlanDetail> {
-      const plan = await getPlanRow(db, id)
+      const plan = await getPlanRow(db, ownerId, id)
       const meals = await db
         .select({ meal: planMeals })
         .from(planMeals)
@@ -115,16 +133,19 @@ export function createMealPlanService(db: Db) {
 
     async create(input: unknown): Promise<MealPlan> {
       const values = parse(mealPlanInputSchema, input)
-      await requireActiveClient(db, values.clientId, 'plan')
-      const [row] = await db.insert(mealPlans).values(values).returning()
+      await requireActiveClient(db, ownerId, values.clientId, 'plan')
+      const [row] = await db
+        .insert(mealPlans)
+        .values({ ...values, ownerId })
+        .returning()
       return toRecord(row!)
     },
 
     async update(id: string, input: unknown): Promise<MealPlan> {
       const values = parse(mealPlanInputSchema, input)
       return db.transaction(async (tx) => {
-        const plan = await getPlanRow(tx, id)
-        if (values.clientId !== plan.clientId) await requireActiveClient(tx, values.clientId, 'plan')
+        const plan = await getPlanRow(tx, ownerId, id)
+        if (values.clientId !== plan.clientId) await requireActiveClient(tx, ownerId, values.clientId, 'plan')
         const meals = await tx.select().from(planMeals).where(eq(planMeals.mealPlanId, id))
         const outside = mealsOutsidePlan(values, meals)
         if (outside.length > 0) {
@@ -136,34 +157,34 @@ export function createMealPlanService(db: Db) {
         const [row] = await tx
           .update(mealPlans)
           .set({ ...values, updatedAt: now })
-          .where(eq(mealPlans.id, id))
+          .where(byIdAndOwner(mealPlans, id, ownerId))
           .returning()
         return toRecord(row!)
       })
     },
 
     async setArchived(id: string, archived: boolean): Promise<MealPlan> {
-      await getPlanRow(db, id)
+      await getPlanRow(db, ownerId, id)
       const [row] = await db
         .update(mealPlans)
         .set({ archivedAt: setArchivedValue(mealPlans.archivedAt, archived), updatedAt: now })
-        .where(eq(mealPlans.id, id))
+        .where(byIdAndOwner(mealPlans, id, ownerId))
         .returning()
       return toRecord(row!)
     },
 
     /** Plan, öğünleri ve öğün içerikleriyle birlikte silinir (`CASCADE`). */
     async remove(id: string): Promise<void> {
-      await getPlanRow(db, id)
-      await db.delete(mealPlans).where(eq(mealPlans.id, id))
+      await getPlanRow(db, ownerId, id)
+      await db.delete(mealPlans).where(byIdAndOwner(mealPlans, id, ownerId))
     },
 
     /** Planı öğünleri ve içerikleriyle kopyalar; plan süresi korunur. */
     async copy(id: string, target: unknown): Promise<MealPlan> {
       const { clientId, startDate, title } = parse(copyTargetSchema, target)
       return db.transaction(async (tx) => {
-        const source = await getPlanRow(tx, id)
-        await requireActiveClient(tx, clientId, 'plan')
+        const source = await getPlanRow(tx, ownerId, id)
+        await requireActiveClient(tx, ownerId, clientId, 'plan')
         const length = planLengthDays(source)
         const values = parse(mealPlanInputSchema, {
           clientId,
@@ -172,7 +193,10 @@ export function createMealPlanService(db: Db) {
           endDate: length === null ? null : addDays(startDate, length - 1),
           notes: source.notes,
         })
-        const [plan] = await tx.insert(mealPlans).values(values).returning()
+        const [plan] = await tx
+          .insert(mealPlans)
+          .values({ ...values, ownerId })
+          .returning()
         const meals = await tx.select().from(planMeals).where(eq(planMeals.mealPlanId, id))
         if (meals.length > 0) {
           const copies = await tx
@@ -195,7 +219,7 @@ export function createMealPlanService(db: Db) {
     async addMeal(input: unknown): Promise<PlanMeal> {
       const values = parse(planMealInputSchema, input)
       return db.transaction(async (tx) => {
-        await checkMeal(tx, values, null)
+        await checkMeal(tx, ownerId, values, null)
         const [row] = await tx.insert(planMeals).values(values).returning()
         await touchPlan(tx, values.mealPlanId)
         return toRecord(row!)
@@ -205,8 +229,8 @@ export function createMealPlanService(db: Db) {
     async updateMeal(id: string, input: unknown): Promise<PlanMeal> {
       const values = parse(planMealInputSchema, input)
       return db.transaction(async (tx) => {
-        const meal = await getMealRow(tx, id)
-        await checkMeal(tx, values, id, meal.mealTypeId)
+        const meal = await getMealRow(tx, ownerId, id)
+        await checkMeal(tx, ownerId, values, id, meal.mealTypeId)
         const [row] = await tx
           .update(planMeals)
           .set({ ...values, updatedAt: now })
@@ -220,7 +244,7 @@ export function createMealPlanService(db: Db) {
     /** Öğün, içerikleriyle birlikte silinir (`CASCADE`). */
     async removeMeal(id: string): Promise<void> {
       await db.transaction(async (tx) => {
-        const meal = await getMealRow(tx, id)
+        const meal = await getMealRow(tx, ownerId, id)
         await tx.delete(planMeals).where(eq(planMeals.id, id))
         await touchPlan(tx, meal.mealPlanId)
       })
@@ -229,8 +253,8 @@ export function createMealPlanService(db: Db) {
     async addItem(input: unknown): Promise<PlanMealItem> {
       const values = parse(planMealItemInputSchema, input)
       return db.transaction(async (tx) => {
-        const meal = await getMealRow(tx, values.planMealId)
-        await checkItemFood(tx, values.foodId)
+        const meal = await getMealRow(tx, ownerId, values.planMealId)
+        await checkItemFood(tx, ownerId, values.foodId)
         const [row] = await tx.insert(planMealItems).values(values).returning()
         await touchPlan(tx, meal.mealPlanId)
         return toRecord(row!)
@@ -240,9 +264,9 @@ export function createMealPlanService(db: Db) {
     async updateItem(id: string, input: unknown): Promise<PlanMealItem> {
       const values = parse(planMealItemInputSchema, input)
       return db.transaction(async (tx) => {
-        const item = await getItemRow(tx, id)
-        const meal = await getMealRow(tx, values.planMealId)
-        await checkItemFood(tx, values.foodId, item.foodId)
+        const item = await getItemRow(tx, ownerId, id)
+        const meal = await getMealRow(tx, ownerId, values.planMealId)
+        await checkItemFood(tx, ownerId, values.foodId, item.foodId)
         const [row] = await tx
           .update(planMealItems)
           .set({ ...values, updatedAt: now })
@@ -255,8 +279,8 @@ export function createMealPlanService(db: Db) {
 
     async removeItem(id: string): Promise<void> {
       await db.transaction(async (tx) => {
-        const item = await getItemRow(tx, id)
-        const meal = await getMealRow(tx, item.planMealId)
+        const item = await getItemRow(tx, ownerId, id)
+        const meal = await getMealRow(tx, ownerId, item.planMealId)
         await tx.delete(planMealItems).where(eq(planMealItems.id, id))
         await touchPlan(tx, meal.mealPlanId)
       })

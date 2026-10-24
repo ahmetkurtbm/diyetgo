@@ -4,10 +4,11 @@
  */
 import type { ErrorRequestHandler } from 'express'
 
-export type ApiErrorCode = 'validation' | 'forbidden' | 'not_found' | 'conflict' | 'restricted' | 'internal'
+export type ApiErrorCode = 'validation' | 'unauthorized' | 'forbidden' | 'not_found' | 'conflict' | 'restricted' | 'internal'
 
 const STATUS: Record<ApiErrorCode, number> = {
   validation: 400,
+  unauthorized: 401,
   forbidden: 403,
   not_found: 404,
   conflict: 409,

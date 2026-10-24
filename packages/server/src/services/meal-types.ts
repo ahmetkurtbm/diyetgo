@@ -1,20 +1,33 @@
 import { isMealTypeNameTaken, mealTypeInputSchema, type MealType } from '@diyetgo/shared'
-import { asc, eq, isNull } from 'drizzle-orm'
+import { and, asc, eq, isNull } from 'drizzle-orm'
 import type { Db } from '../db/client'
 import { mealTypes } from '../db/schema'
 import { ApiError, isRestrictViolation, parse } from '../errors'
-import { checkId, found, lock, now, setArchivedValue, toRecord, trCollate, type Tx } from './common'
+import { byIdAndOwner, checkId, found, lock, now, setArchivedValue, toRecord, trCollate, type Executor, type Tx } from './common'
 
-export function createMealTypeService(db: Db) {
+/** Yeni diyetisyen hesabı bu öğün türleriyle başlar. */
+export const DEFAULT_MEAL_TYPES = [
+  { name: 'Kahvaltı', sortOrder: 10 },
+  { name: 'Ara öğün (sabah)', sortOrder: 20 },
+  { name: 'Öğle', sortOrder: 30 },
+  { name: 'Ara öğün (ikindi)', sortOrder: 40 },
+  { name: 'Akşam', sortOrder: 50 },
+] as const
+
+export async function insertDefaultMealTypes(db: Executor, ownerId: string) {
+  await db.insert(mealTypes).values(DEFAULT_MEAL_TYPES.map((t) => ({ ...t, ownerId })))
+}
+
+export function createMealTypeService(db: Db, ownerId: string) {
   async function getRow(id: string) {
     checkId(id, 'Öğün türü')
-    return found((await db.select().from(mealTypes).where(eq(mealTypes.id, id)))[0], 'Öğün türü')
+    return found((await db.select().from(mealTypes).where(byIdAndOwner(mealTypes, id, ownerId)))[0], 'Öğün türü')
   }
 
   /** Ad kontrolü ve yazma kilitli işlemde yapılır; eşzamanlı isteklerle aynı ad iki kez eklenemez. */
   async function checkUniqueName(tx: Tx, name: string, selfId: string | null) {
-    await lock(tx, 'meal_types')
-    const rows = await tx.select({ id: mealTypes.id, name: mealTypes.name }).from(mealTypes)
+    await lock(tx, `meal_types:${ownerId}`)
+    const rows = await tx.select({ id: mealTypes.id, name: mealTypes.name }).from(mealTypes).where(eq(mealTypes.ownerId, ownerId))
     if (isMealTypeNameTaken(rows, name, selfId)) {
       throw new ApiError('validation', 'Bu adla bir öğün türü zaten var.', { fieldErrors: { name: 'Bu adla bir öğün türü zaten var' } })
     }
@@ -26,7 +39,7 @@ export function createMealTypeService(db: Db) {
       const rows = await db
         .select()
         .from(mealTypes)
-        .where(includeArchived ? undefined : isNull(mealTypes.archivedAt))
+        .where(and(eq(mealTypes.ownerId, ownerId), includeArchived ? undefined : isNull(mealTypes.archivedAt)))
         .orderBy(asc(mealTypes.sortOrder), trCollate(mealTypes.name))
       return rows.map(toRecord)
     },
@@ -35,7 +48,10 @@ export function createMealTypeService(db: Db) {
       const values = parse(mealTypeInputSchema, input)
       return db.transaction(async (tx) => {
         await checkUniqueName(tx, values.name, null)
-        const [row] = await tx.insert(mealTypes).values(values).returning()
+        const [row] = await tx
+          .insert(mealTypes)
+          .values({ ...values, ownerId })
+          .returning()
         return toRecord(row!)
       })
     },
@@ -48,7 +64,7 @@ export function createMealTypeService(db: Db) {
         const [row] = await tx
           .update(mealTypes)
           .set({ ...values, updatedAt: now })
-          .where(eq(mealTypes.id, id))
+          .where(byIdAndOwner(mealTypes, id, ownerId))
           .returning()
         return toRecord(row!)
       })
@@ -59,7 +75,7 @@ export function createMealTypeService(db: Db) {
       const [row] = await db
         .update(mealTypes)
         .set({ archivedAt: setArchivedValue(mealTypes.archivedAt, archived), updatedAt: now })
-        .where(eq(mealTypes.id, id))
+        .where(byIdAndOwner(mealTypes, id, ownerId))
         .returning()
       return toRecord(row!)
     },
@@ -68,7 +84,7 @@ export function createMealTypeService(db: Db) {
     async remove(id: string): Promise<void> {
       await getRow(id)
       try {
-        await db.delete(mealTypes).where(eq(mealTypes.id, id))
+        await db.delete(mealTypes).where(byIdAndOwner(mealTypes, id, ownerId))
       } catch (error) {
         if (isRestrictViolation(error)) {
           throw new ApiError('restricted', 'Bu öğün türü bir planda kullanılıyor. Silmek yerine arşivleyin.')
