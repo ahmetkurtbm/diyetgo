@@ -4,10 +4,9 @@
  * Değişimler yalnızca hesaplanır, yorumlanmaz: kilo artışı veya azalışı iyi/kötü olarak
  * sınıflandırılmaz, çünkü hedef danışana göre değişir.
  */
-import { addDays, daysBetween } from './dates'
+import { addDays } from './dates'
 import { dayTotals, sumNutrients, ZERO_NUTRIENTS, type Nutrients } from './nutrition'
-import { isDayWithinPlan } from './rules'
-import type { Food, MealPlan, Measurement, PlanMeal, PlanMealItem } from './schemas'
+import type { Food, Measurement, PlanMeal, PlanMealItem } from './schemas'
 
 export type DatedValue = { date: string; value: number }
 
@@ -63,29 +62,43 @@ export function chartWindow(series: readonly DatedValue[], onDate: string, days:
   return recent.length >= 2 ? recent : [...series]
 }
 
-type FoodValues = Pick<Food, 'id' | 'energyKcal' | 'proteinG' | 'carbsG' | 'fatG'>
+type FoodValues = Pick<Food, 'energyKcal' | 'proteinG' | 'carbsG' | 'fatG'>
+
+/** Plan haftası: 1–7. günler 1. hafta, 8–14. günler 2. hafta… */
+export function planWeekOf(dayNumber: number): number {
+  return Math.ceil(dayNumber / 7)
+}
+
+export type PlanWeekTotals = {
+  week: number
+  fromDay: number
+  toDay: number
+  /** Haftadaki tüm günlerin toplamı. */
+  total: Nutrients
+  /** Öğünü olan günlerin günlük ortalaması; öğünlü gün yoksa sıfırdır. */
+  average: Nutrients
+  /** Öğünü olan gün sayısı. */
+  daysWithMeals: number
+}
 
 /**
- * Planın verilen haftaya düşen ve öğünü olan günlerinin ortalama günlük toplamı. Haftanın hiçbir
- * plan günü öğün içermiyorsa `null`.
+ * Plan haftasının toplamı ve günlük ortalaması. `lastDay` planın son günüdür (bitişi olmayan planlarda
+ * görünen son gün); hafta bunu aşmaz.
  */
-export function planWeekAverage(
-  plan: Pick<MealPlan, 'startDate' | 'endDate'>,
+export function planWeekTotals(
+  week: number,
+  lastDay: number,
   meals: readonly Pick<PlanMeal, 'id' | 'dayNumber'>[],
   items: readonly Pick<PlanMealItem, 'planMealId' | 'foodId' | 'quantity'>[],
-  foods: readonly FoodValues[],
-  week: { start: string; end: string },
-): { average: Nutrients; days: number } | null {
-  const foodsById = new Map(foods.map((f) => [f.id, f]))
+  foodsById: ReadonlyMap<string, FoodValues>,
+): PlanWeekTotals {
+  const fromDay = (week - 1) * 7 + 1
+  const toDay = Math.min(week * 7, lastDay)
   const mealDays = new Set(meals.map((m) => m.dayNumber))
-  const totals: Nutrients[] = []
-  for (let date = week.start; date <= week.end; date = addDays(date, 1)) {
-    const dayNumber = daysBetween(plan.startDate, date) + 1
-    if (isDayWithinPlan(plan, dayNumber) && mealDays.has(dayNumber)) totals.push(dayTotals(dayNumber, meals, items, foodsById))
-  }
-  if (totals.length === 0) return null
-  const sum = sumNutrients(totals)
+  const days: Nutrients[] = []
+  for (let day = fromDay; day <= toDay; day++) if (mealDays.has(day)) days.push(dayTotals(day, meals, items, foodsById))
+  const total = sumNutrients(days)
   const average = { ...ZERO_NUTRIENTS }
-  for (const key of Object.keys(average) as (keyof Nutrients)[]) average[key] = sum[key] / totals.length
-  return { average, days: totals.length }
+  if (days.length > 0) for (const key of Object.keys(average) as (keyof Nutrients)[]) average[key] = total[key] / days.length
+  return { week, fromDay, toDay, total, average, daysWithMeals: days.length }
 }

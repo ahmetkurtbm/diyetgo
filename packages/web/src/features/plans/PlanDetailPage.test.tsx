@@ -190,3 +190,23 @@ describe('Plan işlemleri', () => {
     expect(screen.queryByText('Dengeli beslenme planı (örnek)')).toBeNull()
   })
 })
+
+describe('Haftalık toplam', () => {
+  it('seçili günün plan haftasını, günlerin toplamını ve öğünlü günlerin ortalamasını gösterir', async () => {
+    const { repositories } = await openPlan()
+    const t = await totals(repositories)
+    const { meals } = await repositories.mealPlans.get(PLAN_ID)
+    const days = [1, 2, 3, 4, 5, 6, 7].filter((n) => meals.some((m) => m.dayNumber === n))
+    const weekEnergy = days.reduce((sum, n) => sum + t.day(n).energyKcal, 0)
+
+    const card = screen.getByRole('heading', { name: '1. hafta toplamı' }).closest('section')!
+    expect(within(card).getByText(/^1–7\. günler/).textContent).toContain(`${days.length} günde öğün var`)
+    expect(within(card).getByText(formatNumber(weekEnergy, 0))).toBeDefined()
+    expect(within(card).getByText(formatNumber(weekEnergy / days.length, 0))).toBeDefined()
+  })
+
+  it('başka haftadaki bir gün seçilince o haftayı gösterir', async () => {
+    await openPlan(`/plans/${PLAN_ID}?day=9`)
+    expect(screen.getByRole('heading', { name: '2. hafta toplamı' })).toBeDefined()
+  })
+})

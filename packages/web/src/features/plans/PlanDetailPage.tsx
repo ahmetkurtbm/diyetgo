@@ -1,4 +1,15 @@
-import { canAddFoodToMeal, dayTotals, findActiveGoal, LIMITS, planDayDate, planLengthDays, type MealPlan, type PlanMeal } from '@diyetgo/shared'
+import {
+  canAddFoodToMeal,
+  dayTotals,
+  findActiveGoal,
+  LIMITS,
+  planDayDate,
+  planLengthDays,
+  planWeekOf,
+  planWeekTotals,
+  type MealPlan,
+  type PlanMeal,
+} from '@diyetgo/shared'
 import { Archive, ArchiveRestore, ArrowLeft, Copy, FileX, Pencil, Plus, Trash2, Utensils } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
@@ -10,13 +21,20 @@ import { Badge, EmptyState, ErrorState, LoadingState } from '../../components/ui
 import { Card, CardHeader, PageHeader } from '../../components/ui/layout'
 import { useToast } from '../../components/ui/toast-context'
 import { errorMessage } from '../../lib/errors'
-import { formatDate, formatLongDate, formatShortDate, today } from '../../lib/format'
+import { formatDate, formatLongDate, formatNumber, formatShortDate, today } from '../../lib/format'
 import { fullName, planStatus, planStatusLabels, planStatusTones } from '../../lib/labels'
 import { CopyPlanDialog } from './CopyPlanDialog'
 import { MealCard } from './MealCard'
 import { MealFormDialog } from './MealFormDialog'
 import { NutrientSummary } from './NutrientSummary'
 import { PlanFormDialog } from './PlanFormDialog'
+
+const weekTotalMetrics = [
+  { key: 'energyKcal', label: 'Enerji', unit: 'kcal', digits: 0 },
+  { key: 'proteinG', label: 'Protein', unit: 'g', digits: 0 },
+  { key: 'carbsG', label: 'Karbonhidrat', unit: 'g', digits: 0 },
+  { key: 'fatG', label: 'Yağ', unit: 'g', digits: 0 },
+] as const
 
 /** Bitişi olan planda tüm günler; açık uçlu planda en az 7 gün ve son dolu günden bir fazlası gösterilir. */
 function visibleDayCount(plan: MealPlan, meals: PlanMeal[]): number {
@@ -81,6 +99,7 @@ export function PlanDetailPage() {
   const day = Number.isInteger(requested) && requested >= 1 && requested <= dayCount ? requested : 1
   const dayDate = planDayDate(plan.startDate, day)
   const dayMeals = meals.filter((m) => m.dayNumber === day)
+  const week = planWeekTotals(planWeekOf(day), dayCount, meals, items, foodsById)
   const usedTypeIds = new Set(dayMeals.map((m) => m.mealTypeId))
   const availableTypes = (current?: PlanMeal) => mealTypes.filter((t) => (t.archivedAt === null && !usedTypeIds.has(t.id)) || t.id === current?.mealTypeId)
   const status = planStatus(plan, today())
@@ -164,6 +183,32 @@ export function PlanDetailPage() {
         <CardHeader title={`${day}. gün toplamı`} description={formatLongDate(dayDate)} />
         <div className="px-5 py-4">
           <NutrientSummary totals={dayTotals(day, meals, items, foodsById)} goal={findActiveGoal(goals, dayDate)} />
+        </div>
+      </Card>
+
+      <Card className="mb-6">
+        <CardHeader
+          title={`${week.week}. hafta toplamı`}
+          description={`${week.fromDay}–${week.toDay}. günler (${formatShortDate(planDayDate(plan.startDate, week.fromDay))} – ${formatShortDate(planDayDate(plan.startDate, week.toDay))}) · ${week.daysWithMeals} günde öğün var`}
+        />
+        <div className="space-y-4 px-5 py-4">
+          <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {weekTotalMetrics.map(({ key, label, unit, digits }) => (
+              <div key={key} className="rounded-lg bg-slate-50 p-3 ring-1 ring-slate-100">
+                <dt className="text-xs font-medium text-slate-600">Haftalık {label.toLocaleLowerCase('tr-TR')}</dt>
+                <dd className="mt-1">
+                  <span className="text-lg font-semibold text-slate-900 tabular-nums">{formatNumber(week.total[key], digits)}</span>{' '}
+                  <span className="text-xs text-slate-500">{unit}</span>
+                </dd>
+              </div>
+            ))}
+          </dl>
+          {week.daysWithMeals > 0 && (
+            <div>
+              <h3 className="mb-2 text-sm font-semibold text-slate-700">Günlük ortalama (öğünü olan {week.daysWithMeals} gün)</h3>
+              <NutrientSummary totals={week.average} goal={findActiveGoal(goals, dayDate)} />
+            </div>
+          )}
         </div>
       </Card>
 

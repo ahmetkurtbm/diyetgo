@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { chartWindow, metricSeries, planWeekAverage, reportWeek, summarizeMetric } from './progress'
+import { chartWindow, metricSeries, planWeekOf, planWeekTotals, reportWeek, summarizeMetric } from './progress'
 
 const m = (measuredOn: string, values: { weightKg?: number; waistCm?: number }, createdAt = `${measuredOn}T09:00:00.000Z`) => ({
   measuredOn,
@@ -73,11 +73,11 @@ describe('chartWindow', () => {
   })
 })
 
-describe('planWeekAverage', () => {
-  const foods = [
-    { id: 'f1', energyKcal: 100, proteinG: 10, carbsG: 0, fatG: 5 },
-    { id: 'f2', energyKcal: 400, proteinG: 0, carbsG: 100, fatG: 0 },
-  ]
+describe('planWeekTotals', () => {
+  const foods = new Map([
+    ['f1', { energyKcal: 100, proteinG: 10, carbsG: 0, fatG: 5 }],
+    ['f2', { energyKcal: 400, proteinG: 0, carbsG: 100, fatG: 0 }],
+  ])
   const meals = [
     { id: 'm1', dayNumber: 1 },
     { id: 'm2', dayNumber: 2 },
@@ -89,15 +89,19 @@ describe('planWeekAverage', () => {
     { planMealId: 'm9', foodId: 'f2', quantity: 500 },
   ]
 
-  it('haftaya düşen ve öğünü olan plan günlerinin ortalamasını alır', () => {
-    const result = planWeekAverage({ startDate: '2026-03-10', endDate: null }, meals, items, foods, reportWeek('2026-03-15'))!
-    expect(result.days).toBe(2)
+  it('gün numarasından plan haftasını bulur', () => {
+    expect([1, 7, 8, 14, 15].map(planWeekOf)).toEqual([1, 1, 2, 2, 3])
+  })
+
+  it('haftanın toplamını ve öğünlü günlerin ortalamasını hesaplar', () => {
+    const result = planWeekTotals(1, 28, meals, items, foods)
+    expect(result).toMatchObject({ fromDay: 1, toDay: 7, daysWithMeals: 2 })
+    expect(result.total).toEqual({ energyKcal: 600, proteinG: 20, carbsG: 100, fatG: 10 })
     expect(result.average).toEqual({ energyKcal: 300, proteinG: 10, carbsG: 50, fatG: 5 })
   })
 
-  it('plan süresinin dışındaki günleri saymaz; öğünlü gün yoksa null döner', () => {
-    const plan = { startDate: '2026-03-10', endDate: '2026-03-10' }
-    expect(planWeekAverage(plan, meals, items, foods, reportWeek('2026-03-15'))?.days).toBe(1)
-    expect(planWeekAverage(plan, meals, items, foods, reportWeek('2026-03-30'))).toBeNull()
+  it('hafta planın son gününü aşmaz; öğün yoksa ortalama sıfırdır', () => {
+    expect(planWeekTotals(2, 10, meals, items, foods)).toMatchObject({ fromDay: 8, toDay: 10, daysWithMeals: 1 })
+    expect(planWeekTotals(3, 21, meals, items, foods)).toMatchObject({ daysWithMeals: 0, average: { energyKcal: 0, proteinG: 0, carbsG: 0, fatG: 0 } })
   })
 })
