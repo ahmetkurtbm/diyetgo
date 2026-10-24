@@ -9,6 +9,7 @@
  * Tarihler verilen güne göre hesaplanır; demo her açılışta güncel randevular gösterir.
  */
 import { addDays, istanbulTimeToUtc } from './dates'
+import { FOOD_CATALOG } from './food-catalog'
 import type {
   Appointment,
   Client,
@@ -164,6 +165,27 @@ export function createSeedData(today: string): SeedData {
     ...stamps,
   }
   foods.push(recipe)
+  // Başlangıç besin listesi tarifin ardından gelir; önceki seed kimlikleri değişmez.
+  FOOD_CATALOG.forEach(([name, baseUnit, energyKcal, proteinG, carbsG, fatG, cookingMethod], i) => {
+    foods.push({
+      id: seedId('food', foodRows.length + 2 + i),
+      name,
+      brand: null,
+      baseUnit,
+      energyKcal,
+      proteinG,
+      carbsG,
+      fatG,
+      portionLabel: null,
+      portionAmount: null,
+      source: SAMPLE_FOOD_SOURCE,
+      isSample: true,
+      cookingMethod,
+      recipeYieldG: null,
+      archivedAt: null,
+      ...stamps,
+    })
+  })
   const food = (name: string) => {
     const f = foods.find((x) => x.name === name)
     if (!f) throw new Error(`Seed besini yok: ${name}`)

@@ -1,4 +1,4 @@
-import { dayTotals, type Food } from '@diyetgo/shared'
+import { dayTotals, FOOD_CATALOG, type Food } from '@diyetgo/shared'
 import { screen, within } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { fixDate, renderApp, SEED_IDS } from '../../test-utils'
@@ -13,9 +13,9 @@ describe('Besin listesi', () => {
   it('besinleri 100 g/ml başına değerleri ve örnek veri etiketiyle listeler', async () => {
     renderApp('/foods')
     await screen.findByRole('table', { name: 'Besin listesi' })
-    // 15 örnek besin ve 1 örnek tarif.
-    expect(rows()).toHaveLength(16)
-    expect(within(table()).getAllByText('Örnek veri – doğrulanmamış')).toHaveLength(16)
+    // 15 örnek besin, 1 örnek tarif ve başlangıç besin listesi.
+    expect(rows()).toHaveLength(16 + FOOD_CATALOG.length)
+    expect(within(table()).getAllByText('Örnek veri – doğrulanmamış')).toHaveLength(16 + FOOD_CATALOG.length)
     expect(within(table()).getAllByText('Tarif · malzemelerden hesaplanır')).toHaveLength(1)
     const milk = rowOf('Süt (yarım yağlı)')
     expect(within(milk).getByText('100 ml başına')).toBeDefined()
@@ -27,7 +27,8 @@ describe('Besin listesi', () => {
     const search = await screen.findByRole('searchbox', { name: 'Besin ara' })
     await user.type(search, 'YOĞURT')
     await screen.findByText('Yoğurt (tam yağlı)')
-    expect(rows()).toHaveLength(1)
+    // Yoğurt (tam yağlı), Süzme yoğurt, Yoğurt, az yağlı
+    expect(rows()).toHaveLength(3)
     await user.clear(search)
     await user.type(search, 'olmayan-besin')
     expect(await screen.findByText('Sonuç bulunamadı')).toBeDefined()
@@ -139,7 +140,7 @@ describe('Besin silme ve arşivleme', () => {
       cookingMethod: null,
       recipeYieldG: null,
     })
-    await user.click(await screen.findByRole('button', { name: 'Silinecek besin sil' }))
+    await user.click(await screen.findByRole('button', { name: 'Silinecek besin sil' }, { timeout: 5000 }))
     await user.click(await screen.findByRole('button', { name: 'Sil' }))
     expect(await screen.findByText('Besin silindi.')).toBeDefined()
     expect(screen.queryByText('Silinecek besin', { selector: 'span.font-medium' })).toBeNull()

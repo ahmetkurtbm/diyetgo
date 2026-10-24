@@ -16,6 +16,7 @@ import {
   planMealItemSchema,
   planMealSchema,
 } from './schemas'
+import { FOOD_CATALOG } from './food-catalog'
 import { createSeedData, SAMPLE_FOOD_SOURCE } from './seed'
 
 const TODAY = '2026-03-10'
@@ -137,6 +138,14 @@ describe('seed verisi kurgusaldır', () => {
       if (client.email !== null) expect(client.email).toMatch(/@example\.com$/)
       expect(client.phone).toBeNull()
     }
+  })
+
+  it('başlangıç besin listesi eklenir; besin adları benzersizdir ve önceki kimlikler değişmez', () => {
+    const names = seed.foods.map((f) => f.name)
+    expect(new Set(names).size).toBe(names.length)
+    for (const [name] of FOOD_CATALOG) expect(names).toContain(name)
+    expect(seed.foods).toHaveLength(16 + FOOD_CATALOG.length)
+    expect(seed.foods[15]!.name).toBe('Sütlü yulaf lapası (örnek tarif)')
   })
 
   it('tüm seed besinleri doğrulanmamış örnek veri olarak işaretlidir', () => {

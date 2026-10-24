@@ -47,5 +47,7 @@ export default defineConfig(({ mode }) => ({
   test: {
     environment: 'happy-dom',
     setupFiles: ['./src/test-setup.ts'],
+    // Besin listesi 200'ü aşkın satır çizer; happy-dom'da varsayılan 5 sn yetmeyebilir.
+    testTimeout: 20_000,
   },
 }))

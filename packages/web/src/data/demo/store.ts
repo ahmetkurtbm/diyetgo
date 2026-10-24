@@ -14,6 +14,7 @@ import {
   clientMedicationSchema,
   clientRecommendationSchema,
   clientSchema,
+  FOOD_CATALOG,
   foodSchema,
   istanbulDateOf,
   mealPlanSchema,
@@ -34,8 +35,9 @@ export const STORAGE_PREFIX = 'diyetgo:'
  * - 2: ölçümlere uyluk çevresi (`thighCm`); danışanlara ilaç, hastalık ve öneri koleksiyonları.
  * - 3: besinlere pişirme yöntemi ve tarif alanları (`cookingMethod`, `recipeYieldG`); tarif malzemeleri.
  * - 4: planlara tür ve haftalık adetler (`kind`, `weeklyQuotas`); mevcut planlar günlük menüdür.
+ * - 5: başlangıç besin listesi (`FOOD_CATALOG`) eksikse eklenir; mevcut besinlere dokunulmaz.
  */
-const VERSION = 4
+const VERSION = 5
 
 export type DemoData = SeedData
 type Envelope = { version: typeof VERSION; seededAt: string; data: DemoData }
@@ -44,7 +46,16 @@ type Envelope = { version: typeof VERSION; seededAt: string; data: DemoData }
 const withDefaults = (records: unknown, defaults: Record<string, unknown>) =>
   Array.isArray(records) ? records.map((r: unknown) => (typeof r === 'object' && r !== null ? { ...defaults, ...r } : r)) : records
 
-const upgrades: Record<number, (data: Record<string, unknown>) => Record<string, unknown>> = {
+/** Başlangıç besin listesinden, kimliği henüz bulunmayan besinleri ekler. */
+function withCatalogFoods(foods: unknown, today: string) {
+  if (!Array.isArray(foods)) return foods
+  const ids = new Set(foods.map((f: unknown) => (typeof f === 'object' && f !== null ? (f as { id?: unknown }).id : undefined)))
+  const names = new Set(FOOD_CATALOG.map(([name]) => name))
+  const catalog = createSeedData(today).foods.filter((f) => names.has(f.name) && !ids.has(f.id))
+  return [...foods, ...catalog]
+}
+
+const upgrades: Record<number, (data: Record<string, unknown>, today: string) => Record<string, unknown>> = {
   1: (data) => ({
     ...data,
     measurements: withDefaults(data.measurements, { thighCm: null }),
@@ -54,17 +65,18 @@ const upgrades: Record<number, (data: Record<string, unknown>) => Record<string,
   }),
   2: (data) => ({ ...data, foods: withDefaults(data.foods, { cookingMethod: null, recipeYieldG: null }), recipeIngredients: [] }),
   3: (data) => ({ ...data, mealPlans: withDefaults(data.mealPlans, { kind: 'daily', weeklyQuotas: [] }) }),
+  4: (data, today) => ({ ...data, foods: withCatalogFoods(data.foods, today) }),
 }
 
 /**
  * Eski sürümdeki veriyi adım adım güncel biçime çevirir; mevcut kayıtlar korunur, yalnızca yeni alanlar
  * boş değerle eklenir. Tanınmayan sürüm veya yapı olduğu gibi döner; `validate` reddeder.
  */
-function upgrade(value: unknown): unknown {
+function upgrade(value: unknown, today: string): unknown {
   if (typeof value !== 'object' || value === null) return value
   let envelope = value as { version?: unknown; data?: unknown }
   while (typeof envelope.version === 'number' && upgrades[envelope.version] && typeof envelope.data === 'object' && envelope.data !== null) {
-    envelope = { ...envelope, version: envelope.version + 1, data: upgrades[envelope.version]!(envelope.data as Record<string, unknown>) }
+    envelope = { ...envelope, version: envelope.version + 1, data: upgrades[envelope.version]!(envelope.data as Record<string, unknown>, today) }
   }
   return envelope === value ? value : envelope
 }
@@ -175,7 +187,7 @@ export function openDemoStore(options: { storage: Storage | null; now?: () => Da
     } catch {
       return { ok: false, error: { reason: 'corrupt', message: 'Demo verileri okunamadı (bozuk veri).' } }
     }
-    const upgraded = upgrade(parsed)
+    const upgraded = upgrade(parsed, istanbulDateOf(now()))
     const error = validate(upgraded)
     if (error) return { ok: false, error }
     // Yükseltilen veri yeni biçimde kaydedilir; eski veri yalnızca doğrulama geçtikten sonra değişir.
