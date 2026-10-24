@@ -10,13 +10,16 @@ import {
   appointmentInputSchema,
   canAddFoodToMeal,
   canAddPlanOrAppointment,
+  canUseMealType,
   clientGoalInputSchema,
   clientInputSchema,
   findAppointmentConflicts,
   foodInputSchema,
   goalPeriodsOverlap,
   isDayWithinPlan,
+  isMealTypeNameTaken,
   mealPlanInputSchema,
+  mealsOutsidePlan,
   mealTypeInputSchema,
   measurementInputSchema,
   planLengthDays,
@@ -98,7 +101,7 @@ export function createDemoRepositories(
       throw new RepositoryError('validation', 'Gün plan süresinin dışında.', { fieldErrors: { dayNumber: 'Gün plan süresinin dışında' } })
     }
     const mealType = find(data.mealTypes, input.mealTypeId, 'Öğün türü')
-    if (mealType.archivedAt !== null && previous?.mealTypeId !== mealType.id) {
+    if (!canUseMealType(mealType, previous?.mealTypeId)) {
       throw new RepositoryError('validation', 'Arşivlenmiş öğün türü seçilemez.', { fieldErrors: { mealTypeId: 'Arşivlenmiş öğün türü seçilemez' } })
     }
     const duplicate = data.planMeals.find(
@@ -237,7 +240,7 @@ export function createDemoRepositories(
       create: (input) =>
         mutate((data, ts) => {
           const parsed = parse(mealTypeInputSchema, input)
-          if (data.mealTypes.some((t) => normalize(t.name) === normalize(parsed.name))) {
+          if (isMealTypeNameTaken(data.mealTypes, parsed.name, null)) {
             throw new RepositoryError('validation', 'Bu adla bir öğün türü zaten var.', { fieldErrors: { name: 'Bu adla bir öğün türü zaten var' } })
           }
           const mealType = { ...parsed, ...stamp(ts), archivedAt: null }
@@ -247,7 +250,7 @@ export function createDemoRepositories(
       update: (id, input) =>
         mutate((data, ts) => {
           const parsed = parse(mealTypeInputSchema, input)
-          if (data.mealTypes.some((t) => t.id !== id && normalize(t.name) === normalize(parsed.name))) {
+          if (isMealTypeNameTaken(data.mealTypes, parsed.name, id)) {
             throw new RepositoryError('validation', 'Bu adla bir öğün türü zaten var.', { fieldErrors: { name: 'Bu adla bir öğün türü zaten var' } })
           }
           return Object.assign(find(data.mealTypes, id, 'Öğün türü'), parsed, { updatedAt: ts })
@@ -297,7 +300,7 @@ export function createDemoRepositories(
           const parsed = parse(mealPlanInputSchema, input)
           const plan = find(data.mealPlans, id, 'Plan')
           if (parsed.clientId !== plan.clientId) activeClient(data, parsed.clientId, 'plan')
-          const outside = data.planMeals.filter((m) => m.mealPlanId === id && !isDayWithinPlan(parsed, m.dayNumber))
+          const outside = mealsOutsidePlan(parsed, data.planMeals.filter((m) => m.mealPlanId === id))
           if (outside.length > 0) {
             const days = [...new Set(outside.map((m) => m.dayNumber))].sort((a, b) => a - b).join(', ')
             throw new RepositoryError('conflict', `Yeni plan süresi mevcut öğünleri dışarıda bırakıyor (gün: ${days}).`, {

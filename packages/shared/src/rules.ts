@@ -3,7 +3,7 @@
  * Fonksiyonlar saftır; "bugün" gibi değerler çağıran taraftan verilir.
  */
 import { addDays, daysBetween } from './dates'
-import type { Appointment, Client, ClientGoal, Food, MealPlan } from './schemas'
+import type { Appointment, Client, ClientGoal, Food, MealPlan, MealType, PlanMeal } from './schemas'
 
 // ---------- Arşivleme ----------
 //
@@ -109,4 +109,23 @@ export function isDayWithinPlan(plan: PlanPeriod, dayNumber: number): boolean {
   if (!Number.isInteger(dayNumber) || dayNumber < 1) return false
   const length = planLengthDays(plan)
   return length === null || dayNumber <= length
+}
+
+/** Plan süresi değişince dışarıda kalacak öğünler; bunlar varken süre değiştirilemez. */
+export function mealsOutsidePlan<T extends Pick<PlanMeal, 'dayNumber'>>(plan: PlanPeriod, meals: readonly T[]): T[] {
+  return meals.filter((m) => !isDayWithinPlan(plan, m.dayNumber))
+}
+
+// ---------- Öğün türleri ----------
+
+/** Arşivlenmiş öğün türü yeni öğünde seçilemez; düzenlenen öğünün mevcut türü korunabilir. */
+export function canUseMealType(mealType: Pick<MealType, 'id' | 'archivedAt'>, previousMealTypeId?: string): boolean {
+  return mealType.archivedAt === null || mealType.id === previousMealTypeId
+}
+
+const normalizeName = (name: string) => name.trim().toLocaleLowerCase('tr-TR')
+
+/** Öğün türü adları büyük/küçük harf farkı gözetmeden (Türkçe kurallarıyla) benzersizdir. */
+export function isMealTypeNameTaken(existing: readonly Pick<MealType, 'id' | 'name'>[], name: string, selfId: string | null): boolean {
+  return existing.some((t) => t.id !== selfId && normalizeName(t.name) === normalizeName(name))
 }

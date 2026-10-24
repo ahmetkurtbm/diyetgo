@@ -3,11 +3,14 @@ import {
   appointmentsOverlap,
   canAddFoodToMeal,
   canAddPlanOrAppointment,
+  canUseMealType,
   findActiveGoal,
   findAppointmentConflicts,
   goalPeriodsOverlap,
   isDayWithinPlan,
   isGoalActiveOn,
+  isMealTypeNameTaken,
+  mealsOutsidePlan,
   planDayDate,
   planLengthDays,
   planNewGoal,
@@ -176,5 +179,29 @@ describe('plan günleri: gün 1 = başlangıç tarihi', () => {
     expect(isDayWithinPlan(plan, 0)).toBe(false)
     expect(isDayWithinPlan(plan, 2.5)).toBe(false)
     expect(isDayWithinPlan({ startDate: '2026-03-10', endDate: null }, 300)).toBe(true)
+  })
+})
+
+describe('plan süresi değişikliği', () => {
+  it('yeni sürenin dışında kalan öğünleri döndürür', () => {
+    const meals = [{ id: 'a', dayNumber: 1 }, { id: 'b', dayNumber: 5 }, { id: 'c', dayNumber: 7 }]
+    expect(mealsOutsidePlan({ startDate: '2026-03-10', endDate: '2026-03-14' }, meals).map((m) => m.id)).toEqual(['c'])
+    expect(mealsOutsidePlan({ startDate: '2026-03-10', endDate: null }, meals)).toEqual([])
+  })
+})
+
+describe('öğün türleri', () => {
+  it('arşivlenmiş tür yalnızca öğünün mevcut türüyse kullanılabilir', () => {
+    expect(canUseMealType({ id: 't1', archivedAt: null })).toBe(true)
+    expect(canUseMealType({ id: 't1', archivedAt: '2026-03-01T00:00:00.000Z' })).toBe(false)
+    expect(canUseMealType({ id: 't1', archivedAt: '2026-03-01T00:00:00.000Z' }, 't1')).toBe(true)
+  })
+
+  it('adlar Türkçe büyük/küçük harf kurallarıyla karşılaştırılır; kendisi hariç tutulur', () => {
+    const existing = [{ id: 't1', name: 'Kahvaltı' }, { id: 't2', name: 'İkindi' }]
+    expect(isMealTypeNameTaken(existing, 'KAHVALTI', null)).toBe(true)
+    expect(isMealTypeNameTaken(existing, ' ikindi ', null)).toBe(true)
+    expect(isMealTypeNameTaken(existing, 'Kahvaltı', 't1')).toBe(false)
+    expect(isMealTypeNameTaken(existing, 'Akşam', null)).toBe(false)
   })
 })
