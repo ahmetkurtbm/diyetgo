@@ -1,5 +1,5 @@
 import { mealTotals, nutrientsFor, type Food, type MealType, type PlanMeal, type PlanMealItem } from '@diyetgo/shared'
-import { Clock, Pencil, Plus, Trash2, X } from 'lucide-react'
+import { Clock, FileText, Pencil, Plus, Trash2, X } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { useRepositories } from '../../data/context'
 import { Button } from '../../components/ui/Button'
@@ -11,6 +11,7 @@ import { errorMessage, fieldErrorsOf } from '../../lib/errors'
 import { formatNumber } from '../../lib/format'
 import { numberToText, parseNumber } from '../../lib/forms'
 import { useSubmit } from '../../lib/use-submit'
+import { MealTextDialog } from './MealTextDialog'
 import { NutrientLine } from './NutrientSummary'
 
 type Props = {
@@ -30,9 +31,11 @@ const foodLabel = (food: Food) => (food.brand ? `${food.name} (${food.brand})` :
 
 export function MealCard({ meal, mealType, items, foodsById, selectableFoods, onEdit, onDelete, title: customTitle }: Props) {
   const [adding, setAdding] = useState(false)
+  const [fromText, setFromText] = useState(false)
   const mealItems = items.filter((i) => i.planMealId === meal.id)
   const totals = mealTotals(meal.id, items, foodsById)
   const title = customTitle ?? mealType?.name ?? 'Öğün'
+  const nextSortOrder = Math.max(-1, ...mealItems.map((i) => i.sortOrder)) + 1
 
   return (
     <Card aria-label={title}>
@@ -75,14 +78,21 @@ export function MealCard({ meal, mealType, items, foodsById, selectableFoods, on
 
       <div className="border-t border-slate-200 px-4 py-3 sm:px-5">
         {adding ? (
-          <AddItemForm meal={meal} sortOrder={Math.max(-1, ...mealItems.map((i) => i.sortOrder)) + 1} foods={selectableFoods} onDone={() => setAdding(false)} />
+          <AddItemForm meal={meal} sortOrder={nextSortOrder} foods={selectableFoods} onDone={() => setAdding(false)} />
         ) : (
-          <Button size="sm" onClick={() => setAdding(true)}>
-            <Plus aria-hidden className="size-4" />
-            Besin ekle
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button size="sm" onClick={() => setAdding(true)}>
+              <Plus aria-hidden className="size-4" />
+              Besin ekle
+            </Button>
+            <Button size="sm" aria-label={`${title} öğününe metinden ekle`} onClick={() => setFromText(true)}>
+              <FileText aria-hidden className="size-4" />
+              Metinden ekle
+            </Button>
+          </div>
         )}
       </div>
+      <MealTextDialog open={fromText} meal={meal} title={title} sortOrder={nextSortOrder} foods={selectableFoods} onClose={() => setFromText(false)} />
     </Card>
   )
 }
@@ -195,7 +205,8 @@ function AddItemForm({ meal, sortOrder, foods, onDone }: { meal: PlanMeal; sortO
   }
 
   return (
-    <form onSubmit={handleSubmit} noValidate aria-label="Öğüne besin ekle" className="grid gap-3 sm:grid-cols-[1fr_1fr] lg:grid-cols-[1fr_1.4fr_7rem_9rem_auto] lg:items-start">
+    // Alanlar alt alta dizilir: kart dar sütunda da (seçenekli plan) okunaklı kalır.
+    <form onSubmit={handleSubmit} noValidate aria-label="Öğüne besin ekle" className="space-y-3">
       <TextField label="Besin ara" type="search" autoComplete="off" value={search} onChange={(e) => setSearch(e.target.value)} />
       <SelectField
         label="Besin"
@@ -207,23 +218,30 @@ function AddItemForm({ meal, sortOrder, foods, onDone }: { meal: PlanMeal; sortO
           setUnit('base')
         }}
       >
-        <option value="">{options.length === 0 ? 'Eşleşen besin yok' : 'Besin seçin'}</option>
+        <option value="">{options.length === 0 ? 'Eşleşen besin yok' : `Besin seçin (${options.length})`}</option>
         {options.map((f) => (
           <option key={f.id} value={f.id}>
             {foodLabel(f)}
           </option>
         ))}
       </SelectField>
-      <TextField label="Miktar" required inputMode="decimal" value={amount} error={errors.quantity} onChange={(e) => setAmount(e.target.value)} />
-      <SelectField label="Birim" value={unit} onChange={(e) => setUnit(e.target.value as 'base' | 'portion')}>
-        <option value="base">{food?.baseUnit ?? 'g'}</option>
-        {hasPortion && (
-          <option value="portion">
-            {food.portionLabel} ({formatNumber(food.portionAmount!)} {food.baseUnit})
-          </option>
-        )}
-      </SelectField>
-      <div className="flex gap-2 lg:pt-6">
+      <div className="grid grid-cols-[minmax(0,8rem)_minmax(0,1fr)] gap-3">
+        <TextField label="Miktar" required inputMode="decimal" value={amount} error={errors.quantity} onChange={(e) => setAmount(e.target.value)} />
+        <SelectField label="Birim" value={unit} onChange={(e) => setUnit(e.target.value as 'base' | 'portion')}>
+          <option value="base">{food?.baseUnit ?? 'g'}</option>
+          {hasPortion && (
+            <option value="portion">
+              {food.portionLabel} ({formatNumber(food.portionAmount!)} {food.baseUnit})
+            </option>
+          )}
+        </SelectField>
+      </div>
+      {preview && (
+        <p className="text-xs text-slate-600">
+          {formatNumber(quantity)} {food?.baseUnit}: <NutrientLine totals={preview} />
+        </p>
+      )}
+      <div className="flex gap-2">
         <Button type="submit" variant="primary" disabled={busy}>
           Ekle
         </Button>
@@ -231,11 +249,6 @@ function AddItemForm({ meal, sortOrder, foods, onDone }: { meal: PlanMeal; sortO
           Vazgeç
         </Button>
       </div>
-      {preview && (
-        <p className="text-xs text-slate-600 sm:col-span-2 lg:col-span-5">
-          {formatNumber(quantity)} {food?.baseUnit}: <NutrientLine totals={preview} />
-        </p>
-      )}
     </form>
   )
 }

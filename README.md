@@ -32,6 +32,7 @@ Diyetisyenler için danışan, ölçüm, besin, beslenme planı, randevu ve besl
   - *Günlük menü:* Göreli günler (1. gün = başlangıç tarihi), öğünler, porsiyonlar; günlük, öğün ve haftalık toplamlar.
   - *Seçenekli haftalık menü:* Her öğün türü için birkaç seçenek ve haftalık adet girilir (ör. haftada 3 kahvaltı, 4 ara öğün); danışan seçeneklerden birini seçer. Haftalık değerler, en düşük ve en yüksek kalorili seçeneklere göre aralık ve ortalama olarak gösterilir. API'de `kind: "options"` ve `weeklyQuotas: [{ mealTypeId, perWeek }]` alanlarıyla tutulur; öğünün `dayNumber` alanı seçenek numarasıdır. Öğünleri olan planın türü değiştirilemez.
   - Her iki türde plan kopyalama (aynı veya başka danışana), arşivleme ve silme.
+  - **Metinden ekle:** Öğüne "8 yemek kaşığı pirinç pilavı" gibi satırlar yazılır; miktar (aralıkta ortalama), ölçü ve besin otomatik bulunur, gram karşılığı besinin porsiyonundan ya da varsayılan ev ölçülerinden (1 yemek kaşığı ≈ 15 g, 1 kase ≈ 200 g…) hesaplanır. Diyetisyen önizlemede düzeltip onaylar. Ölçüler ve yemek değerleri yaklaşıktır.
 - **Randevular:** Oluşturma, düzenleme, iptal, silme; çakışma kontrolü ve filtreler.
 - **Hedefler:** Dönemli enerji ve makro hedefleri, geçmişin korunması, isteğe bağlı Mifflin-St Jeor tahmini.
 - **Ayarlar:** Öğün türleri ve demo verilerini sıfırlama.

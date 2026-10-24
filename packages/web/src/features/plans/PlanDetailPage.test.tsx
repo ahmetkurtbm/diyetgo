@@ -248,3 +248,24 @@ describe('Seçenekli haftalık menü', () => {
     expect(await screen.findByText('Öğle · 3. seçenek')).toBeDefined()
   })
 })
+
+describe('Metinden besin ekleme', () => {
+  it('yazılan satırları besin ve grama çevirir; düzeltilen öneriyle öğüne ekler', async () => {
+    const { user, repositories } = await openPlan()
+    await user.click(screen.getByRole('button', { name: 'Kahvaltı öğününe metinden ekle' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Metinden besin ekle' })
+    fireEvent.change(within(dialog).getByLabelText('Öğün içeriği'), { target: { value: '7-8 yemek kaşığı tavuk sote\n2 haşlanmış yumurta\nuzay yemeği' } })
+    await user.click(within(dialog).getByRole('button', { name: 'Çözümle' }))
+
+    expect((within(dialog).getByLabelText('7-8 yemek kaşığı tavuk sote miktarı') as HTMLInputElement).value).toBe('187,5')
+    expect((within(dialog).getByLabelText('2 haşlanmış yumurta miktarı') as HTMLInputElement).value).toBe('100')
+    const unknown = within(dialog).getByLabelText('uzay yemeği besini') as HTMLSelectElement
+    expect(unknown.value).toBe('')
+    await user.click(within(dialog).getByRole('button', { name: '2 besini öğüne ekle' }))
+    expect(await screen.findByText('2 besin Kahvaltı öğününe eklendi.')).toBeDefined()
+
+    const { items } = await repositories.mealPlans.get(PLAN_ID)
+    expect(items.filter((i) => i.notes === '7-8 yemek kaşığı tavuk sote')).toEqual([expect.objectContaining({ quantity: 187.5 })])
+    expect(within(meal('Kahvaltı')).getByText('Haşlanmış yumurta')).toBeDefined()
+  })
+})
