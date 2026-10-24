@@ -42,6 +42,7 @@ export const sexEnum = pgEnum('sex', ['female', 'male'])
 export const baseUnitEnum = pgEnum('base_unit', ['g', 'ml'])
 export const appointmentStatusEnum = pgEnum('appointment_status', ['scheduled', 'completed', 'cancelled', 'no_show'])
 export const goalMethodEnum = pgEnum('goal_method', ['manual', 'mifflin_st_jeor'])
+export const cookingMethodEnum = pgEnum('cooking_method', ['raw', 'boiled', 'steamed', 'grilled', 'baked', 'sauteed', 'stewed', 'fried'])
 
 // ---------- Kimlik doğrulama (Better Auth) ----------
 
@@ -172,6 +173,9 @@ export const foods = pgTable(
     portionAmount: doublePrecision('portion_amount'),
     source: text('source'),
     isSample: boolean('is_sample').notNull().default(false),
+    cookingMethod: cookingMethodEnum('cooking_method'),
+    /** Doluysa kayıt tariftir; pişmiş toplam ağırlık (g). Değerler malzemelerden hesaplanır. */
+    recipeYieldG: doublePrecision('recipe_yield_g'),
     ...stamps(),
     archivedAt: archivedAt(),
   },
@@ -179,6 +183,7 @@ export const foods = pgTable(
     index('foods_owner_id_idx').on(t.ownerId),
     check('foods_nutrients_non_negative', sql`${t.energyKcal} >= 0 and ${t.proteinG} >= 0 and ${t.carbsG} >= 0 and ${t.fatG} >= 0`),
     check('foods_portion_pair', sql`(${t.portionLabel} is null) = (${t.portionAmount} is null)`),
+    check('foods_recipe_yield_positive', sql`${t.recipeYieldG} is null or (${t.recipeYieldG} > 0 and ${t.baseUnit} = 'g')`),
   ],
 )
 
@@ -360,4 +365,32 @@ export const clientRecommendations = pgTable(
     ...stamps(),
   },
   (t) => [index('client_recommendations_client_id_idx').on(t.ownerId, t.clientId, t.givenOn)],
+)
+
+// ---------- Tarif malzemeleri ----------
+
+/**
+ * Tarifin malzemeleri. Sahiplik tarif (besin) üzerinden doğrulanır; tarif silinince malzemeleri de
+ * silinir, malzeme olarak kullanılan besin silinemez (`RESTRICT`).
+ */
+export const recipeIngredients = pgTable(
+  'recipe_ingredients',
+  {
+    id: id(),
+    recipeId: uuid('recipe_id')
+      .notNull()
+      .references(() => foods.id, { onDelete: 'cascade' }),
+    foodId: uuid('food_id')
+      .notNull()
+      .references(() => foods.id, { onDelete: 'restrict' }),
+    quantity: doublePrecision('quantity').notNull(),
+    sortOrder: integer('sort_order').notNull(),
+    ...stamps(),
+  },
+  (t) => [
+    index('recipe_ingredients_recipe_id_idx').on(t.recipeId),
+    index('recipe_ingredients_food_id_idx').on(t.foodId),
+    check('recipe_ingredients_quantity_positive', sql`${t.quantity} > 0`),
+    check('recipe_ingredients_not_self', sql`${t.recipeId} <> ${t.foodId}`),
+  ],
 )

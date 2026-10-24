@@ -13,8 +13,10 @@ describe('Besin listesi', () => {
   it('besinleri 100 g/ml başına değerleri ve örnek veri etiketiyle listeler', async () => {
     renderApp('/foods')
     await screen.findByRole('table', { name: 'Besin listesi' })
-    expect(rows()).toHaveLength(15)
-    expect(within(table()).getAllByText('Örnek veri – doğrulanmamış')).toHaveLength(15)
+    // 15 örnek besin ve 1 örnek tarif.
+    expect(rows()).toHaveLength(16)
+    expect(within(table()).getAllByText('Örnek veri – doğrulanmamış')).toHaveLength(16)
+    expect(within(table()).getAllByText('Tarif · malzemelerden hesaplanır')).toHaveLength(1)
     const milk = rowOf('Süt (yarım yağlı)')
     expect(within(milk).getByText('100 ml başına')).toBeDefined()
     expect(within(milk).getByText('46 kcal')).toBeDefined()
@@ -134,10 +136,39 @@ describe('Besin silme ve arşivleme', () => {
       portionAmount: null,
       source: null,
       isSample: false,
+      cookingMethod: null,
+      recipeYieldG: null,
     })
     await user.click(await screen.findByRole('button', { name: 'Silinecek besin sil' }))
     await user.click(await screen.findByRole('button', { name: 'Sil' }))
     expect(await screen.findByText('Besin silindi.')).toBeDefined()
     expect(screen.queryByText('Silinecek besin', { selector: 'span.font-medium' })).toBeNull()
+  })
+})
+
+describe('Tarifler', () => {
+  it('malzemelerle tarif oluşturur; 100 g değerini malzemelerden hesaplayıp listede gösterir', async () => {
+    const { user } = renderApp('/foods')
+    await screen.findByRole('table', { name: 'Besin listesi' })
+    await user.click(screen.getByRole('button', { name: 'Yeni tarif' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Yeni tarif / yemek' })
+    await user.type(within(dialog).getByLabelText(/Tarif \/ yemek adı/), 'Yumurtalı ekmek')
+
+    await user.click(within(dialog).getByRole('button', { name: 'Malzeme ekle' }))
+    await user.selectOptions(await within(dialog).findByLabelText('1. malzeme'), 'Yumurta')
+    await user.type(within(dialog).getByLabelText('Miktar (g)'), '100')
+    await user.click(within(dialog).getByRole('button', { name: 'Malzeme ekle' }))
+    await user.selectOptions(within(dialog).getByLabelText('2. malzeme'), 'Tam buğday ekmeği')
+    await user.type(within(dialog).getAllByLabelText('Miktar (g)')[1]!, '100')
+    expect(within(dialog).getByText(/Çiğ malzeme toplamı: 200 g/)).toBeDefined()
+    // Yumurta 145 + ekmek 250 = 395 kcal; 200 g pişmiş → 100 g'da 197,5 ≈ 198 kcal.
+    await user.type(within(dialog).getByLabelText(/Pişmiş toplam ağırlık/), '200')
+    expect(within(dialog).getByText(/^198 kcal/)).toBeDefined()
+
+    await user.click(within(dialog).getByRole('button', { name: 'Tarif ekle' }))
+    expect(await screen.findByText('Tarif eklendi.')).toBeDefined()
+    const row = (await screen.findByText('Yumurtalı ekmek')).closest('tr')!
+    expect(within(row).getByText('Tarif · malzemelerden hesaplanır')).toBeDefined()
+    expect(within(row).getByText('198 kcal')).toBeDefined()
   })
 })

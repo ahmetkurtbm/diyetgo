@@ -7,6 +7,7 @@ import {
   planLengthDays,
   planWeekOf,
   planWeekTotals,
+  resolveRecipeFoods,
   type MealPlan,
   type PlanMeal,
 } from '@diyetgo/shared'
@@ -56,13 +57,15 @@ export function PlanDetailPage() {
   const query = useRepositoryQuery(
     async (r) => {
       const detail = await r.mealPlans.get(planId)
-      const [client, foods, mealTypes, goals] = await Promise.all([
+      const [client, foods, ingredients, mealTypes, goals] = await Promise.all([
         r.clients.get(detail.plan.clientId),
         r.foods.list({ includeArchived: true }),
+        r.foods.listIngredients(),
         r.mealTypes.list({ includeArchived: true }),
         r.goals.listByClient(detail.plan.clientId),
       ])
-      return { ...detail, client, foods, mealTypes, goals }
+      // Tariflerin 100 g değerleri malzemelerinden canlı hesaplanır.
+      return { ...detail, client, foods: [...resolveRecipeFoods(foods, ingredients).values()], mealTypes, goals }
     },
     [planId],
   )

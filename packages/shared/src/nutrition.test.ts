@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { dayTotals, energyFromMacros, mealTotals, nutrientsFor, sumNutrients, ZERO_NUTRIENTS } from './nutrition'
+import { dayTotals, energyFromMacros, ingredientsWeight, mealTotals, nutrientsFor, resolveRecipeFoods, sumNutrients, ZERO_NUTRIENTS } from './nutrition'
 
 // Kurgusal test besinleri; değerler 100 g/ml başınadır.
 const oats = { energyKcal: 380, proteinG: 13, carbsG: 60, fatG: 7 }
@@ -112,5 +112,34 @@ describe('mealTotals / dayTotals', () => {
     expect(() => mealTotals('m1', [...items, { planMealId: 'm1', foodId: 'yok', quantity: 10 }], foodsById)).toThrow(
       /Besin bulunamadı/,
     )
+  })
+})
+
+describe('tarif değerleri', () => {
+  const base = { recipeYieldG: null }
+  const foods = [
+    { id: 'oats', energyKcal: 380, proteinG: 13, carbsG: 60, fatG: 7, ...base },
+    { id: 'milk', energyKcal: 46, proteinG: 3.3, carbsG: 4.8, fatG: 1.5, ...base },
+    { id: 'porridge', energyKcal: 0, proteinG: 0, carbsG: 0, fatG: 0, recipeYieldG: 200 },
+    { id: 'empty', energyKcal: 0, proteinG: 0, carbsG: 0, fatG: 0, recipeYieldG: 100 },
+  ]
+  const ingredients = [
+    { recipeId: 'porridge', foodId: 'oats', quantity: 50 },
+    { recipeId: 'porridge', foodId: 'milk', quantity: 150 },
+  ]
+
+  it('tarifin 100 g değeri = malzemelerin toplamı ÷ pişmiş ağırlık × 100', () => {
+    const resolved = resolveRecipeFoods(foods, ingredients)
+    // Toplam: yulaf 190 kcal + süt 69 kcal = 259 kcal; 200 g pişmiş → 100 g'da 129,5 kcal.
+    expect(resolved.get('porridge')!.energyKcal).toBeCloseTo(129.5)
+    expect(resolved.get('porridge')!.proteinG).toBeCloseTo((6.5 + 4.95) / 2)
+    expect(resolved.get('oats')).toEqual(foods[0])
+    expect(resolved.get('empty')!.energyKcal).toBe(0)
+    expect(ingredientsWeight(ingredients)).toBe(200)
+  })
+
+  it('malzeme güncellenince tarif değeri canlı olarak değişir', () => {
+    const updated = foods.map((f) => (f.id === 'milk' ? { ...f, energyKcal: 64 } : f))
+    expect(resolveRecipeFoods(updated, ingredients).get('porridge')!.energyKcal).toBeCloseTo((190 + 96) / 2)
   })
 })

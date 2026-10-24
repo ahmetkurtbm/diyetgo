@@ -29,6 +29,8 @@ import type {
   PlanMealInput,
   PlanMealItem,
   PlanMealItemInput,
+  RecipeIngredient,
+  RecipeIngredientsInput,
 } from '@diyetgo/shared'
 
 export type RepositoryErrorCode = 'validation' | 'not_found' | 'conflict' | 'restricted' | 'storage'
@@ -84,10 +86,14 @@ export interface FoodRepository {
   create(input: FoodInput): Promise<Food>
   update(id: string, input: FoodInput): Promise<Food>
   setArchived(id: string, archived: boolean): Promise<Food>
-  /** Bir öğün içeriğinde kullanılan besin silinemez (`restricted`). */
+  /** Bir öğün içeriğinde veya tarifte kullanılan besin silinemez (`restricted`). */
   remove(id: string): Promise<void>
   /** Besini kullanan plan sayısı; düzenlemede canlı hesaplama uyarısı için. */
   countPlansUsing(id: string): Promise<number>
+  /** Tüm tariflerin malzemeleri; tarif değerleri `resolveRecipeFoods` ile bunlardan hesaplanır. */
+  listIngredients(): Promise<RecipeIngredient[]>
+  /** Tarifin malzemelerini liste sırasıyla değiştirir; tarif olmayan besinde `validation`. */
+  setIngredients(recipeId: string, ingredients: RecipeIngredientsInput): Promise<RecipeIngredient[]>
 }
 
 export interface MealTypeRepository {

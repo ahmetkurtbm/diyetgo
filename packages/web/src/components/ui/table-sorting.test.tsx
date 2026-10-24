@@ -1,3 +1,4 @@
+import { resolveRecipeFoods } from '@diyetgo/shared'
 import { screen, waitFor, within } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { fixDate, renderApp, SEED_IDS } from '../../test-utils'
@@ -55,7 +56,9 @@ describe('Tablo sıralama', () => {
     await screen.findByRole('table', { name: 'Besin listesi' })
     await user.click(within(header('Besin listesi', 'Enerji')).getByRole('button'))
     await user.click(within(header('Besin listesi', 'Enerji')).getByRole('button'))
-    const expected = (await repositories.foods.list()).map((f) => f.energyKcal).sort((a, b) => b - a)
+    // Tariflerin değeri malzemelerinden hesaplanır; tablo yuvarlanmış kcal gösterir.
+    const resolved = resolveRecipeFoods(await repositories.foods.list(), await repositories.foods.listIngredients())
+    const expected = [...resolved.values()].map((f) => Math.round(f.energyKcal)).sort((a, b) => b - a)
     const shown = cellsOf('Besin listesi', 1).map((text) => Number(text!.replace(/\D/g, '')))
     expect(shown).toEqual(expected)
   })

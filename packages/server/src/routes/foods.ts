@@ -11,8 +11,15 @@ export function foodsRouter(db: Db) {
   router.get('/', async (req, res) => {
     res.json(await service(res).list({ search: stringParam(req.query.search), includeArchived: includeArchivedParam(req.query.includeArchived) }))
   })
+  // `/:id`'den önce: "ingredients" bir besin kimliği gibi yorumlanmasın.
+  router.get('/ingredients', async (_req, res) => {
+    res.json(await service(res).listIngredients())
+  })
   router.get('/:id', async (req, res) => {
     res.json(await service(res).get(req.params.id))
+  })
+  router.put('/:id/ingredients', async (req, res) => {
+    res.json(await service(res).setIngredients(req.params.id, req.body))
   })
   router.get('/:id/plan-count', async (req, res) => {
     res.json({ count: await service(res).countPlansUsing(req.params.id) })

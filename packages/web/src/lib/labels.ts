@@ -1,4 +1,4 @@
-import { ageOn, isGoalActiveOn, type AppointmentStatus, type Client, type ClientGoal, type MealPlan, type Sex } from '@diyetgo/shared'
+import { ageOn, isGoalActiveOn, type AppointmentStatus, type Client, type ClientGoal, type CookingMethod, type MealPlan, type Sex } from '@diyetgo/shared'
 import { today } from './format'
 
 /** Bugüne göre yaş; doğum tarihi yoksa veya gelecekteyse `—`. */
@@ -66,4 +66,15 @@ export const goalStatusTones = { active: 'brand', upcoming: 'info', past: 'neutr
 
 export function fullName(client: Pick<Client, 'firstName' | 'lastName'>): string {
   return `${client.firstName} ${client.lastName}`
+}
+
+export const cookingMethodLabels: Record<CookingMethod, string> = {
+  raw: 'Çiğ',
+  boiled: 'Haşlama',
+  steamed: 'Buharda',
+  grilled: 'Izgara',
+  baked: 'Fırında',
+  sauteed: 'Sote / kavurma',
+  stewed: 'Tencerede (sulu)',
+  fried: 'Kızartma (yağda)',
 }

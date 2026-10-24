@@ -22,6 +22,13 @@
       "when": 1792862923158,
       "tag": "0002_client_health_records",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1792863627261,
+      "tag": "0003_recipes_and_cooking_methods",
+      "breakpoints": true
     }
   ]
 }

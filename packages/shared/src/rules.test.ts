@@ -5,11 +5,13 @@ import {
   canAddPlanOrAppointment,
   canUseMealType,
   findActiveGoal,
+  foodKindChangeIssue,
   findAppointmentConflicts,
   goalPeriodsOverlap,
   isDayWithinPlan,
   isAppointmentOverdue,
   isGoalActiveOn,
+  recipeIngredientIssue,
   isMealTypeNameTaken,
   mealsOutsidePlan,
   planDayDate,
@@ -221,5 +223,27 @@ describe('saati geçmiş randevu', () => {
     for (const status of ['completed', 'cancelled', 'no_show'] as const) {
       expect(isAppointmentOverdue(slot('2026-03-01T08:00:00.000Z', status), now)).toBe(false)
     }
+  })
+})
+
+describe('tarif malzemesi', () => {
+  const food = (overrides: Partial<{ archivedAt: string | null; recipeYieldG: number | null }> = {}) => ({ id: 'f1', archivedAt: null, recipeYieldG: null, ...overrides })
+
+  it('tarif başka tarifin malzemesi olamaz; arşivlenmiş besin yalnızca zaten malzemeyse kalır', () => {
+    expect(recipeIngredientIssue(food(), new Set())).toBeNull()
+    expect(recipeIngredientIssue(food({ recipeYieldG: 300 }), new Set())).toMatch(/tarifin malzemesi olamaz/)
+    expect(recipeIngredientIssue(food({ archivedAt: '2026-03-01T00:00:00.000Z' }), new Set())).toMatch(/Arşivlenmiş/)
+    expect(recipeIngredientIssue(food({ archivedAt: '2026-03-01T00:00:00.000Z' }), new Set(['f1']))).toBeNull()
+  })
+})
+
+describe('besin ve tarif tür değişikliği', () => {
+  const none = { hasIngredients: false, usedAsIngredient: false }
+  it('malzemesi olan tarif besine, malzeme olarak kullanılan besin tarife çevrilemez', () => {
+    expect(foodKindChangeIssue(true, false, { ...none, hasIngredients: true })?.message).toMatch(/önce malzemeleri kaldırın/)
+    expect(foodKindChangeIssue(false, true, { ...none, usedAsIngredient: true })?.message).toMatch(/tarife çevrilemez/)
+    expect(foodKindChangeIssue(true, false, none)).toBeNull()
+    expect(foodKindChangeIssue(false, true, none)).toBeNull()
+    expect(foodKindChangeIssue(true, true, { hasIngredients: true, usedAsIngredient: true })).toBeNull()
   })
 })

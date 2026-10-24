@@ -8,7 +8,7 @@ export const db = createDb(testDatabaseUrl())
 /** Tüm tabloları boşaltır. Yalnızca doğrulanmış test veritabanında çalışır. */
 export async function resetDatabase() {
   await db.execute(sql`
-    truncate table plan_meal_items, plan_meals, meal_plans, appointments, client_goals,
+    truncate table recipe_ingredients, plan_meal_items, plan_meals, meal_plans, appointments, client_goals,
       measurements, client_medications, client_conditions, client_recommendations, clients, foods, meal_types,
       sessions, accounts, verifications, users
   `)

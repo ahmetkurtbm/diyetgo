@@ -44,6 +44,7 @@ describe('migrations', () => {
       'measurements',
       'plan_meal_items',
       'plan_meals',
+      'recipe_ingredients',
       'sessions',
       'users',
       'verifications',

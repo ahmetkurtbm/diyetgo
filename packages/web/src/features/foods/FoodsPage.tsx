@@ -1,5 +1,5 @@
-import type { Food } from '@diyetgo/shared'
-import { Archive, ArchiveRestore, Info, Pencil, Plus, Search, Trash2, UtensilsCrossed } from 'lucide-react'
+import { resolveRecipeFoods, type Food } from '@diyetgo/shared'
+import { Archive, ArchiveRestore, ChefHat, Info, Pencil, Plus, Search, Trash2, UtensilsCrossed } from 'lucide-react'
 import { useState } from 'react'
 import { useRepositories, useRepositoryQuery } from '../../data/context'
 import { Button } from '../../components/ui/Button'
@@ -11,7 +11,8 @@ import { useToast } from '../../components/ui/toast-context'
 import { useSort, type SortColumns } from '../../components/ui/use-sort'
 import { errorMessage } from '../../lib/errors'
 import { formatNumber } from '../../lib/format'
-import { FoodFormDialog } from './FoodFormDialog'
+import { cookingMethodLabels } from '../../lib/labels'
+import { FoodFormDialog, type FoodKind } from './FoodFormDialog'
 
 const grams = (value: number) => `${formatNumber(value)} g`
 
@@ -31,16 +32,29 @@ const sortOptions = [
   { key: 'fat', label: 'Yağ' },
 ] as const
 
+const kinds = { all: 'Tümü', food: 'Besinler', recipe: 'Tarifler ve yemekler' } as const
+type KindFilter = keyof typeof kinds
+const kindOf = (food: Pick<Food, 'recipeYieldG'>): FoodKind => (food.recipeYieldG === null ? 'food' : 'recipe')
+
 export function FoodsPage() {
   const repositories = useRepositories()
   const toast = useToast()
   const [search, setSearch] = useState('')
   const [includeArchived, setIncludeArchived] = useState(false)
-  const [editing, setEditing] = useState<Food | 'new' | null>(null)
+  const [kindFilter, setKindFilter] = useState<KindFilter>('all')
+  const [editing, setEditing] = useState<{ kind: FoodKind; food?: Food } | null>(null)
   const [deleting, setDeleting] = useState<{ food: Food; plansUsing: number } | null>(null)
-  const query = useRepositoryQuery((r) => r.foods.list({ search, includeArchived }), [search, includeArchived])
-  const foods = query.data ?? []
-  const filtered = search.trim() !== '' || includeArchived
+  const query = useRepositoryQuery(
+    async (r) => {
+      // Tarif değerleri, aramaya uymasa da tüm malzemeler bilinerek hesaplanır.
+      const [listed, all, ingredients] = await Promise.all([r.foods.list({ search, includeArchived }), r.foods.list({ includeArchived: true }), r.foods.listIngredients()])
+      const resolved = resolveRecipeFoods(all, ingredients)
+      return listed.map((f) => resolved.get(f.id) ?? f)
+    },
+    [search, includeArchived],
+  )
+  const foods = (query.data ?? []).filter((f) => kindFilter === 'all' || kindOf(f) === kindFilter)
+  const filtered = search.trim() !== '' || includeArchived || kindFilter !== 'all'
   const sorting = useSort(foods, sortColumns)
 
   async function run(action: () => Promise<unknown>, success: string) {
@@ -64,12 +78,18 @@ export function FoodsPage() {
     <>
       <PageHeader
         title="Besinler"
-        description="Besin değerleri 100 g veya 100 ml başınadır."
+        description="Besin değerleri 100 g veya 100 ml başınadır. Tariflerin değerleri malzemelerinden hesaplanır."
         actions={
-          <Button variant="primary" onClick={() => setEditing('new')}>
-            <Plus aria-hidden className="size-4" />
-            Yeni besin
-          </Button>
+          <>
+            <Button onClick={() => setEditing({ kind: 'recipe' })}>
+              <ChefHat aria-hidden className="size-4" />
+              Yeni tarif
+            </Button>
+            <Button variant="primary" onClick={() => setEditing({ kind: 'food' })}>
+              <Plus aria-hidden className="size-4" />
+              Yeni besin
+            </Button>
+          </>
         }
       />
       <p role="note" className="mb-4 flex gap-2 rounded-md border border-sky-200 bg-sky-50 p-3 text-sm text-sky-900">
@@ -90,6 +110,16 @@ export function FoodsPage() {
             />
           </label>
           <label className="flex items-center gap-2 text-sm text-slate-600">
+            <span>Tür</span>
+            <select value={kindFilter} onChange={(e) => setKindFilter(e.target.value as KindFilter)} className="h-9 rounded-md border border-slate-300 bg-white px-2 text-sm">
+              {Object.entries(kinds).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex items-center gap-2 text-sm text-slate-600">
             <input type="checkbox" checked={includeArchived} onChange={(e) => setIncludeArchived(e.target.checked)} className="size-4 rounded border-slate-300 accent-brand-700" />
             Arşivdekileri göster
           </label>
@@ -106,7 +136,7 @@ export function FoodsPage() {
               title="Henüz besin yok"
               description="Planlarda kullanmak için ilk besini ekleyin."
               action={
-                <Button variant="primary" onClick={() => setEditing('new')}>
+                <Button variant="primary" onClick={() => setEditing({ kind: 'food' })}>
                   Besin ekle
                 </Button>
               }
@@ -135,10 +165,12 @@ export function FoodsPage() {
                     <Td>
                       <span className="font-medium text-slate-900">{food.name}</span>
                       <span className="block text-xs text-slate-500">
-                        {food.brand ? `${food.brand} · ` : ''}100 {food.baseUnit} başına
+                        {food.brand ? `${food.brand} · ` : ''}
+                        {food.cookingMethod ? `${cookingMethodLabels[food.cookingMethod]} · ` : ''}100 {food.baseUnit} başına
                       </span>
-                      {(food.isSample || food.archivedAt) && (
+                      {(food.isSample || food.archivedAt || food.recipeYieldG !== null) && (
                         <span className="mt-1 flex flex-wrap gap-1">
+                          {food.recipeYieldG !== null && <Badge tone="info">Tarif · malzemelerden hesaplanır</Badge>}
                           {food.isSample && <Badge tone="warning">Örnek veri – doğrulanmamış</Badge>}
                           {food.archivedAt && <Badge>Arşivde</Badge>}
                         </span>
@@ -160,7 +192,7 @@ export function FoodsPage() {
                       {food.portionLabel && food.portionAmount !== null ? `${food.portionLabel} (${formatNumber(food.portionAmount)} ${food.baseUnit})` : '—'}
                     </Td>
                     <Td className="text-right whitespace-nowrap max-sm:justify-end">
-                      <Button variant="ghost" size="sm" aria-label={`${food.name} düzenle`} onClick={() => setEditing(food)}>
+                      <Button variant="ghost" size="sm" aria-label={`${food.name} düzenle`} onClick={() => setEditing({ kind: kindOf(food), food })}>
                         <Pencil aria-hidden className="size-4" />
                       </Button>
                       <Button
@@ -185,7 +217,7 @@ export function FoodsPage() {
         )}
       </Card>
 
-      <FoodFormDialog open={editing !== null} food={editing === 'new' || editing === null ? undefined : editing} onClose={() => setEditing(null)} />
+      <FoodFormDialog open={editing !== null} kind={editing?.kind ?? 'food'} food={editing?.food} onClose={() => setEditing(null)} />
 
       {/* Planda kullanılan besin silinemez; arşivleme önerilir. */}
       <Dialog

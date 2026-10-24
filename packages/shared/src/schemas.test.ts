@@ -121,6 +121,8 @@ describe('food', () => {
     portionAmount: 40,
     source: null,
     isSample: false,
+    cookingMethod: null,
+    recipeYieldG: null,
   }
 
   it('geçerli besini kabul eder', () => {

@@ -14,6 +14,34 @@ export function canAddPlanOrAppointment(client: Pick<Client, 'archivedAt'>): boo
   return client.archivedAt === null
 }
 
+/**
+ * Tarife malzeme olarak eklenebilir mi? Tarif başka bir tarifin malzemesi olamaz (döngü olmaması için);
+ * arşivlenmiş besin yalnızca zaten o tarifin malzemesiyse kalabilir.
+ */
+export function recipeIngredientIssue(food: Pick<Food, 'id' | 'archivedAt' | 'recipeYieldG'>, currentFoodIds: ReadonlySet<string>): string | null {
+  if (food.recipeYieldG !== null) return 'Bir tarif başka bir tarifin malzemesi olamaz'
+  if (food.archivedAt !== null && !currentFoodIds.has(food.id)) return 'Arşivlenmiş besin yeni tarife eklenemez'
+  return null
+}
+
+/**
+ * Besin ile tarif arasındaki tür değişikliği: malzemesi olan tarif besine çevrilemez; başka bir tarifte
+ * malzeme olarak kullanılan besin tarife çevrilemez (tarif tarifin malzemesi olamaz).
+ */
+export function foodKindChangeIssue(
+  wasRecipe: boolean,
+  willBeRecipe: boolean,
+  facts: { hasIngredients: boolean; usedAsIngredient: boolean },
+): { field: 'recipeYieldG'; message: string } | null {
+  if (wasRecipe && !willBeRecipe && facts.hasIngredients) {
+    return { field: 'recipeYieldG', message: 'Malzemeleri olan tarif besine çevrilemez; önce malzemeleri kaldırın' }
+  }
+  if (!wasRecipe && willBeRecipe && facts.usedAsIngredient) {
+    return { field: 'recipeYieldG', message: 'Bu besin bir tarifte malzeme olarak kullanılıyor; tarife çevrilemez' }
+  }
+  return null
+}
+
 /** Arşivlenmiş besin yeni öğün içeriğine eklenemez; mevcut içeriklerde görünmeye devam eder. */
 export function canAddFoodToMeal(food: Pick<Food, 'archivedAt'>): boolean {
   return food.archivedAt === null

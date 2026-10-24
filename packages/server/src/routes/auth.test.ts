@@ -20,6 +20,8 @@ const foodBody = {
   portionAmount: null,
   source: null,
   isSample: false,
+  cookingMethod: null,
+  recipeYieldG: null,
 }
 const at = (time: string) => `2031-05-12T${time}:00.000Z`
 
@@ -198,6 +200,20 @@ describe('diyetisyenler arası izolasyon', () => {
     const ownMeal = (await http.post('/api/plan-meals').send({ mealPlanId: ownPlan.id, dayNumber: 1, mealTypeId: ownType.id, time: null, notes: null }).expect(201)).body
     await http.post('/api/plan-meal-items').send({ planMealId: ownMeal.id, foodId: a.food.id, quantity: 1, sortOrder: 0, notes: null }).expect(404)
     await http.post(`/api/meal-plans/${ownPlan.id}/copy`).send({ clientId: a.danisan.id, startDate: '2031-06-01', title: 'Kopya' }).expect(404)
+  })
+
+  it('başka diyetisyenin tarif malzemelerini göremez, değiştiremez ve kendi tarifinde kullanamaz', async () => {
+    const owner = await signUp('Birinci Diyetisyen')
+    const food = (await owner.http.post('/api/foods').send(foodBody).expect(201)).body
+    const recipe = (await owner.http.post('/api/foods').send({ ...foodBody, name: 'Gizli tarif', recipeYieldG: 200 }).expect(201)).body
+    await owner.http.put(`/api/foods/${recipe.id}/ingredients`).send([{ foodId: food.id, quantity: 100 }]).expect(200)
+
+    const { http } = await signUp('İkinci Diyetisyen')
+    expect((await http.get('/api/foods/ingredients').expect(200)).body).toEqual([])
+    await http.put(`/api/foods/${recipe.id}/ingredients`).send([]).expect(404)
+    const own = (await http.post('/api/foods').send({ ...foodBody, name: 'Benim tarifim', recipeYieldG: 200 }).expect(201)).body
+    await http.put(`/api/foods/${own.id}/ingredients`).send([{ foodId: food.id, quantity: 10 }]).expect(404)
+    expect((await owner.http.get('/api/foods/ingredients').expect(200)).body).toHaveLength(1)
   })
 
   it('takvimler ayrıdır: aynı saatte iki diyetisyenin randevusu çakışmaz; öğün türü adları diyetisyen başına benzersizdir', async () => {

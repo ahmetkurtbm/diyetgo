@@ -12,7 +12,7 @@
  *   nedeniyle `energyKcal` ile farklı çıkabilir; biri diğerinin yerine kullanılmaz.
  */
 import { assertFinite } from './numbers'
-import type { Food, PlanMeal, PlanMealItem } from './schemas'
+import type { Food, PlanMeal, PlanMealItem, RecipeIngredient } from './schemas'
 
 export type Nutrients = { energyKcal: number; proteinG: number; carbsG: number; fatG: number }
 
@@ -82,4 +82,32 @@ export function dayTotals(
 ): Nutrients {
   const mealIds = new Set(meals.filter((m) => m.dayNumber === dayNumber).map((m) => m.id))
   return itemsTotals(items.filter((i) => mealIds.has(i.planMealId)), foodsById)
+}
+
+type RecipeFood = NutrientValues & Pick<Food, 'id' | 'recipeYieldG'>
+
+/**
+ * Tariflerin 100 g değerlerini malzemelerinden hesaplar ve tüm besinleri kimliğe göre döndürür.
+ * Tarif değeri = malzemelerin toplamı ÷ pişmiş toplam ağırlık × 100. Bir malzeme güncellenince tarifin
+ * (ve onu kullanan planların) değerleri de değişir. Malzemesi olmayan tarifin değerleri sıfırdır.
+ */
+export function resolveRecipeFoods<F extends RecipeFood>(
+  foods: readonly F[],
+  ingredients: readonly Pick<RecipeIngredient, 'recipeId' | 'foodId' | 'quantity'>[],
+): Map<string, F> {
+  const byId = new Map(foods.map((f) => [f.id, f]))
+  const resolved = new Map(byId)
+  for (const food of foods) {
+    if (food.recipeYieldG === null) continue
+    const own = ingredients.filter((i) => i.recipeId === food.id)
+    const total = itemsTotals(own, byId)
+    const factor = 100 / food.recipeYieldG
+    resolved.set(food.id, { ...food, energyKcal: total.energyKcal * factor, proteinG: total.proteinG * factor, carbsG: total.carbsG * factor, fatG: total.fatG * factor })
+  }
+  return resolved
+}
+
+/** Malzemelerin çiğ toplam ağırlığı (g/ml); pişmiş ağırlık için varsayılan öneri olarak kullanılır. */
+export function ingredientsWeight(ingredients: readonly Pick<RecipeIngredient, 'quantity'>[]): number {
+  return ingredients.reduce((sum, i) => sum + i.quantity, 0)
 }

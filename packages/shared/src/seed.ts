@@ -22,6 +22,7 @@ import type {
   Measurement,
   PlanMeal,
   PlanMealItem,
+  RecipeIngredient,
 } from './schemas'
 
 export const SAMPLE_FOOD_SOURCE = 'Örnek veri – doğrulanmamış'
@@ -39,6 +40,7 @@ export type SeedData = {
   clientMedications: ClientMedication[]
   clientConditions: ClientCondition[]
   clientRecommendations: ClientRecommendation[]
+  recipeIngredients: RecipeIngredient[]
 }
 
 const GROUP = {
@@ -55,6 +57,7 @@ const GROUP = {
   clientMedication: 11,
   clientCondition: 12,
   clientRecommendation: 13,
+  recipeIngredient: 14,
 } as const
 
 /** Sabit, geçerli bir UUID (v4 biçiminde) üretir: ilk blok varlık grubu, son blok sıra numarasıdır. */
@@ -136,9 +139,31 @@ export function createSeedData(today: string): SeedData {
     portionAmount,
     source: SAMPLE_FOOD_SOURCE,
     isSample: true,
+    cookingMethod: null,
+    recipeYieldG: null,
     archivedAt: null,
     ...stamps,
   }))
+  // Örnek tarif: 100 g değerleri malzemelerden hesaplanır; kayıttaki değerler kullanılmaz.
+  const recipe: Food = {
+    id: seedId('food', foodRows.length + 1),
+    name: 'Sütlü yulaf lapası (örnek tarif)',
+    brand: null,
+    baseUnit: 'g',
+    energyKcal: 0,
+    proteinG: 0,
+    carbsG: 0,
+    fatG: 0,
+    portionLabel: '1 kase',
+    portionAmount: 250,
+    source: SAMPLE_FOOD_SOURCE,
+    isSample: true,
+    cookingMethod: 'boiled',
+    recipeYieldG: 280,
+    archivedAt: null,
+    ...stamps,
+  }
+  foods.push(recipe)
   const food = (name: string) => {
     const f = foods.find((x) => x.name === name)
     if (!f) throw new Error(`Seed besini yok: ${name}`)
@@ -244,6 +269,13 @@ export function createSeedData(today: string): SeedData {
     },
   ]
 
+  const recipeIngredients: RecipeIngredient[] = [
+    ['Yulaf ezmesi', 40],
+    ['Süt (yarım yağlı)', 200],
+    ['Muz', 60],
+    ['Ceviz', 10],
+  ].map(([name, quantity], i) => ({ id: seedId('recipeIngredient', i + 1), recipeId: recipe.id, foodId: food(name as string), quantity: quantity as number, sortOrder: i, ...stamps }))
+
   return {
     clients,
     measurements,
@@ -257,5 +289,6 @@ export function createSeedData(today: string): SeedData {
     clientMedications,
     clientConditions,
     clientRecommendations,
+    recipeIngredients,
   }
 }

@@ -30,6 +30,8 @@ export const LIMITS = {
   macroGPer100: 200,
   macroSumGPer100g: 100,
   quantity: 10_000,
+  recipeYieldG: 50_000,
+  recipeIngredients: 60,
   planDays: 366,
   sortOrder: 1000,
   goalEnergyKcal: 10_000,
@@ -110,6 +112,10 @@ export type Measurement = z.infer<typeof measurementSchema>
 
 export const baseUnitSchema = z.enum(['g', 'ml'])
 
+/** Hazırlama yöntemi; yalnızca bilgi etiketidir, değerleri değiştirmez (değerler o hâliyle girilir). */
+export const cookingMethodSchema = z.enum(['raw', 'boiled', 'steamed', 'grilled', 'baked', 'sauteed', 'stewed', 'fried'])
+export type CookingMethod = z.infer<typeof cookingMethodSchema>
+
 /** Besin değerleri 100 g veya 100 ml (`baseUnit`) başınadır. */
 const foodFields = z.object({
   name: requiredText(LIMITS.name),
@@ -127,9 +133,19 @@ const foodFields = z.object({
   source: optionalText(LIMITS.shortText),
   /** `true` ise değerler doğrulanmamış örnek veridir; arayüz bunu belirtmelidir. */
   isSample: z.boolean(),
+  cookingMethod: cookingMethodSchema.nullable(),
+  /**
+   * Doluysa kayıt bir tariftir (yemek): malzemeleri `RecipeIngredient` olarak tutulur ve bu değer
+   * pişmiş hâlin toplam ağırlığıdır (g). Tarifin 100 g değerleri malzemelerden canlı hesaplanır;
+   * kayıttaki enerji ve makro alanları kullanılmaz (bkz. `resolveRecipeFoods`).
+   */
+  recipeYieldG: positive(LIMITS.recipeYieldG).nullable(),
 })
 
 function checkFood(f: z.infer<typeof foodFields>, ctx: Ctx) {
+  if (f.recipeYieldG !== null && f.baseUnit !== 'g') {
+    ctx.addIssue({ code: 'custom', path: ['baseUnit'], message: 'Tarifler gram cinsinden tutulur' })
+  }
   // Katı besinlerde 100 g içindeki makrolar 100 g'ı aşamaz. Sıvılarda yoğunluk 1 g/ml'den büyük
   // olabildiği için (ör. bal) bu kontrol `ml` için yapılmaz.
   if (f.baseUnit === 'g' && f.proteinG + f.carbsG + f.fatG > LIMITS.macroSumGPer100g) {
@@ -314,3 +330,21 @@ export const clientRecommendationInputSchema = clientRecommendationFields
 export const clientRecommendationSchema = clientRecommendationFields.extend(recordFields)
 export type ClientRecommendationInput = z.infer<typeof clientRecommendationInputSchema>
 export type ClientRecommendation = z.infer<typeof clientRecommendationSchema>
+
+// ---------- Tarif malzemesi ----------
+
+/** Bir tarifin malzemesi: temel birimde (g/ml) miktar. Malzeme tarif olamaz. */
+const recipeIngredientFields = z.object({
+  recipeId: idSchema,
+  foodId: idSchema,
+  quantity: positive(LIMITS.quantity),
+  sortOrder: z.int().min(0).max(LIMITS.sortOrder),
+})
+
+/** Tarifin malzemeleri tek seferde değiştirilir; sıra liste sırasıdır. */
+export const recipeIngredientsInputSchema = z
+  .array(z.object({ foodId: idSchema, quantity: positive(LIMITS.quantity) }))
+  .max(LIMITS.recipeIngredients)
+export const recipeIngredientSchema = recipeIngredientFields.extend(recordFields)
+export type RecipeIngredientsInput = z.infer<typeof recipeIngredientsInputSchema>
+export type RecipeIngredient = z.infer<typeof recipeIngredientSchema>

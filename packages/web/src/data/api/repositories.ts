@@ -97,6 +97,8 @@ export function createApiRepositories(
       setArchived: (foodId, archived) => put(`/foods/${id(foodId)}/archived`, { archived }),
       remove: (foodId) => remove(`/foods/${id(foodId)}`),
       countPlansUsing: async (foodId) => (await get<{ count: number }>(`/foods/${id(foodId)}/plan-count`)).count,
+      listIngredients: () => get('/foods/ingredients'),
+      setIngredients: (recipeId, ingredients) => put(`/foods/${id(recipeId)}/ingredients`, ingredients),
     },
 
     mealTypes: {

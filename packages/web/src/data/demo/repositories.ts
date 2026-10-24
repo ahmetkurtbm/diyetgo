@@ -18,6 +18,7 @@ import {
   clientRecommendationInputSchema,
   findAppointmentConflicts,
   foodInputSchema,
+  foodKindChangeIssue,
   goalPeriodsOverlap,
   isDayWithinPlan,
   isMealTypeNameTaken,
@@ -29,6 +30,8 @@ import {
   planMealInputSchema,
   planMealItemInputSchema,
   planNewGoal,
+  recipeIngredientIssue,
+  recipeIngredientsInputSchema,
   type MealPlan,
   type PlanMeal,
 } from '@diyetgo/shared'
@@ -258,7 +261,16 @@ export function createDemoRepositories(
           return food
         }),
       update: (id, input) =>
-        mutate((data, ts) => Object.assign(find(data.foods, id, 'Besin'), parse(foodInputSchema, input), { updatedAt: ts })),
+        mutate((data, ts) => {
+          const parsed = parse(foodInputSchema, input)
+          const food = find(data.foods, id, 'Besin')
+          const issue = foodKindChangeIssue(food.recipeYieldG !== null, parsed.recipeYieldG !== null, {
+            hasIngredients: data.recipeIngredients.some((i) => i.recipeId === id),
+            usedAsIngredient: data.recipeIngredients.some((i) => i.foodId === id),
+          })
+          if (issue) throw new RepositoryError('validation', `${issue.message}.`, { fieldErrors: { [issue.field]: issue.message } })
+          return Object.assign(food, parsed, { updatedAt: ts })
+        }),
       setArchived: (id, archived) =>
         mutate((data, ts) => {
           const food = find(data.foods, id, 'Besin')
@@ -267,9 +279,11 @@ export function createDemoRepositories(
       remove: (id) =>
         mutate((data) => {
           find(data.foods, id, 'Besin')
-          if (data.planMealItems.some((i) => i.foodId === id)) {
-            throw new RepositoryError('restricted', 'Bu besin bir planda kullanılıyor. Silmek yerine arşivleyin.')
+          if (data.planMealItems.some((i) => i.foodId === id) || data.recipeIngredients.some((i) => i.foodId === id)) {
+            throw new RepositoryError('restricted', 'Bu besin bir planda veya tarifte kullanılıyor. Silmek yerine arşivleyin.')
           }
+          // Tarif silinince malzemeleri de silinir (CASCADE).
+          removeWhere(data.recipeIngredients, (i) => i.recipeId === id)
           removeWhere(data.foods, (f) => f.id === id)
         }),
       async countPlansUsing(id) {
@@ -277,6 +291,28 @@ export function createDemoRepositories(
         const mealIds = new Set(data.planMealItems.filter((i) => i.foodId === id).map((i) => i.planMealId))
         return new Set(data.planMeals.filter((m) => mealIds.has(m.id)).map((m) => m.mealPlanId)).size
       },
+      async listIngredients() {
+        // Sunucuyla aynı sıra: tarif kimliği, ardından liste sırası.
+        return read().recipeIngredients.sort((a, b) => a.recipeId.localeCompare(b.recipeId) || a.sortOrder - b.sortOrder)
+      },
+      setIngredients: (recipeId, input) =>
+        mutate((data, ts) => {
+          const items = parse(recipeIngredientsInputSchema, input)
+          const recipe = find(data.foods, recipeId, 'Besin')
+          if (recipe.recipeYieldG === null) throw new RepositoryError('validation', 'Malzeme yalnızca tariflere eklenebilir.')
+          const current = new Set(data.recipeIngredients.filter((i) => i.recipeId === recipeId).map((i) => i.foodId))
+          for (const item of items) {
+            const food = data.foods.find((f) => f.id === item.foodId)
+            if (!food) throw new RepositoryError('not_found', 'Malzeme besini bulunamadı.')
+            const issue = food.id === recipeId ? 'Bir tarif başka bir tarifin malzemesi olamaz' : recipeIngredientIssue(food, current)
+            if (issue) throw new RepositoryError('validation', `${food.name}: ${issue}.`, { fieldErrors: { ingredients: `${food.name}: ${issue}` } })
+          }
+          removeWhere(data.recipeIngredients, (i) => i.recipeId === recipeId)
+          const rows = items.map((item, sortOrder) => ({ ...stamp(ts), recipeId, foodId: item.foodId, quantity: item.quantity, sortOrder }))
+          data.recipeIngredients.push(...rows)
+          recipe.updatedAt = ts
+          return rows
+        }),
     },
 
     mealTypes: {

@@ -50,6 +50,7 @@ try {
       ['clients', t.clients, owned(seed.clients)],
       ['foods', t.foods, owned(seed.foods)],
       ['meal_types', t.mealTypes, owned(seed.mealTypes)],
+      ['recipe_ingredients', t.recipeIngredients, seed.recipeIngredients],
       ['measurements', t.measurements, owned(seed.measurements)],
       ['meal_plans', t.mealPlans, owned(seed.mealPlans)],
       ['plan_meals', t.planMeals, seed.planMeals],

@@ -21,6 +21,7 @@ import {
   measurementSchema,
   planMealItemSchema,
   planMealSchema,
+  recipeIngredientSchema,
 } from '@diyetgo/shared'
 import { createSeedData, type SeedData } from '@diyetgo/shared/seed'
 import { RepositoryError } from '../repositories'
@@ -29,31 +30,41 @@ import { MemoryStorage } from './memory-storage'
 export const STORAGE_KEY = 'diyetgo:demo:v1'
 export const STORAGE_PREFIX = 'diyetgo:'
 /**
- * Veri biçiminin sürümü. Sürüm 2: ölçümlere uyluk çevresi (`thighCm`), danışanlara ilaç, hastalık ve
- * öneri koleksiyonları eklendi. Sürüm 1 veri açılışta kayıpsız yükseltilir (bkz. `upgrade`).
+ * Veri biçiminin sürümü. Eski sürümler açılışta kayıpsız yükseltilir (bkz. `upgrade`):
+ * - 2: ölçümlere uyluk çevresi (`thighCm`); danışanlara ilaç, hastalık ve öneri koleksiyonları.
+ * - 3: besinlere pişirme yöntemi ve tarif alanları (`cookingMethod`, `recipeYieldG`); tarif malzemeleri.
  */
-const VERSION = 2
+const VERSION = 3
 
 export type DemoData = SeedData
 type Envelope = { version: typeof VERSION; seededAt: string; data: DemoData }
 
+/** Dizideki her nesne kayda eksik alanları varsayılan değerle ekler; mevcut değerlere dokunmaz. */
+const withDefaults = (records: unknown, defaults: Record<string, unknown>) =>
+  Array.isArray(records) ? records.map((r: unknown) => (typeof r === 'object' && r !== null ? { ...defaults, ...r } : r)) : records
+
+const upgrades: Record<number, (data: Record<string, unknown>) => Record<string, unknown>> = {
+  1: (data) => ({
+    ...data,
+    measurements: withDefaults(data.measurements, { thighCm: null }),
+    clientMedications: [],
+    clientConditions: [],
+    clientRecommendations: [],
+  }),
+  2: (data) => ({ ...data, foods: withDefaults(data.foods, { cookingMethod: null, recipeYieldG: null }), recipeIngredients: [] }),
+}
+
 /**
- * Eski sürümdeki veriyi güncel biçime çevirir; mevcut kayıtlar korunur, yalnızca yeni alanlar boş
- * değerle eklenir. Tanınmayan sürüm veya yapı olduğu gibi döner; `validate` reddeder.
+ * Eski sürümdeki veriyi adım adım güncel biçime çevirir; mevcut kayıtlar korunur, yalnızca yeni alanlar
+ * boş değerle eklenir. Tanınmayan sürüm veya yapı olduğu gibi döner; `validate` reddeder.
  */
 function upgrade(value: unknown): unknown {
   if (typeof value !== 'object' || value === null) return value
-  const envelope = value as { version?: unknown; data?: unknown }
-  if (envelope.version !== 1 || typeof envelope.data !== 'object' || envelope.data === null) return value
-  const data = envelope.data as Record<string, unknown>
-  const measurements = Array.isArray(data.measurements)
-    ? data.measurements.map((m: unknown) => (typeof m === 'object' && m !== null ? { thighCm: null, ...m } : m))
-    : data.measurements
-  return {
-    ...envelope,
-    version: 2,
-    data: { ...data, measurements, clientMedications: [], clientConditions: [], clientRecommendations: [] },
+  let envelope = value as { version?: unknown; data?: unknown }
+  while (typeof envelope.version === 'number' && upgrades[envelope.version] && typeof envelope.data === 'object' && envelope.data !== null) {
+    envelope = { ...envelope, version: envelope.version + 1, data: upgrades[envelope.version]!(envelope.data as Record<string, unknown>) }
   }
+  return envelope === value ? value : envelope
 }
 
 const collectionSchemas = {
@@ -69,6 +80,7 @@ const collectionSchemas = {
   clientMedications: clientMedicationSchema,
   clientConditions: clientConditionSchema,
   clientRecommendations: clientRecommendationSchema,
+  recipeIngredients: recipeIngredientSchema,
 } satisfies Record<keyof DemoData, { safeParse(value: unknown): { success: boolean } }>
 
 export type DemoStore = {

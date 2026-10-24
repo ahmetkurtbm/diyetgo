@@ -44,6 +44,8 @@ const foodInput = (overrides: Partial<FoodInput> = {}): FoodInput => ({
   portionAmount: null,
   source: null,
   isSample: false,
+  cookingMethod: null,
+  recipeYieldG: null,
   ...overrides,
 })
 
@@ -167,6 +169,60 @@ export function describeRepositoryContract(name: string, setup: () => Promise<Re
         const { plan } = await createPlan()
         await repos.mealPlans.addMeal({ mealPlanId: plan.id, dayNumber: 2, mealTypeId: type.id, time: null, notes: null })
         await expectError(repos.mealTypes.remove(type.id), 'restricted')
+      })
+    })
+
+    describe('tarifler', () => {
+      it('tarif malzemelerini sırasıyla kaydeder; tarif silinince malzemeleri de silinir', async () => {
+        const oats = await repos.foods.create(foodInput({ name: 'Tarif yulafı' }))
+        const milk = await repos.foods.create(foodInput({ name: 'Tarif sütü', baseUnit: 'ml' }))
+        const recipe = await repos.foods.create(foodInput({ name: 'Sözleşme lapası', energyKcal: 0, proteinG: 0, carbsG: 0, fatG: 0, recipeYieldG: 250, cookingMethod: 'boiled' }))
+        const saved = await repos.foods.setIngredients(recipe.id, [
+          { foodId: milk.id, quantity: 200 },
+          { foodId: oats.id, quantity: 40 },
+        ])
+        expect(saved.map((i) => [i.foodId, i.quantity, i.sortOrder])).toEqual([
+          [milk.id, 200, 0],
+          [oats.id, 40, 1],
+        ])
+        expect((await repos.foods.listIngredients()).filter((i) => i.recipeId === recipe.id).map((i) => i.foodId)).toEqual([milk.id, oats.id])
+
+        await repos.foods.setIngredients(recipe.id, [{ foodId: oats.id, quantity: 50 }])
+        expect((await repos.foods.listIngredients()).filter((i) => i.recipeId === recipe.id).map((i) => i.quantity)).toEqual([50])
+
+        await expectError(repos.foods.remove(oats.id), 'restricted')
+        await repos.foods.remove(recipe.id)
+        expect((await repos.foods.listIngredients()).some((i) => i.recipeId === recipe.id)).toBe(false)
+        await repos.foods.remove(oats.id)
+      })
+
+      it('tarif başka tarifin malzemesi olamaz; tarif olmayan besine malzeme eklenemez; tür değişikliği korunur', async () => {
+        const oats = await repos.foods.create(foodInput({ name: 'Kural yulafı' }))
+        const recipe = await repos.foods.create(foodInput({ name: 'Kural tarifi', recipeYieldG: 100 }))
+        const other = await repos.foods.create(foodInput({ name: 'Diğer tarif', recipeYieldG: 100 }))
+        await repos.foods.setIngredients(recipe.id, [{ foodId: oats.id, quantity: 30 }])
+
+        await expectError(repos.foods.setIngredients(other.id, [{ foodId: recipe.id, quantity: 10 }]), 'validation')
+        await expectError(repos.foods.setIngredients(recipe.id, [{ foodId: recipe.id, quantity: 10 }]), 'validation')
+        await expectError(repos.foods.setIngredients(oats.id, [{ foodId: recipe.id, quantity: 10 }]), 'validation')
+        await expectError(repos.foods.setIngredients(recipe.id, [{ foodId: MISSING_ID, quantity: 10 }]), 'not_found')
+
+        const toFood = await expectError(repos.foods.update(recipe.id, foodInput({ name: 'Kural tarifi', recipeYieldG: null })), 'validation')
+        expect(toFood.fieldErrors.recipeYieldG).toMatch(/önce malzemeleri kaldırın/)
+        const toRecipe = await expectError(repos.foods.update(oats.id, foodInput({ name: 'Kural yulafı', recipeYieldG: 100 })), 'validation')
+        expect(toRecipe.fieldErrors.recipeYieldG).toMatch(/tarife çevrilemez/)
+        await expectError(repos.foods.create(foodInput({ name: 'Sıvı tarif', baseUnit: 'ml', recipeYieldG: 100 })), 'validation')
+      })
+
+      it('arşivlenmiş besin yeni tarife eklenemez ama mevcut tarifte kalabilir', async () => {
+        const oats = await repos.foods.create(foodInput({ name: 'Arşiv yulafı' }))
+        const recipe = await repos.foods.create(foodInput({ name: 'Arşiv tarifi', recipeYieldG: 100 }))
+        const fresh = await repos.foods.create(foodInput({ name: 'Yeni tarif', recipeYieldG: 100 }))
+        await repos.foods.setIngredients(recipe.id, [{ foodId: oats.id, quantity: 30 }])
+        await repos.foods.setArchived(oats.id, true)
+
+        await repos.foods.setIngredients(recipe.id, [{ foodId: oats.id, quantity: 35 }])
+        await expectError(repos.foods.setIngredients(fresh.id, [{ foodId: oats.id, quantity: 35 }]), 'validation')
       })
     })
 

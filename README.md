@@ -24,9 +24,10 @@ Diyetisyenler için danışan, ölçüm, besin, beslenme planı, randevu ve besl
 
 - **Genel bakış:** Aktif danışan, bugünkü ve yaklaşan randevu, aktif plan özetleri; bugünün zaman çizelgesi ve son işlemler.
 - **Danışanlar:** Ekleme, düzenleme, arama, arşivleme; ilişkili kaydı olmayan danışanı silme.
-- **Ölçümler:** Boy, kilo, bel, kalça ve vücut yağ oranı; kilo değişim grafiği.
+- **Ölçümler:** Boy, kilo, bel, kalça, uyluk (bacak) çevresi ve vücut yağ oranı; kilo değişim grafiği.
+- **Sağlık bilgileri ve öneriler:** Danışanın kullandığı ilaç ve takviyeler, hastalıkları ve diyetisyenin tarihli önerileri. Kayıt amaçlıdır; uygulama ilaç etkileşimi veya tedavi önerisi üretmez.
 - **Haftalık rapor:** Danışan detayından, danışana gönderilecek görsel bir özet (kilo grafiği ve değişimi, vücut ölçüleri, planın haftalık kalori ve makro ortalaması, sonraki randevu, diyetisyen notu). PNG olarak indirilir; telefonda doğrudan paylaşılabilir. Rapor kaydedilmez, her seferinde güncel veriden üretilir.
-- **Besinler:** 100 g veya 100 ml başına enerji ve makro değerleri, porsiyon bilgisi, arşivleme.
+- **Besinler ve tarifler:** 100 g veya 100 ml başına enerji ve makro değerleri, porsiyon bilgisi, hazırlama yöntemi (çiğ, haşlama, ızgara, fırın, kızartma vb.), arşivleme. Tarif / yemek, malzemeleri (besin + miktar) ve pişmiş toplam ağırlığıyla girilir; 100 g değeri malzemelerden hesaplanır ve plana besin gibi eklenir.
 - **Beslenme planları:** Göreli günler (1. gün = başlangıç tarihi), öğünler, porsiyonlar, günlük ve öğün toplamları, plan kopyalama.
 - **Randevular:** Oluşturma, düzenleme, iptal, silme; çakışma kontrolü ve filtreler.
 - **Hedefler:** Dönemli enerji ve makro hedefleri, geçmişin korunması, isteğe bağlı Mifflin-St Jeor tahmini.
@@ -120,7 +121,8 @@ Arayüzü bu API ile açmak için `packages/web/.env.local` dosyasına `VITE_DAT
   | Oturum | `/api/auth/*` (Better Auth: `sign-up/email`, `sign-in/email`, `sign-out`, `get-session`, `request-password-reset`, `reset-password`) |
   | Danışanlar | `GET/POST /api/clients`, `GET/PUT/DELETE /api/clients/:id`, `PUT /api/clients/:id/archived`, `GET /api/clients/:id/measurements`, `GET /api/clients/:id/goals` |
   | Ölçümler, hedefler | `POST /api/measurements`, `PUT/DELETE /api/measurements/:id`; `POST /api/goals`, `PUT/DELETE /api/goals/:id` |
-  | Besinler | `GET/POST /api/foods`, `GET/PUT/DELETE /api/foods/:id`, `PUT /api/foods/:id/archived`, `GET /api/foods/:id/plan-count` |
+  | Besinler ve tarifler | `GET/POST /api/foods`, `GET/PUT/DELETE /api/foods/:id`, `PUT /api/foods/:id/archived`, `GET /api/foods/:id/plan-count`, `GET /api/foods/ingredients`, `PUT /api/foods/:id/ingredients` |
+  | İlaçlar, hastalıklar, öneriler | `GET /api/clients/:id/medications` (`conditions`, `recommendations`); `POST /api/medications`, `PUT/DELETE /api/medications/:id` (aynı biçimde `conditions`, `recommendations`) |
   | Öğün türleri | `GET/POST /api/meal-types`, `PUT/DELETE /api/meal-types/:id`, `PUT /api/meal-types/:id/archived` |
   | Planlar | `GET/POST /api/meal-plans`, `GET/PUT/DELETE /api/meal-plans/:id`, `PUT /api/meal-plans/:id/archived`, `POST /api/meal-plans/:id/copy` |
   | Plan öğünleri ve içerikleri | `POST /api/plan-meals`, `PUT/DELETE /api/plan-meals/:id`; `POST /api/plan-meal-items`, `PUT/DELETE /api/plan-meal-items/:id` |
@@ -157,7 +159,7 @@ Notlar:
 
 ## Hesaplamalar ve sınırları
 
-- **Canlı besin değeri hesaplaması:** Besin değerleri 100 g veya 100 ml başına saklanır; plan, öğün ve gün toplamları her görüntülemede bu değerlerden **canlı** hesaplanır. Bir besin düzenlendiğinde, o besini kullanan **tüm planların toplamları da değişir** (değerlerin anlık kopyası tutulmaz). Besin düzenleme ekranı, besini kullanan plan sayısını gösterir.
+- **Canlı besin değeri hesaplaması:** Besin değerleri 100 g veya 100 ml başına saklanır; plan, öğün ve gün toplamları her görüntülemede bu değerlerden **canlı** hesaplanır. Tariflerin değeri de malzemelerinden canlı hesaplanır: 100 g tarif = malzemelerin toplamı ÷ pişmiş toplam ağırlık × 100. Bir malzeme güncellenince tarif ve onu kullanan planlar da değişir. Tarif başka bir tarifin malzemesi olamaz; malzeme olarak kullanılan besin silinemez (arşivlenebilir). Bir besin düzenlendiğinde, o besini kullanan **tüm planların toplamları da değişir** (değerlerin anlık kopyası tutulmaz). Besin düzenleme ekranı, besini kullanan plan sayısını gösterir.
 - **Enerji:** Kayıtlı enerji değeri ile makrolardan hesaplanan enerji (protein ve karbonhidrat 4, yağ 9 kcal/g) ayrı gösterilir.
 - **Mifflin-St Jeor:** `BMR = 10 × kilo(kg) + 6,25 × boy(cm) − 5 × yaş + (erkek +5, kadın −161)`; günlük enerji = BMR × etkinlik katsayısı (1,2–2,5). Yalnızca **18 yaş ve üzeri** için kullanılır; yaş hedefin başlangıç gününe göre, kilo ve boy o gün veya öncesindeki en yeni ölçümden alınır.
 - Hesaplamalar popülasyon ortalamalarına dayanan **tahminlerdir; teşhis veya tedavi önerisi değildir** ve uzman değerlendirmesinin yerini tutmaz. Gebelik, emzirme, sporcular ve bazı klinik durumlarda gerçek ihtiyaç farklı olabilir. Formdaki üst sınırlar yalnızca yazım hatalarını yakalamak içindir, klinik referans aralığı değildir.
