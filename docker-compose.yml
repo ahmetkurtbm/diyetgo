@@ -1,0 +1,27 @@
+# Yalnızca yerel geliştirme için PostgreSQL. Değişkenler kökteki .env dosyasından okunur (bkz. .env.example).
+name: diyetgo
+
+services:
+  db:
+    image: postgres:18
+    container_name: diyetgo-db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER .env içinde tanımlanmalı}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD .env içinde tanımlanmalı}
+      POSTGRES_DB: ${POSTGRES_DB:-diyetgo}
+    ports:
+      # Yalnızca bu makineden erişilir; kimlik doğrulama olmadığı için dış ağa açılmaz.
+      - "127.0.0.1:5433:5432"
+    volumes:
+      # PostgreSQL 18 imajında volume yolu /var/lib/postgresql'dir (veri: /var/lib/postgresql/18/docker).
+      - diyetgo-db-data:/var/lib/postgresql
+      # İlk başlatmada (volume boşken) diyetgo_test veritabanını oluşturur.
+      - ./docker/postgres-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  diyetgo-db-data:
