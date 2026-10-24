@@ -2,7 +2,7 @@
 
 Diyetisyenler için danışan, ölçüm, besin, beslenme planı, randevu ve beslenme hedefi yönetimi sunan bir web uygulaması.
 
-> **Demo uyarısı:** Uygulama şu anda yalnızca **demo modunda** çalışır. Tüm veriler **yalnızca kullandığınız tarayıcıda** (localStorage) tutulur; sunucuya gönderilmez, cihazlar arasında paylaşılmaz ve yedeklenmez. Örnek veriler **kurgusaldır**. Kimlik doğrulama olmadığı için **gerçek kişisel veya sağlık verisi girmeyin.**
+> **Demo uyarısı:** Arayüz şu anda yalnızca **demo modunda** çalışır; yerel backend geliştirme aşamasındadır (bkz. [Yerel veritabanı ve backend](#yerel-veritabanı-ve-backend)). Demo modunda tüm veriler **yalnızca kullandığınız tarayıcıda** (localStorage) tutulur; sunucuya gönderilmez, cihazlar arasında paylaşılmaz ve yedeklenmez. Örnek veriler **kurgusaldır**. Kimlik doğrulama olmadığı için **gerçek kişisel veya sağlık verisi girmeyin.**
 
 ## İçindekiler
 
@@ -11,6 +11,7 @@ Diyetisyenler için danışan, ölçüm, besin, beslenme planı, randevu ve besl
 - [Kurulum ve çalıştırma](#kurulum-ve-çalıştırma)
 - [Komutlar](#komutlar)
 - [Ortam değişkenleri](#ortam-değişkenleri)
+- [Yerel veritabanı ve backend](#yerel-veritabanı-ve-backend)
 - [Demo modu](#demo-modu)
 - [Hesaplamalar ve sınırları](#hesaplamalar-ve-sınırları)
 - [Proje yapısı](#proje-yapısı)
@@ -33,6 +34,7 @@ Tablolar sütun başlıklarından sıralanabilir; dar ekranlarda liste tablolar�
 
 - **Node.js** `^20.19.0` veya `>=22.12.0` (Vite 8'in gereksinimi). Geliştirme Node 22.20 ile yapıldı.
 - **npm** (npm workspaces kullanılır).
+- **Docker** (Docker Compose ile): yalnızca yerel veritabanı ve backend için. Demo arayüzü Docker gerektirmez.
 
 ## Kurulum ve çalıştırma
 
@@ -54,11 +56,15 @@ Tüm komutlar depo kökünden çalıştırılır.
 | `npm run dev` | Web uygulamasının geliştirme sunucusunu başlatır (Vite). |
 | `npm run build` | Web uygulamasını tip denetimiyle derler; çıktı `packages/web/dist/` dizinine yazılır. |
 | `npm run preview -w @diyetgo/web` | Derlenmiş uygulamayı yerelde önizler (önce `npm run build`). |
-| `npm test` | `shared` ve `web` paketlerinin testlerini çalıştırır (Vitest). |
+| `npm run dev:server` | Express API'yi `http://127.0.0.1:3001/api` adresinde başlatır (dosya değişince yeniden başlar). |
+| `npm run db:generate -- --name <ad>` | Şema değişikliğinden yeni migration dosyası üretir (Drizzle Kit). |
+| `npm run db:migrate` | Bekleyen migration'ları `DATABASE_URL` veritabanına uygular; önce hedefi yazdırır. |
+| `npm run db:seed` | Kurgusal örnek verileri `DATABASE_URL` veritabanına yükler; tekrar çalıştırılınca kayıt çoğaltmaz. |
+| `npm test` | `shared`, `web` ve `server` paketlerinin testlerini çalıştırır (Vitest). `server` testleri çalışan PostgreSQL container'ı ister. |
 | `npm run typecheck` | Tüm paketlerde TypeScript tip denetimi yapar. |
 | `npm run lint` | Oxlint ile kod denetimi yapar. |
 
-Tek bir paketin testleri için: `npm test -w @diyetgo/shared` veya `npm test -w @diyetgo/web`.
+Tek bir paketin testleri için: `npm test -w @diyetgo/shared`, `npm test -w @diyetgo/web` veya `npm test -w @diyetgo/server`.
 
 Testler makinenin saat diliminden bağımsızdır; tarih ve saat hesapları `Europe/Istanbul` saat dilimine göre yapılır ve testlerde sabit bir "şimdi" kullanılır.
 
@@ -68,7 +74,36 @@ Testler makinenin saat diliminden bağımsızdır; tarih ve saat hesapları `Eur
 |---|---|---|---|
 | `VITE_DATA_MODE` | `demo` | `demo` | Veri kaynağını seçer. Şu anda yalnızca `demo` desteklenir; başka bir değer verilirse uygulama açılışta bunu belirten bir hata ekranı gösterir. |
 
-Değişken tanımlamak gerekmez. Gerekirse `packages/web/.env.local` dosyasına yazılabilir; `.env` dosyaları Git'e eklenmez. `VITE_` önekli değişkenler tarayıcıya gönderilen koda gömülür, bu yüzden bunlara hiçbir gizli bilgi yazılmamalıdır.
+Demo için değişken tanımlamak gerekmez. Gerekirse `packages/web/.env.local` dosyasına yazılabilir; `.env` dosyaları Git'e eklenmez. `VITE_` önekli değişkenler tarayıcıya gönderilen koda gömülür, bu yüzden bunlara hiçbir gizli bilgi yazılmamalıdır.
+
+Yerel veritabanı ve backend değişkenleri kökteki `.env` dosyasında tutulur; örnek değerler `.env.example` içindedir. Bunlar yalnızca Docker Compose ve `packages/server` tarafından okunur:
+
+| Değişken | Açıklama |
+|---|---|
+| `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` | PostgreSQL container'ının kullanıcı, parola ve veritabanı adı. Yalnızca volume ilk oluşturulurken uygulanır. |
+| `DATABASE_URL` | Geliştirme veritabanı (`diyetgo`). API, migration ve seed bunu kullanır. |
+| `TEST_DATABASE_URL` | Test veritabanı (`diyetgo_test`). Testler yalnızca bunu kullanır; adı `_test` ile bitmezse testler başlamadan durur. |
+| `PORT` | API portu (varsayılan `3001`). |
+
+## Yerel veritabanı ve backend
+
+PostgreSQL 18, Docker Compose ile `diyetgo-db` adlı container'da çalışır. Yalnızca bu makineden erişilebilir (`127.0.0.1:5433`). Veriler `diyetgo_diyetgo-db-data` volume'ünde kalıcıdır. Container ilk başlatıldığında `diyetgo_test` veritabanı da oluşturulur.
+
+```bash
+cp .env.example .env        # ardından .env içindeki parolayı değiştirin
+docker compose up -d --wait # PostgreSQL'i başlatır ve hazır olmasını bekler
+npm run db:migrate          # tabloları oluşturur
+npm run db:seed             # kurgusal örnek verileri yükler
+npm run dev:server          # API: http://127.0.0.1:3001/api
+```
+
+- **Bağlantı kontrolü:** `curl http://127.0.0.1:3001/api/health` çağrısı `{"status":"ok","database":"ok"}` döndürmelidir. Container durumunu `docker compose ps` gösterir (`healthy`).
+- **Migration'lar:** Şema `packages/server/src/db/schema.ts` içindedir. Değişiklikten sonra `npm run db:generate -- --name <anlamlı-ad>` ile yeni migration üretilir, `packages/server/drizzle/` altındaki SQL incelenir ve `npm run db:migrate` ile uygulanır. Uygulanmış migration dosyaları değiştirilmez; `drizzle-kit push` kullanılmaz. Uygulama açılışında migration çalışmaz.
+- **Test veritabanı:** `npm test -w @diyetgo/server` önce `TEST_DATABASE_URL` adının `_test` ile bittiğini doğrular, sonra migration'ları test veritabanına uygular ve her testten önce tabloları boşaltır. Geliştirme veritabanına dokunmaz.
+- **Durdurma:** `docker compose stop` container'ı durdurur, veriler korunur. `docker compose down -v` ise volume'ü ve **tüm veritabanı verisini siler**.
+- **Mevcut API uçları:** `GET /api/health` ve danışanlar (`GET/POST /api/clients`, `GET/PUT/DELETE /api/clients/:id`, `PUT /api/clients/:id/archived`). Hatalar `{ "error": { "code", "message", "fieldErrors", "conflictingIds" } }` biçiminde döner; ilişkili kaydı olan danışan silinmek istenirse veritabanındaki `RESTRICT` kuralı nedeniyle `409 restricted` döner.
+
+Kimlik doğrulama olmadığı için API dış ağa açılmamalıdır.
 
 ## Demo modu
 
@@ -93,8 +128,12 @@ Değişken tanımlamak gerekmez. Gerekirse `packages/web/.env.local` dosyasına 
 diyetgo/
 ├── package.json        # npm workspaces kökü ve ortak komutlar
 ├── CLAUDE.md           # proje kuralları ve mimari kararlar
+├── docker-compose.yml  # yalnızca PostgreSQL 18 (yerel)
+├── .env.example        # örnek ortam değişkenleri (sahte değerler)
+├── docker/postgres-init/ # ilk başlatmada diyetgo_test veritabanını oluşturur
 └── packages/
     ├── shared/         # @diyetgo/shared: Zod şemaları, hesaplamalar, ortak kurallar, kurgusal seed verisi
+    ├── server/         # @diyetgo/server: Express API, Drizzle şeması, migration'lar (drizzle/), seed; yalnızca yerelde çalışır
     └── web/            # @diyetgo/web: React + TypeScript + Vite + Tailwind CSS arayüzü
         └── src/
             ├── components/   # ortak arayüz bileşenleri ve uygulama kabuğu
@@ -109,5 +148,5 @@ Bileşenler veriye yalnızca `packages/web/src/data/repositories.ts` içindeki r
 
 Tamamlanmayan işler:
 
-- **Yerel PostgreSQL modu (`VITE_DATA_MODE=api`):** Express API, Drizzle ORM ve migration'lar, Docker Compose ile PostgreSQL 18 ve ayrı test veritabanı planlanmıştır; henüz uygulanmadı. Bu nedenle şu an Docker, veritabanı, migration veya seed komutu yoktur.
-- **Vercel dağıtımı:** Yapılandırma kökteki `vercel.json` dosyasındadır; henüz yayına alınmadı. Vercel depo kökünden `npm install` çalıştırır, yalnızca `@diyetgo/web` paketini `VITE_DATA_MODE=demo` ile derler ve `packages/web/dist` dizinini yayınlar. Tüm adresler `index.html`'e yönlendirilir; böylece `/clients` gibi sayfalar yenilendiğinde de açılır. Demo backend veya veritabanı gerektirmez ve Vercel'de ortam değişkeni ya da gizli bilgi tanımlanması gerekmez.
+- **Yerel PostgreSQL modu (`VITE_DATA_MODE=api`):** Docker ile PostgreSQL 18, Drizzle şeması ve ilk migration, seed, test veritabanı ve Express iskeleti hazırdır. API'de şu an yalnızca sağlık kontrolü ve danışan uçları vardır. Diğer modüllerin API uçları, web tarafındaki API repository implementasyonları, Vite `/api` proxy'si ve `api` modu seçimi henüz yapılmadı; arayüz bu nedenle hâlâ yalnızca demo modunda açılır.
+- **Vercel dağıtımı:** Yapılandırma kökteki `vercel.json` dosyasındadır. Vercel depo kökünden `npm install` çalıştırır, yalnızca `@diyetgo/web` paketini `VITE_DATA_MODE=demo` ile derler ve `packages/web/dist` dizinini yayınlar. Tüm adresler `index.html`'e yönlendirilir; böylece `/clients` gibi sayfalar yenilendiğinde de açılır. Demo backend veya veritabanı gerektirmez ve Vercel'de ortam değişkeni ya da gizli bilgi tanımlanması gerekmez.
