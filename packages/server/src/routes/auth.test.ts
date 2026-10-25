@@ -202,6 +202,10 @@ describe('diyetisyenler arası izolasyon', () => {
     // Seçenekli planın haftalık adetlerinde başkasının öğün türü kullanılamaz.
     await http.post('/api/meal-plans').send({ clientId: own.id, title: 'S', startDate: '2031-05-01', endDate: null, notes: null, kind: 'options', weeklyQuotas: [{ mealTypeId: a.mealType.id, perWeek: 3 }] }).expect(404)
     await http.put(`/api/meal-plans/${ownPlan.id}`).send({ clientId: own.id, title: 'B', startDate: '2031-05-01', endDate: null, notes: null, kind: 'options', weeklyQuotas: [{ mealTypeId: a.mealType.id, perWeek: 3 }] }).expect(404)
+    // Başkasının öğününü kendi planına, kendi öğününü başkasının öğün türüne kopyalayamaz.
+    await http.post(`/api/meal-plans/${ownPlan.id}/copy-meals`).send({ mealIds: [a.meal.id], targets: [{ dayNumber: 2, mealTypeId: null }] }).expect(404)
+    await http.post(`/api/meal-plans/${a.plan.id}/copy-meals`).send({ mealIds: [a.meal.id], targets: [{ dayNumber: 2, mealTypeId: null }] }).expect(404)
+    await http.post(`/api/meal-plans/${ownPlan.id}/copy-meals`).send({ mealIds: [ownMeal.id], targets: [{ dayNumber: 2, mealTypeId: a.mealType.id }] }).expect(404)
     await http.post(`/api/meal-plans/${ownPlan.id}/copy`).send({ clientId: a.danisan.id, startDate: '2031-06-01', title: 'Kopya' }).expect(404)
   })
 

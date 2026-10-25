@@ -6,13 +6,16 @@ import {
   addDays,
   canAddFoodToMeal,
   canUseMealType,
+  copyMealsInputSchema,
   isMealSlotValid,
+  mealCopySlots,
   mealPlanInputSchema,
   mealsOutsidePlan,
   planLengthDays,
   planMealInputSchema,
   planKindChangeIssue,
   planMealItemInputSchema,
+  type CopyMealsResult,
   type MealPlan,
   type MealPlanInput,
   type PlanMeal,
@@ -230,6 +233,55 @@ export function createMealPlanService(db: Db, ownerId: string) {
           }
         }
         return toRecord(plan!)
+      })
+    },
+
+    /** Öğünleri aynı planda başka günlere/öğünlere kopyalar; hedefte öğün varsa içerikler sonuna eklenir. */
+    async copyMeals(id: string, input: unknown): Promise<CopyMealsResult> {
+      const values = parse(copyMealsInputSchema, input)
+      return db.transaction(async (tx) => {
+        const plan = await getPlanRow(tx, ownerId, id)
+        const existing = await tx.select().from(planMeals).where(eq(planMeals.mealPlanId, id))
+        const mealIds = [...new Set(values.mealIds)]
+        const sources = existing.filter((m) => mealIds.includes(m.id))
+        if (sources.length !== mealIds.length) throw new ApiError('not_found', 'Öğün bulunamadı.')
+        const slots = mealCopySlots(sources, values.targets)
+        const typeIds = [...new Set(slots.map((s) => s.mealTypeId))]
+        const types = typeIds.length === 0 ? [] : await tx.select().from(mealTypes).where(and(eq(mealTypes.ownerId, ownerId), inArray(mealTypes.id, typeIds)))
+        if (types.length !== typeIds.length) throw new ApiError('not_found', 'Öğün türü bulunamadı.')
+        const sourceItems = await tx.select().from(planMealItems).where(inArray(planMealItems.planMealId, mealIds)).orderBy(asc(planMealItems.sortOrder))
+        const nextSort = new Map<string, number>()
+        const result: CopyMealsResult = { meals: 0, items: 0 }
+        for (const { source, dayNumber, mealTypeId } of slots) {
+          if (!isMealSlotValid(plan, dayNumber)) {
+            const message = plan.kind === 'options' ? 'Geçersiz seçenek numarası' : 'Gün plan süresinin dışında'
+            throw new ApiError('validation', `${message}.`, { fieldErrors: { dayNumber: message } })
+          }
+          let target = existing.find((m) => m.dayNumber === dayNumber && m.mealTypeId === mealTypeId)
+          if (!target) {
+            if (!canUseMealType(types.find((t) => t.id === mealTypeId)!)) {
+              throw new ApiError('validation', 'Arşivlenmiş öğün türü seçilemez.', { fieldErrors: { mealTypeId: 'Arşivlenmiş öğün türü seçilemez' } })
+            }
+            const [created] = await tx.insert(planMeals).values({ mealPlanId: id, dayNumber, mealTypeId, time: source.time, notes: source.notes }).returning()
+            target = created!
+            existing.push(target)
+            result.meals++
+          }
+          const targetId = target.id
+          if (!nextSort.has(targetId)) {
+            const rows = await tx.select({ sortOrder: planMealItems.sortOrder }).from(planMealItems).where(eq(planMealItems.planMealId, targetId))
+            nextSort.set(targetId, Math.max(-1, ...rows.map((r) => r.sortOrder)) + 1)
+          }
+          const copies = sourceItems.filter((i) => i.planMealId === source.id)
+          if (copies.length > 0) {
+            const start = nextSort.get(targetId)!
+            await tx.insert(planMealItems).values(copies.map((i, n) => ({ planMealId: targetId, foodId: i.foodId, quantity: i.quantity, sortOrder: start + n, notes: i.notes })))
+            nextSort.set(targetId, start + copies.length)
+            result.items += copies.length
+          }
+        }
+        await touchPlan(tx, id)
+        return result
       })
     },
 

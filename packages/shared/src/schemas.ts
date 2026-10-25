@@ -34,6 +34,9 @@ export const LIMITS = {
   /** Bir öğün türü haftada en fazla 21 kez (günde 3) planlanabilir. */
   weeklyQuota: 21,
   weeklyQuotaTypes: 20,
+  /** Tek seferde kopyalanabilecek öğün ve hedef sayısı. */
+  copyMeals: 30,
+  copyTargets: 400,
   recipeIngredients: 60,
   planDays: 366,
   sortOrder: 1000,
@@ -232,6 +235,21 @@ export const planMealInputSchema = planMealFields
 export const planMealSchema = planMealFields.extend(recordFields)
 export type PlanMealInput = z.infer<typeof planMealInputSchema>
 export type PlanMeal = z.infer<typeof planMealSchema>
+
+/**
+ * Planın öğünlerini aynı planda başka yerlere kopyalar. Hedefte `mealTypeId: null` kaynağın öğün türünü
+ * korur (gün kopyalama). Hedefte öğün varsa içerikler sonuna eklenir, yoksa öğün oluşturulur.
+ */
+export const copyMealsInputSchema = z.object({
+  mealIds: z.array(idSchema).min(1).max(LIMITS.copyMeals),
+  targets: z
+    .array(z.object({ dayNumber: z.int().min(1).max(LIMITS.planDays), mealTypeId: idSchema.nullable() }))
+    .min(1)
+    .max(LIMITS.copyTargets),
+})
+export type CopyMealsInput = z.infer<typeof copyMealsInputSchema>
+/** Oluşturulan öğün ve kopyalanan içerik sayısı. */
+export type CopyMealsResult = { meals: number; items: number }
 
 // ---------- Öğün içeriği ----------
 

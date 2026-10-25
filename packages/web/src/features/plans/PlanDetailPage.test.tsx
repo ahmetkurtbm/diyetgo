@@ -243,6 +243,13 @@ describe('Seçenekli haftalık menü', () => {
     const snack = types.find((t) => t.name === 'Ara öğün 2')!
     expect((await repositories.mealPlans.get(OPTION_PLAN_ID)).plan.weeklyQuotas).toContainEqual({ mealTypeId: snack.id, perWeek: 6 })
 
+    // Seçeneği başka öğün türüne yeni seçenek olarak kopyalar.
+    await user.click(screen.getByRole('button', { name: 'Kahvaltı · 1. seçenek öğününü kopyala' }))
+    const copy = await screen.findByRole('dialog', { name: 'Öğünü kopyala' })
+    await user.selectOptions(within(copy).getByLabelText('Hangi öğüne'), 'Ara öğün 2')
+    await user.click(within(copy).getByRole('button', { name: 'Kopyala' }))
+    expect(await screen.findByText('Ara öğün 2 · 2. seçenek kopyalandı (4 besin).')).toBeDefined()
+
     await user.click(within(screen.getByRole('region', { name: 'Öğle seçenekleri' })).getByRole('button', { name: 'Seçenek ekle' }))
     expect(await screen.findByText('Öğle için 3. seçenek eklendi.')).toBeDefined()
     expect(await screen.findByText('Öğle · 3. seçenek')).toBeDefined()
@@ -267,5 +274,35 @@ describe('Metinden besin ekleme', () => {
     const { items } = await repositories.mealPlans.get(PLAN_ID)
     expect(items.filter((i) => i.notes === '7-8 yemek kaşığı tavuk sote')).toEqual([expect.objectContaining({ quantity: 187.5 })])
     expect(within(meal('Kahvaltı')).getByText('Haşlanmış yumurta')).toBeDefined()
+  })
+})
+
+describe('Gün ve öğün kopyalama', () => {
+  it('günü seçilen günlere kopyalar', async () => {
+    const { user, repositories } = await openPlan()
+    await user.click(screen.getByRole('button', { name: 'Günü kopyala' }))
+    const dialog = await screen.findByRole('dialog', { name: '1. günü kopyala' })
+    await user.click(within(dialog).getByLabelText('5. gün'))
+    await user.click(within(dialog).getByLabelText('6. gün'))
+    await user.click(within(dialog).getByRole('button', { name: 'Kopyala' }))
+    // 1. gün: kahvaltı 4, öğle 4, akşam 3 besin → iki güne 22 besin.
+    expect(await screen.findByText('2 güne kopyalandı (22 besin).')).toBeDefined()
+    const { meals } = await repositories.mealPlans.get(PLAN_ID)
+    expect(meals.filter((m) => m.dayNumber === 5)).toHaveLength(3)
+    expect(meals.filter((m) => m.dayNumber === 6)).toHaveLength(3)
+  })
+
+  it('öğünü dolu güne kopyalayınca besinleri mevcut öğünün sonuna ekler', async () => {
+    const { user, repositories } = await openPlan()
+    await user.click(screen.getByRole('button', { name: 'Kahvaltı öğününü kopyala' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Öğünü kopyala' })
+    expect(within(dialog).queryByLabelText('1. gün')).toBeNull() // aynı türde kaynağın kendi günü seçilemez
+    await user.click(within(dialog).getByLabelText('2. gün'))
+    await user.click(within(dialog).getByRole('button', { name: 'Kopyala' }))
+    expect(await screen.findByText('1 güne kopyalandı (4 besin).')).toBeDefined()
+    const { meals, items } = await repositories.mealPlans.get(PLAN_ID)
+    const types = await repositories.mealTypes.list({ includeArchived: true })
+    const breakfast2 = meals.find((m) => m.dayNumber === 2 && m.mealTypeId === types.find((t) => t.name === 'Kahvaltı')!.id)!
+    expect(items.filter((i) => i.planMealId === breakfast2.id)).toHaveLength(8)
   })
 })

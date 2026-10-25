@@ -28,6 +28,7 @@ import { CopyPlanDialog } from './CopyPlanDialog'
 import { MealCard } from './MealCard'
 import { MealFormDialog } from './MealFormDialog'
 import { NutrientSummary } from './NutrientSummary'
+import { CopyMealsDialog, type CopySource } from './CopyMealsDialog'
 import { OptionPlanView } from './OptionPlanView'
 import { PlanFormDialog } from './PlanFormDialog'
 
@@ -54,6 +55,7 @@ export function PlanDetailPage() {
   const [dialog, setDialog] = useState<'edit' | 'copy' | 'delete' | 'meal' | null>(null)
   const [editingMeal, setEditingMeal] = useState<PlanMeal | null>(null)
   const [deletingMeal, setDeletingMeal] = useState<PlanMeal | null>(null)
+  const [copySource, setCopySource] = useState<CopySource | null>(null)
 
   const query = useRepositoryQuery(
     async (r) => {
@@ -170,6 +172,7 @@ export function PlanDetailPage() {
           goal={findActiveGoal(goals, today())}
           onEditMeal={setEditingMeal}
           onDeleteMeal={setDeletingMeal}
+          onCopyMeal={(meal) => setCopySource({ kind: 'meal', meal })}
         />
       ) : (
         <>
@@ -232,10 +235,16 @@ export function PlanDetailPage() {
 
         <div className="mb-3 flex items-center justify-between gap-3">
           <h2 className="text-base font-semibold text-slate-900">Öğünler</h2>
-          <Button variant="primary" size="sm" disabled={availableTypes().length === 0} onClick={() => setDialog('meal')}>
-            <Plus aria-hidden className="size-4" />
-            Öğün ekle
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button size="sm" disabled={dayMeals.length === 0} onClick={() => setCopySource({ kind: 'day', dayNumber: day })}>
+              <Copy aria-hidden className="size-4" />
+              Günü kopyala
+            </Button>
+            <Button variant="primary" size="sm" disabled={availableTypes().length === 0} onClick={() => setDialog('meal')}>
+              <Plus aria-hidden className="size-4" />
+              Öğün ekle
+            </Button>
+          </div>
         </div>
         {availableTypes().length === 0 && dayMeals.length > 0 && <p className="mb-3 text-xs text-slate-500">Bu gün için tüm öğün türleri eklendi.</p>}
 
@@ -266,6 +275,7 @@ export function PlanDetailPage() {
                 selectableFoods={selectableFoods}
                 onEdit={() => setEditingMeal(meal)}
                 onDelete={() => setDeletingMeal(meal)}
+                onCopy={() => setCopySource({ kind: 'meal', meal })}
               />
             ))}
           </div>
@@ -274,6 +284,7 @@ export function PlanDetailPage() {
         </>
       )}
 
+      <CopyMealsDialog plan={plan} meals={meals} mealTypes={mealTypes} dayCount={dayCount} source={copySource} onClose={() => setCopySource(null)} />
       <PlanFormDialog open={dialog === 'edit'} plan={plan} onClose={() => setDialog(null)} />
       <CopyPlanDialog open={dialog === 'copy'} plan={plan} onClose={() => setDialog(null)} onCopied={(copy) => navigate(`/plans/${copy.id}`)} />
       <MealFormDialog open={dialog === 'meal'} planId={plan.id} dayNumber={day} mealTypes={availableTypes()} onClose={() => setDialog(null)} />

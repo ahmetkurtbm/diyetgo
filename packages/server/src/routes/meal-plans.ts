@@ -29,6 +29,9 @@ export function mealPlansRouter(db: Db) {
   router.post('/:id/copy', async (req, res) => {
     res.status(201).json(await service(res).copy(req.params.id, req.body))
   })
+  router.post('/:id/copy-meals', async (req, res) => {
+    res.status(201).json(await service(res).copyMeals(req.params.id, req.body))
+  })
 
   return router
 }

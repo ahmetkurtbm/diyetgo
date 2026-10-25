@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  mealCopySlots,
   appointmentsOverlap,
   canAddFoodToMeal,
   canAddPlanOrAppointment,
@@ -261,5 +262,26 @@ describe('besin ve tarif tür değişikliği', () => {
     expect(foodKindChangeIssue(true, false, none)).toBeNull()
     expect(foodKindChangeIssue(false, true, none)).toBeNull()
     expect(foodKindChangeIssue(true, true, { hasIngredients: true, usedAsIngredient: true })).toBeNull()
+  })
+})
+
+describe('mealCopySlots', () => {
+  const breakfast = { dayNumber: 1, mealTypeId: 'kahvalti' }
+  const lunch = { dayNumber: 1, mealTypeId: 'ogle' }
+
+  it('günü kopyalarken öğün türlerini korur, kaynağın kendi yerini atlar', () => {
+    const slots = mealCopySlots([breakfast, lunch], [{ dayNumber: 1, mealTypeId: null }, { dayNumber: 2, mealTypeId: null }])
+    expect(slots.map((s) => [s.dayNumber, s.mealTypeId])).toEqual([
+      [2, 'kahvalti'],
+      [2, 'ogle'],
+    ])
+  })
+
+  it('öğünü başka türe ve günlere kopyalar', () => {
+    const slots = mealCopySlots([breakfast], [{ dayNumber: 1, mealTypeId: 'aksam' }, { dayNumber: 3, mealTypeId: 'kahvalti' }])
+    expect(slots.map((s) => [s.dayNumber, s.mealTypeId])).toEqual([
+      [1, 'aksam'],
+      [3, 'kahvalti'],
+    ])
   })
 })

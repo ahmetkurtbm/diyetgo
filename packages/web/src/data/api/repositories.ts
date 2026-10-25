@@ -117,6 +117,7 @@ export function createApiRepositories(
       setArchived: (planId, archived) => put(`/meal-plans/${id(planId)}/archived`, { archived }),
       remove: (planId) => remove(`/meal-plans/${id(planId)}`),
       copy: (planId, target) => post<MealPlan>(`/meal-plans/${id(planId)}/copy`, target),
+      copyMeals: (planId, input) => post(`/meal-plans/${id(planId)}/copy-meals`, input),
       addMeal: (input) => post('/plan-meals', input),
       updateMeal: (mealId, input) => put(`/plan-meals/${id(mealId)}`, input),
       removeMeal: (mealId) => remove(`/plan-meals/${id(mealId)}`),

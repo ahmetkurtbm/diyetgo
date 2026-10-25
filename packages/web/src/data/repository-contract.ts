@@ -291,6 +291,47 @@ export function describeRepositoryContract(name: string, setup: () => Promise<Re
         expect(await repos.mealPlans.update(plan.id, { ...plan, kind: 'daily' })).toMatchObject({ kind: 'daily' })
       })
 
+      it('günü ve öğünü kopyalar; hedefte öğün varsa içerikleri sonuna ekler', async () => {
+        const { plan, mealType } = await createPlan()
+        const lunch = await repos.mealTypes.create({ name: `Öğle ${crypto.randomUUID().slice(0, 8)}`, sortOrder: 2 })
+        const food = await repos.foods.create(foodInput())
+        const other = await repos.foods.create(foodInput({ name: 'Diğer besin' }))
+        const breakfast = await repos.mealPlans.addMeal({ mealPlanId: plan.id, dayNumber: 1, mealTypeId: mealType.id, time: '08:00', notes: 'Not' })
+        await repos.mealPlans.addItem({ planMealId: breakfast.id, foodId: food.id, quantity: 100, sortOrder: 0, notes: null })
+        await repos.mealPlans.addItem({ planMealId: breakfast.id, foodId: other.id, quantity: 50, sortOrder: 1, notes: 'satır' })
+        // 3. günde zaten kahvaltı var: kopya sonuna eklenir.
+        const existing = await repos.mealPlans.addMeal({ mealPlanId: plan.id, dayNumber: 3, mealTypeId: mealType.id, time: null, notes: null })
+        await repos.mealPlans.addItem({ planMealId: existing.id, foodId: other.id, quantity: 10, sortOrder: 0, notes: null })
+
+        // Günü kopyala: 1. gün (kendi yeri atlanır) → 2. ve 3. gün.
+        const day = await repos.mealPlans.copyMeals(plan.id, { mealIds: [breakfast.id], targets: [1, 2, 3].map((d) => ({ dayNumber: d, mealTypeId: null })) })
+        expect(day).toEqual({ meals: 1, items: 4 })
+        let detail = await repos.mealPlans.get(plan.id)
+        const day2 = detail.meals.find((m) => m.dayNumber === 2)!
+        expect(day2).toMatchObject({ mealTypeId: mealType.id, time: '08:00', notes: 'Not' })
+        expect(detail.items.filter((i) => i.planMealId === day2.id).map((i) => [i.foodId, i.quantity, i.sortOrder])).toEqual([
+          [food.id, 100, 0],
+          [other.id, 50, 1],
+        ])
+        expect(detail.items.filter((i) => i.planMealId === existing.id).map((i) => [i.quantity, i.sortOrder])).toEqual([
+          [10, 0],
+          [100, 1],
+          [50, 2],
+        ])
+
+        // Öğünü başka öğün türüne kopyala.
+        expect(await repos.mealPlans.copyMeals(plan.id, { mealIds: [breakfast.id], targets: [{ dayNumber: 1, mealTypeId: lunch.id }] })).toEqual({ meals: 1, items: 2 })
+        detail = await repos.mealPlans.get(plan.id)
+        expect(detail.meals.filter((m) => m.dayNumber === 1).map((m) => m.mealTypeId).sort()).toEqual([mealType.id, lunch.id].sort())
+
+        await expectError(repos.mealPlans.copyMeals(plan.id, { mealIds: [breakfast.id], targets: [{ dayNumber: 8, mealTypeId: null }] }), 'validation')
+        await expectError(repos.mealPlans.copyMeals(plan.id, { mealIds: [crypto.randomUUID()], targets: [{ dayNumber: 2, mealTypeId: null }] }), 'not_found')
+        await repos.mealTypes.setArchived(lunch.id, true)
+        await expectError(repos.mealPlans.copyMeals(plan.id, { mealIds: [breakfast.id], targets: [{ dayNumber: 4, mealTypeId: lunch.id }] }), 'validation')
+        // Doğrulama hatası hiçbir şeyi yarım bırakmaz.
+        expect((await repos.mealPlans.get(plan.id)).meals).toHaveLength(detail.meals.length)
+      })
+
       it('öğün silinince içerikleri, plan silinince öğünleri silinir', async () => {
         const { plan, mealType } = await createPlan()
         const food = await repos.foods.create(foodInput())

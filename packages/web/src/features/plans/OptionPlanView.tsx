@@ -27,6 +27,7 @@ type Props = {
   goal: ClientGoal | undefined
   onEditMeal: (meal: PlanMeal) => void
   onDeleteMeal: (meal: PlanMeal) => void
+  onCopyMeal: (meal: PlanMeal) => void
 }
 
 const metrics = [
@@ -39,7 +40,7 @@ const metrics = [
 const range = (min: Nutrients, max: Nutrients, key: keyof Nutrients) =>
   Math.round(min[key]) === Math.round(max[key]) ? formatNumber(min[key], 0) : `${formatNumber(min[key], 0)} – ${formatNumber(max[key], 0)}`
 
-export function OptionPlanView({ plan, meals, items, foodsById, selectableFoods, mealTypes, goal, onEditMeal, onDeleteMeal }: Props) {
+export function OptionPlanView({ plan, meals, items, foodsById, selectableFoods, mealTypes, goal, onEditMeal, onDeleteMeal, onCopyMeal }: Props) {
   const repositories = useRepositories()
   const toast = useToast()
   const [quotas, setQuotas] = useState<Record<string, string>>(() => Object.fromEntries(plan.weeklyQuotas.map((q) => [q.mealTypeId, String(q.perWeek)])))
@@ -183,6 +184,7 @@ export function OptionPlanView({ plan, meals, items, foodsById, selectableFoods,
                     selectableFoods={selectableFoods}
                     onEdit={() => onEditMeal(meal)}
                     onDelete={() => onDeleteMeal(meal)}
+                    onCopy={() => onCopyMeal(meal)}
                   />
                 ))}
               </div>

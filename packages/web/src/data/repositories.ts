@@ -4,6 +4,8 @@
  * Tüm metotlar asenkrondur ki iki implementasyon aynı arayüzü paylaşabilsin.
  */
 import type {
+  CopyMealsInput,
+  CopyMealsResult,
   Appointment,
   AppointmentInput,
   AppointmentStatus,
@@ -119,6 +121,8 @@ export interface MealPlanRepository {
   remove(id: string): Promise<void>
   /** Planı öğünleri ve içerikleriyle kopyalar; plan süresi korunur. */
   copy(id: string, target: { clientId: string; startDate: string; title: string }): Promise<MealPlan>
+  /** Öğünleri aynı planda başka günlere/öğünlere kopyalar; hedefte öğün varsa içerikler sonuna eklenir. */
+  copyMeals(planId: string, input: CopyMealsInput): Promise<CopyMealsResult>
   addMeal(input: PlanMealInput): Promise<PlanMeal>
   updateMeal(id: string, input: PlanMealInput): Promise<PlanMeal>
   /** Öğün, içerikleriyle birlikte silinir. */

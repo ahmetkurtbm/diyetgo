@@ -163,6 +163,21 @@ export function mealsOutsidePlan<T extends Pick<PlanMeal, 'dayNumber'>>(plan: Pl
   return meals.filter((m) => !isMealSlotValid(plan, m.dayNumber))
 }
 
+/**
+ * Öğün kopyalamada her kaynak öğünün gideceği yer. Kaynağın kendi yerine kopyalama atlanır;
+ * hedefin öğün türü boşsa kaynağınki kullanılır.
+ */
+export function mealCopySlots<T extends Pick<PlanMeal, 'dayNumber' | 'mealTypeId'>>(
+  sources: readonly T[],
+  targets: readonly { dayNumber: number; mealTypeId: string | null }[],
+): { source: T; dayNumber: number; mealTypeId: string }[] {
+  return targets.flatMap((t) =>
+    sources
+      .map((source) => ({ source, dayNumber: t.dayNumber, mealTypeId: t.mealTypeId ?? source.mealTypeId }))
+      .filter((slot) => slot.dayNumber !== slot.source.dayNumber || slot.mealTypeId !== slot.source.mealTypeId),
+  )
+}
+
 /** Öğünleri olan planın türü (günlük / seçenekli) değiştirilemez; öğünlerin anlamı değişirdi. */
 export function planKindChangeIssue(previous: MealPlan['kind'], next: MealPlan['kind'], mealCount: number): string | null {
   return previous !== next && mealCount > 0 ? 'Öğünleri olan planın türü değiştirilemez' : null

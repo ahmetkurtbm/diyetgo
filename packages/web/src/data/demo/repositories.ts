@@ -11,6 +11,7 @@ import {
   canAddFoodToMeal,
   canAddPlanOrAppointment,
   canUseMealType,
+  copyMealsInputSchema,
   clientConditionInputSchema,
   clientGoalInputSchema,
   clientInputSchema,
@@ -21,6 +22,7 @@ import {
   foodKindChangeIssue,
   goalPeriodsOverlap,
   isMealSlotValid,
+  mealCopySlots,
   isMealTypeNameTaken,
   mealPlanInputSchema,
   mealsOutsidePlan,
@@ -33,6 +35,7 @@ import {
   planNewGoal,
   recipeIngredientIssue,
   recipeIngredientsInputSchema,
+  type CopyMealsResult,
   type MealPlan,
   type PlanMeal,
 } from '@diyetgo/shared'
@@ -441,6 +444,40 @@ export function createDemoRepositories(
             }
           }
           return plan
+        }),
+      copyMeals: (planId, input) =>
+        mutate((data, ts) => {
+          const parsed = parse(copyMealsInputSchema, input)
+          const plan = find(data.mealPlans, planId, 'Plan')
+          const sources = [...new Set(parsed.mealIds)].map((mealId) => {
+            const meal = find(data.planMeals, mealId, 'Öğün')
+            if (meal.mealPlanId !== planId) throw new RepositoryError('not_found', 'Öğün bulunamadı.')
+            return meal
+          })
+          const result: CopyMealsResult = { meals: 0, items: 0 }
+          for (const { source, dayNumber, mealTypeId } of mealCopySlots(sources, parsed.targets)) {
+            if (!isMealSlotValid(plan, dayNumber)) {
+              const message = plan.kind === 'options' ? 'Geçersiz seçenek numarası' : 'Gün plan süresinin dışında'
+              throw new RepositoryError('validation', `${message}.`, { fieldErrors: { dayNumber: message } })
+            }
+            const mealType = find(data.mealTypes, mealTypeId, 'Öğün türü')
+            let target = data.planMeals.find((m) => m.mealPlanId === planId && m.dayNumber === dayNumber && m.mealTypeId === mealTypeId)
+            if (!target) {
+              if (!canUseMealType(mealType)) {
+                throw new RepositoryError('validation', 'Arşivlenmiş öğün türü seçilemez.', { fieldErrors: { mealTypeId: 'Arşivlenmiş öğün türü seçilemez' } })
+              }
+              target = { ...stamp(ts), mealPlanId: planId, dayNumber, mealTypeId, time: source.time, notes: source.notes }
+              data.planMeals.push(target)
+              result.meals++
+            }
+            const targetId = target.id
+            let sortOrder = Math.max(-1, ...data.planMealItems.filter((i) => i.planMealId === targetId).map((i) => i.sortOrder)) + 1
+            const copies = data.planMealItems.filter((i) => i.planMealId === source.id).sort((a, b) => a.sortOrder - b.sortOrder)
+            for (const item of copies) data.planMealItems.push({ ...item, ...stamp(ts), planMealId: targetId, sortOrder: sortOrder++ })
+            result.items += copies.length
+          }
+          touchPlan(data, planId, ts)
+          return result
         }),
       addMeal: (input) =>
         mutate((data, ts) => {

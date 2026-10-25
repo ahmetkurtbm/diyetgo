@@ -1,5 +1,5 @@
 import { mealTotals, nutrientsFor, type Food, type MealType, type PlanMeal, type PlanMealItem } from '@diyetgo/shared'
-import { Clock, FileText, Pencil, Plus, Trash2, X } from 'lucide-react'
+import { Clock, Copy, FileText, Pencil, Plus, Trash2, X } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { useRepositories } from '../../data/context'
 import { Button } from '../../components/ui/Button'
@@ -23,13 +23,15 @@ type Props = {
   selectableFoods: Food[]
   onEdit: () => void
   onDelete: () => void
+  /** Öğünü planın başka yerlerine kopyalama. */
+  onCopy?: () => void
   /** Varsayılan başlık öğün türünün adıdır; seçenekli planda "Kahvaltı · 2. seçenek" gibi verilir. */
   title?: string
 }
 
 const foodLabel = (food: Food) => (food.brand ? `${food.name} (${food.brand})` : food.name)
 
-export function MealCard({ meal, mealType, items, foodsById, selectableFoods, onEdit, onDelete, title: customTitle }: Props) {
+export function MealCard({ meal, mealType, items, foodsById, selectableFoods, onEdit, onDelete, onCopy, title: customTitle }: Props) {
   const [adding, setAdding] = useState(false)
   const [fromText, setFromText] = useState(false)
   const mealItems = items.filter((i) => i.planMealId === meal.id)
@@ -56,6 +58,11 @@ export function MealCard({ meal, mealType, items, foodsById, selectableFoods, on
           {meal.notes && <p className="mt-1 text-xs text-slate-500">{meal.notes}</p>}
         </div>
         <div className="flex gap-1">
+          {onCopy && (
+            <Button variant="ghost" size="sm" aria-label={`${title} öğününü kopyala`} onClick={onCopy}>
+              <Copy aria-hidden className="size-4" />
+            </Button>
+          )}
           <Button variant="ghost" size="sm" aria-label={`${title} öğününü düzenle`} onClick={onEdit}>
             <Pencil aria-hidden className="size-4" />
           </Button>
