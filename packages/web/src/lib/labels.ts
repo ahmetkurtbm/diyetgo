@@ -1,4 +1,4 @@
-import { ageOn, isGoalActiveOn, type AppointmentStatus, type Client, type ClientGoal, type CookingMethod, type MealPlan, type Sex } from '@diyetgo/shared'
+import { ageOn, isGoalActiveOn, type AppointmentStatus, type Client, type ClientGoal, type CookingMethod, type Food, type MealPlan, type Sex } from '@diyetgo/shared'
 import { today } from './format'
 
 /** Bugüne göre yaş; doğum tarihi yoksa veya gelecekteyse `—`. */
@@ -6,6 +6,12 @@ export function ageLabel(client: Pick<Client, 'birthDate'>): string {
   const date = today()
   return client.birthDate && client.birthDate <= date ? `${ageOn(client.birthDate, date)} yaş` : '—'
 }
+
+/** Miktarın birimi; değişimde miktar değişim sayısıdır. */
+export const baseUnitLabels: Record<Food['baseUnit'], string> = { g: 'g', ml: 'ml', exchange: 'değişim' }
+
+/** Besin değerlerinin hangi miktar için olduğu. */
+export const perUnitLabel = (unit: Food['baseUnit']) => (unit === 'exchange' ? '1 değişim başına' : `100 ${unit} başına`)
 
 export const sexLabels: Record<Sex, string> = { female: 'Kadın', male: 'Erkek' }
 

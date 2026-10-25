@@ -11,7 +11,7 @@ import { useToast } from '../../components/ui/toast-context'
 import { useSort, type SortColumns } from '../../components/ui/use-sort'
 import { errorMessage } from '../../lib/errors'
 import { formatNumber } from '../../lib/format'
-import { cookingMethodLabels } from '../../lib/labels'
+import { baseUnitLabels, cookingMethodLabels, perUnitLabel } from '../../lib/labels'
 import { FoodFormDialog, type FoodKind } from './FoodFormDialog'
 
 const grams = (value: number) => `${formatNumber(value)} g`
@@ -78,7 +78,7 @@ export function FoodsPage() {
     <>
       <PageHeader
         title="Besinler"
-        description="Besin değerleri 100 g veya 100 ml başınadır. Tariflerin değerleri malzemelerinden hesaplanır."
+        description="Besin değerleri 100 g veya 100 ml başınadır; değişimlerde 1 değişim başınadır. Tariflerin değerleri malzemelerinden hesaplanır."
         actions={
           <>
             <Button onClick={() => setEditing({ kind: 'recipe' })}>
@@ -166,7 +166,8 @@ export function FoodsPage() {
                       <span className="font-medium text-slate-900">{food.name}</span>
                       <span className="block text-xs text-slate-500">
                         {food.brand ? `${food.brand} · ` : ''}
-                        {food.cookingMethod ? `${cookingMethodLabels[food.cookingMethod]} · ` : ''}100 {food.baseUnit} başına
+                        {food.cookingMethod ? `${cookingMethodLabels[food.cookingMethod]} · ` : ''}
+                        {perUnitLabel(food.baseUnit)}
                       </span>
                       {(food.isSample || food.archivedAt || food.recipeYieldG !== null) && (
                         <span className="mt-1 flex flex-wrap gap-1">
@@ -189,7 +190,7 @@ export function FoodsPage() {
                       {grams(food.fatG)}
                     </Td>
                     <Td label="Porsiyon">
-                      {food.portionLabel && food.portionAmount !== null ? `${food.portionLabel} (${formatNumber(food.portionAmount)} ${food.baseUnit})` : '—'}
+                      {food.portionLabel && food.portionAmount !== null ? `${food.portionLabel} (${formatNumber(food.portionAmount)} ${baseUnitLabels[food.baseUnit]})` : '—'}
                     </Td>
                     <Td className="text-right whitespace-nowrap max-sm:justify-end">
                       <Button variant="ghost" size="sm" aria-label={`${food.name} düzenle`} onClick={() => setEditing({ kind: kindOf(food), food })}>

@@ -2,6 +2,7 @@
  * Besin değeri hesaplamaları.
  *
  * Besin değerleri 100 g veya 100 ml başına saklanır; miktarlar besinin temel biriminde (g/ml) verilir.
+ * Değişimlerde (`baseUnit: 'exchange'`) değerler 1 değişim başınadır ve miktar değişim sayısıdır.
  * Toplamlar canlı hesaplanır: bir besin güncellenirse onu kullanan planların toplamları da değişir.
  *
  * İki ayrı enerji kavramı vardır:
@@ -16,16 +17,16 @@ import type { Food, PlanMeal, PlanMealItem, RecipeIngredient } from './schemas'
 
 export type Nutrients = { energyKcal: number; proteinG: number; carbsG: number; fatG: number }
 
-type NutrientValues = Pick<Food, 'energyKcal' | 'proteinG' | 'carbsG' | 'fatG'>
+type NutrientValues = Pick<Food, 'energyKcal' | 'proteinG' | 'carbsG' | 'fatG'> & { baseUnit?: Food['baseUnit'] }
 type ItemAmount = Pick<PlanMealItem, 'foodId' | 'quantity'>
 
 export const ZERO_NUTRIENTS: Readonly<Nutrients> = Object.freeze({ energyKcal: 0, proteinG: 0, carbsG: 0, fatG: 0 })
 
-/** Bir besinin verilen miktardaki değerleri: `100 birimdeki değer × miktar / 100`. Yuvarlama yapılmaz. */
+/** Bir besinin verilen miktardaki değerleri: `100 birimdeki değer × miktar / 100` (değişimde `değer × adet`). Yuvarlama yapılmaz. */
 export function nutrientsFor(food: NutrientValues, quantity: number): Nutrients {
   assertFinite(quantity, 'quantity')
   if (quantity < 0) throw new RangeError('Miktar negatif olamaz')
-  const factor = quantity / 100
+  const factor = food.baseUnit === 'exchange' ? quantity : quantity / 100
   const result = {} as Nutrients
   for (const key of Object.keys(ZERO_NUTRIENTS) as (keyof Nutrients)[]) {
     assertFinite(food[key], key)

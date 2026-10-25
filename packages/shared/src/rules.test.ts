@@ -244,13 +244,20 @@ describe('saati geçmiş randevu', () => {
 })
 
 describe('tarif malzemesi', () => {
-  const food = (overrides: Partial<{ archivedAt: string | null; recipeYieldG: number | null }> = {}) => ({ id: 'f1', archivedAt: null, recipeYieldG: null, ...overrides })
+  const food = (overrides: Partial<{ archivedAt: string | null; recipeYieldG: number | null; baseUnit: 'g' | 'ml' | 'exchange' }> = {}) => ({
+    id: 'f1',
+    archivedAt: null,
+    recipeYieldG: null,
+    baseUnit: 'g' as const,
+    ...overrides,
+  })
 
   it('tarif başka tarifin malzemesi olamaz; arşivlenmiş besin yalnızca zaten malzemeyse kalır', () => {
     expect(recipeIngredientIssue(food(), new Set())).toBeNull()
     expect(recipeIngredientIssue(food({ recipeYieldG: 300 }), new Set())).toMatch(/tarifin malzemesi olamaz/)
     expect(recipeIngredientIssue(food({ archivedAt: '2026-03-01T00:00:00.000Z' }), new Set())).toMatch(/Arşivlenmiş/)
     expect(recipeIngredientIssue(food({ archivedAt: '2026-03-01T00:00:00.000Z' }), new Set(['f1']))).toBeNull()
+    expect(recipeIngredientIssue(food({ baseUnit: 'exchange' }), new Set())).toMatch(/Değişim/)
   })
 })
 

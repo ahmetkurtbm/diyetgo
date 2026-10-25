@@ -20,7 +20,7 @@ import { useToast } from '../../components/ui/toast-context'
 import { errorMessage } from '../../lib/errors'
 import { emptyToNull, numberToText, parseNumber, parseOptionalNumber } from '../../lib/forms'
 import { formatNumber } from '../../lib/format'
-import { cookingMethodLabels } from '../../lib/labels'
+import { baseUnitLabels, cookingMethodLabels, perUnitLabel } from '../../lib/labels'
 import { useSubmit } from '../../lib/use-submit'
 
 export type FoodKind = 'food' | 'recipe'
@@ -40,7 +40,7 @@ export function FoodFormDialog({ open, kind, food, onClose }: Props) {
       description={
         recipe
           ? 'Malzemeleri ve pişmiş toplam ağırlığı girin; 100 g değerleri malzemelerden hesaplanır.'
-          : 'Besin değerlerini 100 g veya 100 ml başına girin.'
+          : 'Besin değerlerini 100 g veya 100 ml başına girin; değişimde 1 değişim başına.'
       }
       footer={
         <>
@@ -110,7 +110,7 @@ function FoodForm({
   const [rows, setRows] = useState<IngredientRow[] | null>(null)
   const [nextKey, setNextKey] = useState(1)
   const set = (field: keyof typeof values) => (event: { target: { value: string } }) => setValues({ ...values, [field]: event.target.value })
-  const per = `100 ${values.baseUnit} başına`
+  const per = perUnitLabel(values.baseUnit)
 
   // Düzenlenen tarifin mevcut malzemeleri, katalog yüklenince bir kez forma alınır.
   const savedIngredients = catalog.data?.ingredients.filter((i) => i.recipeId === food?.id) ?? []
@@ -243,6 +243,7 @@ function FoodForm({
             <SelectField label="Temel birim" value={values.baseUnit} error={errors.baseUnit} onChange={(e) => setValues({ ...values, baseUnit: e.target.value as FoodInput['baseUnit'] })}>
               <option value="g">Gram (g) — katı besinler</option>
               <option value="ml">Mililitre (ml) — sıvılar</option>
+              <option value="exchange">Değişim — ekmek, süt, et… değişimi</option>
             </SelectField>
             <SelectField label="Hazırlama yöntemi" value={values.cookingMethod} error={errors.cookingMethod} onChange={set('cookingMethod')}>
               <option value="">Belirtilmedi</option>
@@ -293,7 +294,7 @@ function FoodForm({
         {!recipe && <div className="hidden sm:block" />}
         <TextField label="Porsiyon adı" hint="Örn. 1 dilim, 1 kase" autoComplete="off" value={values.portionLabel} error={errors.portionLabel} onChange={set('portionLabel')} />
         <TextField
-          label={`Porsiyon miktarı (${recipe ? 'g' : values.baseUnit})`}
+          label={`Porsiyon miktarı (${recipe ? 'g' : baseUnitLabels[values.baseUnit]})`}
           inputMode="decimal"
           value={values.portionAmount}
           error={errors.portionAmount}

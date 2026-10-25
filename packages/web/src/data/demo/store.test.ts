@@ -1,4 +1,4 @@
-import { FOOD_CATALOG } from '@diyetgo/shared'
+import { EXCHANGE_GROUPS, FOOD_CATALOG } from '@diyetgo/shared'
 import { createSeedData } from '@diyetgo/shared/seed'
 import { describe, expect, it, vi } from 'vitest'
 import { RepositoryError } from '../repositories'
@@ -72,7 +72,7 @@ describe('bozuk veya tanınmayan veri asla ezilmez', () => {
     const storage = new MemoryStorage()
     const data = createSeedData('2026-03-10')
     data.foods[0]!.energyKcal = -5
-    const raw = JSON.stringify({ version: 6, seededAt: NOW.toISOString(), data })
+    const raw = JSON.stringify({ version: 7, seededAt: NOW.toISOString(), data })
     storage.setItem(STORAGE_KEY, raw)
     const result = openDemoStore({ storage, now })
     expect(result.ok).toBe(false)
@@ -102,7 +102,7 @@ describe('sürüm yükseltme', () => {
 
     const store = open(storage)
     const { version, seededAt, data } = store.read()
-    expect(version).toBe(6)
+    expect(version).toBe(7)
     expect(seededAt).toBe('2026-01-01T00:00:00.000Z')
     expect(data.clients[0]!.firstName).toBe('Kullanıcının değişikliği')
     expect(data.measurements).toHaveLength(old.measurements.length)
@@ -110,10 +110,10 @@ describe('sürüm yükseltme', () => {
     expect(data).toMatchObject({ clientMedications: [], clientConditions: [], clientRecommendations: [], recipeIngredients: [] })
     expect(data.foods.slice(0, 15).every((f) => f.cookingMethod === null && f.recipeYieldG === null)).toBe(true)
     // Başlangıç besin listesi eklenir, mevcut besinler korunur.
-    expect(data.foods).toHaveLength(15 + FOOD_CATALOG.length)
+    expect(data.foods).toHaveLength(15 + FOOD_CATALOG.length + EXCHANGE_GROUPS.length)
     expect(data.foods.map((f) => f.name)).toEqual(expect.arrayContaining(FOOD_CATALOG.map(([name]) => name)))
     expect(data.mealPlans.every((p) => p.kind === 'daily' && p.weeklyQuotas.length === 0)).toBe(true)
-    expect(JSON.parse(storage.getItem(STORAGE_KEY)!).version).toBe(6)
+    expect(JSON.parse(storage.getItem(STORAGE_KEY)!).version).toBe(7)
   })
 
   it('yükseltmeden sonra da geçersiz olan sürüm 1 veriyi ezmez', () => {

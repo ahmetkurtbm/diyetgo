@@ -116,13 +116,14 @@ export type Measurement = z.infer<typeof measurementSchema>
 
 // ---------- Besin ----------
 
-export const baseUnitSchema = z.enum(['g', 'ml'])
+/** `exchange`: besin değişimi (ekmek, süt, et…); değerler 1 değişim başınadır, miktar değişim sayısıdır (bkz. `exchanges.ts`). */
+export const baseUnitSchema = z.enum(['g', 'ml', 'exchange'])
 
 /** Hazırlama yöntemi; yalnızca bilgi etiketidir, değerleri değiştirmez (değerler o hâliyle girilir). */
 export const cookingMethodSchema = z.enum(['raw', 'boiled', 'steamed', 'grilled', 'baked', 'sauteed', 'stewed', 'fried'])
 export type CookingMethod = z.infer<typeof cookingMethodSchema>
 
-/** Besin değerleri 100 g veya 100 ml (`baseUnit`) başınadır. */
+/** Besin değerleri 100 g veya 100 ml (`baseUnit`) başınadır; değişimlerde 1 değişim başınadır. */
 const foodFields = z.object({
   name: requiredText(LIMITS.name),
   brand: optionalText(LIMITS.name),

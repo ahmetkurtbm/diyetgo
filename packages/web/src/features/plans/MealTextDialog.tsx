@@ -11,6 +11,7 @@ import { useToast } from '../../components/ui/toast-context'
 import { useRepositories } from '../../data/context'
 import { errorMessage } from '../../lib/errors'
 import { numberToText, parseNumber } from '../../lib/forms'
+import { baseUnitLabels } from '../../lib/labels'
 import { NutrientLine } from './NutrientSummary'
 
 type Row = { text: string; foodId: string; amount: string }
@@ -126,7 +127,7 @@ export function MealTextDialog({ open, meal, title, sortOrder, foods, onClose }:
                     </select>
                   </label>
                   <label className="text-xs text-slate-600">
-                    Miktar ({food?.baseUnit ?? 'g'})
+                    Miktar ({food ? baseUnitLabels[food.baseUnit] : 'g'})
                     <input
                       aria-label={`${row.text} miktarı`}
                       inputMode="decimal"

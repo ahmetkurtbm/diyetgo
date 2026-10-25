@@ -1,0 +1,1 @@
+ALTER TYPE "public"."base_unit" ADD VALUE 'exchange';

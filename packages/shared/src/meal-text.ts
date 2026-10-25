@@ -7,7 +7,7 @@
  */
 import type { Food } from './schemas'
 
-type MatchableFood = Pick<Food, 'id' | 'name' | 'brand' | 'portionLabel' | 'portionAmount'>
+type MatchableFood = Pick<Food, 'id' | 'name' | 'brand' | 'baseUnit' | 'portionLabel' | 'portionAmount'>
 
 /** Ev ölçülerinin yaklaşık varsayılan karşılığı (g veya ml). Besinin kendi porsiyonu önceliklidir. */
 export const HOUSEHOLD_MEASURES: Readonly<Record<string, number>> = {
@@ -116,6 +116,8 @@ export function matchFood<T extends MatchableFood>(text: string, foods: readonly
 
 /** Bir ölçünün bu besin için gram/ml karşılığı; bilinmiyorsa `null`. */
 export function measureAmount(food: MatchableFood, unit: string | null): number | null {
+  // Değişimde miktar değişim sayısıdır: "2 ekmek değişimi".
+  if (food.baseUnit === 'exchange') return unit === null || unit === 'adet' || unit === 'porsiyon' ? 1 : null
   if (unit === 'gram' || unit === 'ml') return 1
   const portion = food.portionLabel && food.portionAmount ? parseMeasure(food.portionLabel) : null
   const perPortion = portion ? food.portionAmount! / portion.quantity : null

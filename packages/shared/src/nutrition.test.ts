@@ -143,3 +143,10 @@ describe('tarif değerleri', () => {
     expect(resolveRecipeFoods(updated, ingredients).get('porridge')!.energyKcal).toBeCloseTo((190 + 96) / 2)
   })
 })
+
+describe('değişim', () => {
+  it('değişimde değerler 1 değişim başınadır; miktar değişim sayısıdır', () => {
+    const bread = { energyKcal: 68, proteinG: 2, carbsG: 15, fatG: 0, baseUnit: 'exchange' as const }
+    expect(nutrientsFor(bread, 2)).toEqual({ energyKcal: 136, proteinG: 4, carbsG: 30, fatG: 0 })
+  })
+})

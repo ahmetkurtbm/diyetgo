@@ -1,4 +1,4 @@
-import { dayTotals, FOOD_CATALOG, type Food } from '@diyetgo/shared'
+import { dayTotals, EXCHANGE_GROUPS, FOOD_CATALOG, type Food } from '@diyetgo/shared'
 import { screen, within } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { fixDate, renderApp, SEED_IDS } from '../../test-utils'
@@ -14,8 +14,8 @@ describe('Besin listesi', () => {
     renderApp('/foods')
     await screen.findByRole('table', { name: 'Besin listesi' })
     // 15 örnek besin, 1 örnek tarif ve başlangıç besin listesi.
-    expect(rows()).toHaveLength(16 + FOOD_CATALOG.length)
-    expect(within(table()).getAllByText('Örnek veri – doğrulanmamış')).toHaveLength(16 + FOOD_CATALOG.length)
+    expect(rows()).toHaveLength(16 + FOOD_CATALOG.length + EXCHANGE_GROUPS.length)
+    expect(within(table()).getAllByText('Örnek veri – doğrulanmamış')).toHaveLength(16 + FOOD_CATALOG.length + EXCHANGE_GROUPS.length)
     expect(within(table()).getAllByText('Tarif · malzemelerden hesaplanır')).toHaveLength(1)
     const milk = rowOf('Süt (yarım yağlı)')
     expect(within(milk).getByText('100 ml başına')).toBeDefined()

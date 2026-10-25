@@ -306,3 +306,39 @@ describe('Gün ve öğün kopyalama', () => {
     expect(items.filter((i) => i.planMealId === breakfast2.id)).toHaveLength(8)
   })
 })
+
+describe('Değişim girme', () => {
+  it('öğüne değişim sayılarını girer, günceller ve değişim listesini gösterir', async () => {
+    const { user, repositories } = await openPlan()
+    const foods = await repositories.foods.list()
+    const bread = foods.find((f) => f.name === 'Ekmek değişimi')!
+    const milk = foods.find((f) => f.name === 'Süt değişimi')!
+    const breakfastItems = async () => {
+      const { meals, items } = await repositories.mealPlans.get(PLAN_ID)
+      const types = await repositories.mealTypes.list({ includeArchived: true })
+      const id = meals.find((m) => m.dayNumber === 1 && m.mealTypeId === types.find((t) => t.name === 'Kahvaltı')!.id)!.id
+      return items.filter((i) => i.planMealId === id)
+    }
+
+    await user.click(screen.getByRole('button', { name: 'Kahvaltı öğününe değişim gir' }))
+    const form = screen.getByRole('form', { name: 'Öğüne değişim gir' })
+    await user.clear(within(form).getByLabelText('Ekmek değişimi adedi'))
+    await user.type(within(form).getByLabelText('Ekmek değişimi adedi'), '2')
+    await user.clear(within(form).getByLabelText('Süt değişimi adedi'))
+    await user.type(within(form).getByLabelText('Süt değişimi adedi'), '1')
+    await user.click(within(form).getByRole('button', { name: 'Kaydet' }))
+    expect(await screen.findByText('Değişimler kaydedildi.')).toBeDefined()
+    expect((await breakfastItems()).filter((i) => i.foodId === bread.id || i.foodId === milk.id).map((i) => i.quantity).sort()).toEqual([1, 2])
+    expect(within(screen.getByRole('region', { name: 'Değişim listesi' })).getByText(/1 ekmek değişimi/)).toBeDefined()
+
+    // Adet 0 olunca değişim öğünden kaldırılır.
+    await user.click(screen.getByRole('button', { name: 'Kahvaltı öğününe değişim gir' }))
+    const again = screen.getByRole('form', { name: 'Öğüne değişim gir' })
+    expect((within(again).getByLabelText('Ekmek değişimi adedi') as HTMLInputElement).value).toBe('2')
+    await user.clear(within(again).getByLabelText('Ekmek değişimi adedi'))
+    await user.type(within(again).getByLabelText('Ekmek değişimi adedi'), '0')
+    await user.click(within(again).getByRole('button', { name: 'Kaydet' }))
+    await screen.findAllByText('Değişimler kaydedildi.')
+    expect((await breakfastItems()).some((i) => i.foodId === bread.id)).toBe(false)
+  })
+})

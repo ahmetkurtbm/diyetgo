@@ -40,3 +40,11 @@ describe('parseMealText', () => {
     ])
   })
 })
+
+describe('değişim satırları', () => {
+  it('"2 ekmek değişimi" değişim sayısı olarak okunur', () => {
+    const [bread, milk] = parseMealText('2 ekmek değişimi\n1 süt değişimi', foods)
+    expect([bread!.food?.name, bread!.amount]).toEqual(['Ekmek değişimi', 2])
+    expect([milk!.food?.name, milk!.amount]).toEqual(['Süt değişimi', 1])
+  })
+})

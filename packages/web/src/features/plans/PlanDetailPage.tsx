@@ -29,6 +29,7 @@ import { MealCard } from './MealCard'
 import { MealFormDialog } from './MealFormDialog'
 import { NutrientSummary } from './NutrientSummary'
 import { CopyMealsDialog, type CopySource } from './CopyMealsDialog'
+import { ExchangeGuide } from './ExchangeGuide'
 import { OptionPlanView } from './OptionPlanView'
 import { PlanFormDialog } from './PlanFormDialog'
 
@@ -284,6 +285,7 @@ export function PlanDetailPage() {
         </>
       )}
 
+      <ExchangeGuide items={items} foodsById={foodsById} />
       <CopyMealsDialog plan={plan} meals={meals} mealTypes={mealTypes} dayCount={dayCount} source={copySource} onClose={() => setCopySource(null)} />
       <PlanFormDialog open={dialog === 'edit'} plan={plan} onClose={() => setDialog(null)} />
       <CopyPlanDialog open={dialog === 'copy'} plan={plan} onClose={() => setDialog(null)} onCopied={(copy) => navigate(`/plans/${copy.id}`)} />

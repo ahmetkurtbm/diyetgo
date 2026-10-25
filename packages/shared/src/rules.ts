@@ -18,8 +18,9 @@ export function canAddPlanOrAppointment(client: Pick<Client, 'archivedAt'>): boo
  * Tarife malzeme olarak eklenebilir mi? Tarif başka bir tarifin malzemesi olamaz (döngü olmaması için);
  * arşivlenmiş besin yalnızca zaten o tarifin malzemesiyse kalabilir.
  */
-export function recipeIngredientIssue(food: Pick<Food, 'id' | 'archivedAt' | 'recipeYieldG'>, currentFoodIds: ReadonlySet<string>): string | null {
+export function recipeIngredientIssue(food: Pick<Food, 'id' | 'archivedAt' | 'recipeYieldG' | 'baseUnit'>, currentFoodIds: ReadonlySet<string>): string | null {
   if (food.recipeYieldG !== null) return 'Bir tarif başka bir tarifin malzemesi olamaz'
+  if (food.baseUnit === 'exchange') return 'Değişim tarif malzemesi olamaz'
   if (food.archivedAt !== null && !currentFoodIds.has(food.id)) return 'Arşivlenmiş besin yeni tarife eklenemez'
   return null
 }

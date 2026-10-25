@@ -14,6 +14,7 @@ import {
   clientMedicationSchema,
   clientRecommendationSchema,
   clientSchema,
+  EXCHANGE_GROUPS,
   FOOD_CATALOG,
   foodSchema,
   istanbulDateOf,
@@ -37,8 +38,9 @@ export const STORAGE_PREFIX = 'diyetgo:'
  * - 4: planlara tür ve haftalık adetler (`kind`, `weeklyQuotas`); mevcut planlar günlük menüdür.
  * - 5: başlangıç besin listesi (`FOOD_CATALOG`) eksikse eklenir; mevcut besinlere dokunulmaz.
  * - 6: listeye eklenen kahvaltılıklar ve yemekler aynı şekilde eklenir.
+ * - 7: besin değişimleri (`EXCHANGE_GROUPS`, `baseUnit: 'exchange'`) eksikse eklenir.
  */
-const VERSION = 6
+const VERSION = 7
 
 export type DemoData = SeedData
 type Envelope = { version: typeof VERSION; seededAt: string; data: DemoData }
@@ -47,11 +49,11 @@ type Envelope = { version: typeof VERSION; seededAt: string; data: DemoData }
 const withDefaults = (records: unknown, defaults: Record<string, unknown>) =>
   Array.isArray(records) ? records.map((r: unknown) => (typeof r === 'object' && r !== null ? { ...defaults, ...r } : r)) : records
 
-/** Başlangıç besin listesinden, kimliği henüz bulunmayan besinleri ekler. */
+/** Başlangıç besin listesinden ve değişimlerden, kimliği henüz bulunmayan besinleri ekler. */
 function withCatalogFoods(foods: unknown, today: string) {
   if (!Array.isArray(foods)) return foods
   const ids = new Set(foods.map((f: unknown) => (typeof f === 'object' && f !== null ? (f as { id?: unknown }).id : undefined)))
-  const names = new Set(FOOD_CATALOG.map(([name]) => name))
+  const names = new Set([...FOOD_CATALOG.map(([name]) => name), ...EXCHANGE_GROUPS.map((g) => g.name)])
   const catalog = createSeedData(today).foods.filter((f) => names.has(f.name) && !ids.has(f.id))
   return [...foods, ...catalog]
 }
@@ -68,6 +70,7 @@ const upgrades: Record<number, (data: Record<string, unknown>, today: string) =>
   3: (data) => ({ ...data, mealPlans: withDefaults(data.mealPlans, { kind: 'daily', weeklyQuotas: [] }) }),
   4: (data, today) => ({ ...data, foods: withCatalogFoods(data.foods, today) }),
   5: (data, today) => ({ ...data, foods: withCatalogFoods(data.foods, today) }),
+  6: (data, today) => ({ ...data, foods: withCatalogFoods(data.foods, today) }),
 }
 
 /**

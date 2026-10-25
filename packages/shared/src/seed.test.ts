@@ -16,6 +16,7 @@ import {
   planMealItemSchema,
   planMealSchema,
 } from './schemas'
+import { EXCHANGE_GROUPS } from './exchanges'
 import { FOOD_CATALOG } from './food-catalog'
 import { createSeedData, SAMPLE_FOOD_SOURCE } from './seed'
 
@@ -144,7 +145,7 @@ describe('seed verisi kurgusaldır', () => {
     const names = seed.foods.map((f) => f.name)
     expect(new Set(names).size).toBe(names.length)
     for (const [name] of FOOD_CATALOG) expect(names).toContain(name)
-    expect(seed.foods).toHaveLength(16 + FOOD_CATALOG.length)
+    expect(seed.foods).toHaveLength(16 + FOOD_CATALOG.length + EXCHANGE_GROUPS.length)
     expect(seed.foods[15]!.name).toBe('Sütlü yulaf lapası (örnek tarif)')
   })
 

@@ -9,6 +9,7 @@
  * Tarihler verilen güne göre hesaplanır; demo her açılışta güncel randevular gösterir.
  */
 import { addDays, istanbulTimeToUtc } from './dates'
+import { EXCHANGE_GROUPS } from './exchanges'
 import { FOOD_CATALOG } from './food-catalog'
 import type {
   Appointment,
@@ -181,6 +182,27 @@ export function createSeedData(today: string): SeedData {
       source: SAMPLE_FOOD_SOURCE,
       isSample: true,
       cookingMethod,
+      recipeYieldG: null,
+      archivedAt: null,
+      ...stamps,
+    })
+  })
+  // Değişimler listenin sonunda; değerler 1 değişim başınadır.
+  EXCHANGE_GROUPS.forEach(({ name, energyKcal, proteinG, carbsG, fatG }, i) => {
+    foods.push({
+      id: seedId('food', foodRows.length + 2 + FOOD_CATALOG.length + i),
+      name,
+      brand: null,
+      baseUnit: 'exchange',
+      energyKcal,
+      proteinG,
+      carbsG,
+      fatG,
+      portionLabel: null,
+      portionAmount: null,
+      source: SAMPLE_FOOD_SOURCE,
+      isSample: true,
+      cookingMethod: null,
       recipeYieldG: null,
       archivedAt: null,
       ...stamps,

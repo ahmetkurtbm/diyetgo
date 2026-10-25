@@ -1,5 +1,5 @@
-import { mealTotals, nutrientsFor, type Food, type MealType, type PlanMeal, type PlanMealItem } from '@diyetgo/shared'
-import { Clock, Copy, FileText, Pencil, Plus, Trash2, X } from 'lucide-react'
+import { mealTotals, nutrientsFor, sumNutrients, type Food, type MealType, type PlanMeal, type PlanMealItem } from '@diyetgo/shared'
+import { Clock, Copy, FileText, Pencil, Plus, Shuffle, Trash2, X } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { useRepositories } from '../../data/context'
 import { Button } from '../../components/ui/Button'
@@ -10,6 +10,7 @@ import { useToast } from '../../components/ui/toast-context'
 import { errorMessage, fieldErrorsOf } from '../../lib/errors'
 import { formatNumber } from '../../lib/format'
 import { numberToText, parseNumber } from '../../lib/forms'
+import { baseUnitLabels } from '../../lib/labels'
 import { useSubmit } from '../../lib/use-submit'
 import { MealTextDialog } from './MealTextDialog'
 import { NutrientLine } from './NutrientSummary'
@@ -34,6 +35,8 @@ const foodLabel = (food: Food) => (food.brand ? `${food.name} (${food.brand})` :
 export function MealCard({ meal, mealType, items, foodsById, selectableFoods, onEdit, onDelete, onCopy, title: customTitle }: Props) {
   const [adding, setAdding] = useState(false)
   const [fromText, setFromText] = useState(false)
+  const [exchanges, setExchanges] = useState(false)
+  const exchangeFoods = selectableFoods.filter((f) => f.baseUnit === 'exchange')
   const mealItems = items.filter((i) => i.planMealId === meal.id)
   const totals = mealTotals(meal.id, items, foodsById)
   const title = customTitle ?? mealType?.name ?? 'Öğün'
@@ -86,12 +89,20 @@ export function MealCard({ meal, mealType, items, foodsById, selectableFoods, on
       <div className="border-t border-slate-200 px-4 py-3 sm:px-5">
         {adding ? (
           <AddItemForm meal={meal} sortOrder={nextSortOrder} foods={selectableFoods} onDone={() => setAdding(false)} />
+        ) : exchanges ? (
+          <ExchangeForm meal={meal} items={mealItems} sortOrder={nextSortOrder} foods={exchangeFoods} onDone={() => setExchanges(false)} />
         ) : (
           <div className="flex flex-wrap gap-2">
             <Button size="sm" onClick={() => setAdding(true)}>
               <Plus aria-hidden className="size-4" />
               Besin ekle
             </Button>
+            {exchangeFoods.length > 0 && (
+              <Button size="sm" aria-label={`${title} öğününe değişim gir`} onClick={() => setExchanges(true)}>
+                <Shuffle aria-hidden className="size-4" />
+                Değişim gir
+              </Button>
+            )}
             <Button size="sm" aria-label={`${title} öğününe metinden ekle`} onClick={() => setFromText(true)}>
               <FileText aria-hidden className="size-4" />
               Metinden ekle
@@ -110,7 +121,7 @@ function ItemRow({ item, food }: { item: PlanMealItem; food?: Food }) {
   const [text, setText] = useState(numberToText(item.quantity))
   const [error, setError] = useState<string>()
   const name = food ? foodLabel(food) : 'Bilinmeyen besin'
-  const unit = food?.baseUnit ?? 'g'
+  const unit = food ? baseUnitLabels[food.baseUnit] : 'g'
 
   async function saveQuantity() {
     const quantity = parseNumber(text)
@@ -235,22 +246,90 @@ function AddItemForm({ meal, sortOrder, foods, onDone }: { meal: PlanMeal; sortO
       <div className="grid grid-cols-[minmax(0,8rem)_minmax(0,1fr)] gap-3">
         <TextField label="Miktar" required inputMode="decimal" value={amount} error={errors.quantity} onChange={(e) => setAmount(e.target.value)} />
         <SelectField label="Birim" value={unit} onChange={(e) => setUnit(e.target.value as 'base' | 'portion')}>
-          <option value="base">{food?.baseUnit ?? 'g'}</option>
+          <option value="base">{food ? baseUnitLabels[food.baseUnit] : 'g'}</option>
           {hasPortion && (
             <option value="portion">
-              {food.portionLabel} ({formatNumber(food.portionAmount!)} {food.baseUnit})
+              {food.portionLabel} ({formatNumber(food.portionAmount!)} {baseUnitLabels[food.baseUnit]})
             </option>
           )}
         </SelectField>
       </div>
       {preview && (
         <p className="text-xs text-slate-600">
-          {formatNumber(quantity)} {food?.baseUnit}: <NutrientLine totals={preview} />
+          {formatNumber(quantity)} {food && baseUnitLabels[food.baseUnit]}: <NutrientLine totals={preview} />
         </p>
       )}
       <div className="flex gap-2">
         <Button type="submit" variant="primary" disabled={busy}>
           Ekle
+        </Button>
+        <Button onClick={onDone} disabled={busy}>
+          Vazgeç
+        </Button>
+      </div>
+    </form>
+  )
+}
+
+/**
+ * Öğünün değişim sayılarını tek formda girer: her değişim grubu (ekmek, süt, et…) için adet.
+ * Adet değişince öğündeki değişim satırı güncellenir, 0 olunca kaldırılır, yoksa eklenir.
+ */
+function ExchangeForm({ meal, items, sortOrder, foods, onDone }: { meal: PlanMeal; items: PlanMealItem[]; sortOrder: number; foods: Food[]; onDone: () => void }) {
+  const repositories = useRepositories()
+  const toast = useToast()
+  const current = (foodId: string) => items.filter((i) => i.foodId === foodId).reduce((sum, i) => sum + i.quantity, 0)
+  const [counts, setCounts] = useState<Record<string, string>>(() => Object.fromEntries(foods.map((f) => [f.id, numberToText(current(f.id)) || '0'])))
+  const [busy, setBusy] = useState(false)
+  const parsed = foods.map((f) => ({ food: f, count: parseNumber(counts[f.id] ?? '0') }))
+  const invalid = parsed.some((p) => !Number.isFinite(p.count) || p.count < 0 || p.count > 50)
+  const total = parsed.filter((p) => p.count > 0 && !invalid).map((p) => nutrientsFor(p.food, p.count))
+
+  async function save(event: FormEvent) {
+    event.preventDefault()
+    if (invalid) return toast.error('Değişim sayısı 0 ile 50 arasında olmalı.')
+    setBusy(true)
+    try {
+      let next = sortOrder
+      for (const { food, count } of parsed) {
+        const existing = items.filter((i) => i.foodId === food.id)
+        if (count === current(food.id) && existing.length <= 1) continue
+        for (const extra of existing.slice(count > 0 ? 1 : 0)) await repositories.mealPlans.removeItem(extra.id)
+        if (count === 0) continue
+        if (existing[0]) await repositories.mealPlans.updateItem(existing[0].id, { ...existing[0], quantity: count })
+        else await repositories.mealPlans.addItem({ planMealId: meal.id, foodId: food.id, quantity: count, sortOrder: next++, notes: null })
+      }
+      toast.success('Değişimler kaydedildi.')
+      onDone()
+    } catch (error) {
+      toast.error(errorMessage(error))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <form onSubmit={save} noValidate aria-label="Öğüne değişim gir" className="space-y-3">
+      <div className="grid grid-cols-2 gap-2">
+        {foods.map((f) => (
+          <label key={f.id} className="flex items-center justify-between gap-2 rounded-md bg-slate-50 px-2 py-1.5 text-sm ring-1 ring-slate-100">
+            <span className="min-w-0 text-slate-700">{f.name.replace(/ değişimi$/, '')}</span>
+            <input
+              inputMode="decimal"
+              aria-label={`${f.name} adedi`}
+              value={counts[f.id] ?? '0'}
+              onChange={(e) => setCounts({ ...counts, [f.id]: e.target.value })}
+              className="h-8 w-14 rounded-md border border-slate-300 bg-white px-2 text-right tabular-nums"
+            />
+          </label>
+        ))}
+      </div>
+      <p className="text-xs text-slate-600">
+        Toplam: <NutrientLine totals={sumNutrients(total)} />
+      </p>
+      <div className="flex gap-2">
+        <Button type="submit" variant="primary" disabled={busy}>
+          Kaydet
         </Button>
         <Button onClick={onDone} disabled={busy}>
           Vazgeç
