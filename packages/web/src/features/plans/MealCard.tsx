@@ -173,7 +173,7 @@ function ItemRow({ item, food }: { item: PlanMealItem; food?: Food }) {
                 void saveQuantity()
               }
             }}
-            className="h-8 w-20 rounded-md border border-slate-300 px-2 text-right text-sm tabular-nums aria-invalid:border-red-500"
+            className="h-8 w-20 rounded-md border border-slate-300 px-2 text-right text-sm tabular-nums aria-invalid:border-red-500 pointer-coarse:h-10"
           />
           <span className="text-xs text-slate-500">{unit}</span>
         </label>
@@ -319,7 +319,7 @@ function ExchangeForm({ meal, items, sortOrder, foods, onDone }: { meal: PlanMea
               aria-label={`${f.name} adedi`}
               value={counts[f.id] ?? '0'}
               onChange={(e) => setCounts({ ...counts, [f.id]: e.target.value })}
-              className="h-8 w-14 rounded-md border border-slate-300 bg-white px-2 text-right tabular-nums"
+              className="h-8 w-14 rounded-md border border-slate-300 bg-white px-2 text-right tabular-nums pointer-coarse:h-10"
             />
           </label>
         ))}

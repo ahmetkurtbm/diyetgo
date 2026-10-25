@@ -8,8 +8,9 @@ const variants = {
 } as const
 
 const sizes = {
-  sm: 'h-8 gap-1.5 px-2.5 text-sm',
-  md: 'h-10 gap-2 px-4 text-sm',
+  // Dokunmatik ekranda dokunma alanı en az 40–44 px olur.
+  sm: 'h-8 gap-1.5 px-2.5 text-sm pointer-coarse:h-10 pointer-coarse:px-3',
+  md: 'h-10 gap-2 px-4 text-sm pointer-coarse:h-11',
 } as const
 
 export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {

@@ -13,6 +13,9 @@ const ERROR_CODES = new Set<RepositoryErrorCode>(['validation', 'not_found', 'co
 /** API 401 döndürdüğünde (oturum düştü) yayınlanır; `AuthGate` giriş ekranına döner. */
 export const UNAUTHORIZED_EVENT = 'diyetgo:unauthorized'
 const UNREACHABLE = "Sunucuya ulaşılamadı. Yerel API'nin çalıştığından emin olun (npm run dev:server)."
+const TIMEOUT = 'Sunucu zamanında yanıt vermedi. Bağlantınızı kontrol edip tekrar deneyin.'
+/** Yanıt gelmeyen istek sonsuza dek beklemesin; yükleniyor ekranı hata ekranına döner. */
+const REQUEST_TIMEOUT_MS = 15_000
 
 type ErrorBody = { error?: { code?: string; message?: string; fieldErrors?: Record<string, string>; conflictingIds?: string[] } }
 
@@ -39,9 +42,10 @@ export function createApiRepositories(
         method,
         headers: body === undefined ? undefined : { 'Content-Type': 'application/json' },
         body: body === undefined ? undefined : JSON.stringify(body),
+        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
       })
-    } catch {
-      throw new RepositoryError('storage', UNREACHABLE)
+    } catch (error) {
+      throw new RepositoryError('storage', error instanceof DOMException && error.name === 'TimeoutError' ? TIMEOUT : UNREACHABLE)
     }
     const data: unknown = response.status === 204 ? undefined : await response.json().catch(() => undefined)
     if (!response.ok) {
