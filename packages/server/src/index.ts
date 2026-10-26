@@ -5,7 +5,7 @@ import { describeDatabaseUrl, requireEnv } from './env'
 
 const databaseUrl = requireEnv('DATABASE_URL')
 const port = Number(process.env.PORT ?? 3001)
-// Henüz yayına alınmadı; yalnızca bu makineden erişilir (CLAUDE.md §9).
+// Henüz yayına alınmadı; yalnızca bu makineden erişilir.
 const host = '127.0.0.1'
 
 const db = createDb(databaseUrl)

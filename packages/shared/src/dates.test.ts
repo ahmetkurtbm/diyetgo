@@ -87,7 +87,7 @@ describe('Europe/Istanbul dönüşümleri', () => {
   })
 })
 
-// Shared paketi Node tiplerini kullanmaz (CLAUDE.md §2.3); test yalnızca TZ değişkenine erişir.
+// Shared paketi Node tiplerini kullanmaz; test yalnızca TZ değişkenine erişir.
 const env = (globalThis as unknown as { process: { env: Record<string, string | undefined> } }).process.env
 
 describe('makinenin saat diliminden bağımsızlık', () => {

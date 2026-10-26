@@ -1,5 +1,5 @@
 /**
- * Ortak animasyon bileşenleri (CLAUDE.md §7). Hepsi `prefers-reduced-motion` ayarına uyar:
+ * Ortak animasyon bileşenleri. Hepsi `prefers-reduced-motion` ayarına uyar:
  * `AppProviders` içindeki `MotionConfig reducedMotion="user"` hareketi kapatır, sayaç ise doğrudan
  * son değeri gösterir. Testlerde `MotionGlobalConfig.skipAnimations` ile animasyonlar atlanır.
  */

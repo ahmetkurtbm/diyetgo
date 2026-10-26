@@ -7,7 +7,7 @@ import type { Appointment, Client, ClientGoal, Food, MealPlan, MealType, PlanMea
 
 // ---------- Arşivleme ----------
 //
-// Arşivleme mevcut kayıtları etkilemez; yalnızca yeni bağlantıları engeller (CLAUDE.md §4.4).
+// Arşivleme mevcut kayıtları etkilemez; yalnızca yeni bağlantıları engeller.
 
 /** Arşivlenmiş danışana yeni plan veya randevu eklenemez. */
 export function canAddPlanOrAppointment(client: Pick<Client, 'archivedAt'>): boolean {

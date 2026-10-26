@@ -1,5 +1,5 @@
 /**
- * Veritabanı şeması (CLAUDE.md §4.4). Alanlar `@diyetgo/shared` şemalarıyla aynı adları taşır;
+ * Veritabanı şeması. Alanlar `@diyetgo/shared` şemalarıyla aynı adları taşır;
  * sütun adları snake_case'dir.
  *
  * - Zaman damgaları `timestamptz`, takvim günleri `date`; ikisi de sürücüden metin olarak okunur.

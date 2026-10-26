@@ -50,7 +50,7 @@ export function createAuth(db: Db, { baseURL, secret, trustedOrigins = [] }: Aut
       // Köken (CSRF) kontrolü her ortamda açıktır. Better Auth bunu NODE_ENV=test iken varsayılan
       // olarak kapatır; açıkça etkinleştirilmesi, testlerin gerçek davranışı sınamasını sağlar.
       disableOriginCheck: false,
-      // Kimlikler uuid'dir (CLAUDE.md §4.4); veritabanı `gen_random_uuid()` ile üretir.
+      // Kimlikler uuid'dir; veritabanı `gen_random_uuid()` ile üretir.
       database: { generateId: 'uuid' },
     },
     databaseHooks: {

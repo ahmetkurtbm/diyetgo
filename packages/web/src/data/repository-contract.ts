@@ -1,5 +1,5 @@
 /**
- * Repository davranış sözleşmesi (CLAUDE.md §10): aynı senaryolar demo ve API implementasyonlarına
+ * Repository davranış sözleşmesi: aynı senaryolar demo ve API implementasyonlarına
  * karşı çalıştırılır. Demo testi `demo/repositories.contract.test.ts`, API testi server paketindedir.
  *
  * Her senaryo kendi kayıtlarını oluşturur; mevcut (seed) verilere dayanmaz. Randevular seed

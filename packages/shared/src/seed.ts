@@ -71,6 +71,11 @@ export function createSeedData(today: string): SeedData {
   const day = (offset: number) => addDays(today, offset)
   const at = (offset: number, hour: number, minute = 0) => istanbulTimeToUtc(day(offset), hour, minute)
   const stamps = { createdAt: at(-90, 9), updatedAt: at(-90, 9) }
+  // Ölçüm, plan ve randevular kendi tarihlerinde oluşturulmuş görünür; gelecekteki bir zaman verilmez.
+  const stampedOn = (offset: number) => {
+    const t = at(Math.min(offset, -1), 10)
+    return { createdAt: t, updatedAt: t }
+  }
 
   const c = {
     deniz: seedId('client', 1),
@@ -97,7 +102,7 @@ export function createSeedData(today: string): SeedData {
     thighCm: null,
     bodyFatPct: null,
     notes: null,
-    ...stamps,
+    ...stampedOn(offset),
     ...v,
   })
   const measurements: Measurement[] = [
@@ -231,8 +236,8 @@ export function createSeedData(today: string): SeedData {
   const p = { deniz: seedId('mealPlan', 1), ece: seedId('mealPlan', 2), kaan: seedId('mealPlan', 3) }
   const daily = () => ({ kind: 'daily' as const, weeklyQuotas: [] })
   const mealPlans: MealPlan[] = [
-    { id: p.deniz, clientId: c.deniz, title: 'Dengeli beslenme planı (örnek)', startDate: day(-7), endDate: day(20), notes: null, archivedAt: null, ...daily(), ...stamps },
-    { id: p.ece, clientId: c.ece, title: 'Başlangıç planı (örnek)', startDate: day(-3), endDate: null, notes: null, archivedAt: null, ...daily(), ...stamps },
+    { id: p.deniz, clientId: c.deniz, title: 'Dengeli beslenme planı (örnek)', startDate: day(-7), endDate: day(20), notes: null, archivedAt: null, ...daily(), ...stampedOn(-8) },
+    { id: p.ece, clientId: c.ece, title: 'Başlangıç planı (örnek)', startDate: day(-3), endDate: null, notes: null, archivedAt: null, ...daily(), ...stampedOn(-4) },
     {
       id: p.kaan,
       clientId: c.kaan,
@@ -293,7 +298,7 @@ export function createSeedData(today: string): SeedData {
 
   const a = (n: number, clientId: string, offset: number, hour: number, minute: number, minutes: number, status: Appointment['status']): Appointment => {
     const startsAt = at(offset, hour, minute)
-    return { id: seedId('appointment', n), clientId, startsAt, endsAt: new Date(Date.parse(startsAt) + minutes * 60_000).toISOString(), status, notes: null, ...stamps }
+    return { id: seedId('appointment', n), clientId, startsAt, endsAt: new Date(Date.parse(startsAt) + minutes * 60_000).toISOString(), status, notes: null, ...stampedOn(offset - 3) }
   }
   const appointments: Appointment[] = [
     a(1, c.deniz, -14, 9, 30, 45, 'completed'),

@@ -27,3 +27,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# yerel yapay zekâ asistanı dosyaları
+CLAUDE.md
+.claude/
+skills-lock.json

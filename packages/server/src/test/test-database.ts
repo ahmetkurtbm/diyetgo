@@ -1,5 +1,5 @@
 /**
- * Test veritabanı bağlantısı (CLAUDE.md §4.3). Yalnızca `TEST_DATABASE_URL` kullanılır;
+ * Test veritabanı bağlantısı. Yalnızca `TEST_DATABASE_URL` kullanılır;
  * veritabanı adı `_test` ile bitmiyorsa hiçbir bağlantı kurulmadan hata verilir.
  */
 import { databaseName, requireEnv } from '../env'

@@ -4,6 +4,8 @@
 
 Diyetisyenler için danışan, ölçüm, besin, beslenme planı, randevu ve beslenme hedefi yönetimi sunan bir web uygulaması.
 
+**Canlı demo:** [diyetgo-kappa.vercel.app](https://diyetgo-kappa.vercel.app) (tarayıcıda çalışan demo modu, giriş gerektirmez)
+
 > **Demo uyarısı:** Herkese açık sürüm (Vercel) yalnızca **demo modunda** çalışır; yerel PostgreSQL modu için bkz. [Yerel veritabanı ve backend](#yerel-veritabanı-ve-backend). Demo modunda tüm veriler **yalnızca kullandığınız tarayıcıda** (localStorage) tutulur; sunucuya gönderilmez, cihazlar arasında paylaşılmaz ve yedeklenmez. Örnek veriler **kurgusaldır**. **Gerçek kişisel veya sağlık verisi girmeyin.**
 
 ## İçindekiler
@@ -176,7 +178,6 @@ Notlar:
 ```
 diyetgo/
 ├── package.json        # npm workspaces kökü ve ortak komutlar
-├── CLAUDE.md           # proje kuralları ve mimari kararlar
 ├── docker-compose.yml  # yalnızca PostgreSQL 18 (yerel)
 ├── .env.example        # örnek ortam değişkenleri (sahte değerler)
 ├── docker/postgres-init/ # ilk başlatmada diyetgo_test veritabanını oluşturur
@@ -199,4 +200,7 @@ Tamamlanmayan işler:
 
 - **Yayına alma ve KVKK:** API modundaki diyetisyen hesapları yalnızca yerelde çalışır. Barındırma, e-posta gönderimi (parola sıfırlama), açık rıza ve aydınlatma metinleri, erişim kayıtları ve yedekleme henüz yapılmadı; bu yüzden gerçek kişisel veya sağlık verisi kullanılmamalıdır.
 - **Danışan hesapları:** Danışanın kendi verisini görmesi ve girmesi (danışan uygulaması) henüz yok; danışana şimdilik haftalık rapor görseli gönderilebilir.
-- **Vercel dağıtımı:** Yapılandırma kökteki `vercel.json` dosyasındadır. Vercel depo kökünden `npm install` çalıştırır, yalnızca `@diyetgo/web` paketini `VITE_DATA_MODE=demo` ile derler ve `packages/web/dist` dizinini yayınlar. Tüm adresler `index.html`'e yönlendirilir; böylece `/clients` gibi sayfalar yenilendiğinde de açılır. Demo backend veya veritabanı gerektirmez ve Vercel'de ortam değişkeni ya da gizli bilgi tanımlanması gerekmez.
+
+## Yayın
+
+Vercel yalnızca `@diyetgo/web` paketini `VITE_DATA_MODE=demo` ile derler ve `packages/web/dist` dizinini yayınlar (bkz. `vercel.json`). Demo backend, veritabanı ya da gizli bilgi gerektirmez; tüm adresler `index.html`'e yönlendirildiği için `/clients` gibi sayfalar yenilendiğinde de açılır. Diyetisyen hesapları ve PostgreSQL yalnızca API modunda, yerelde çalışır.

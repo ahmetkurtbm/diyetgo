@@ -31,7 +31,7 @@ export const appointmentStatusTones = {
 
 export type PlanStatus = 'archived' | 'upcoming' | 'active' | 'finished'
 
-/** Planın verilen güne göre durumu; "aktif" saklanmaz, tarihlerden türetilir (CLAUDE.md §4.4). */
+/** Planın verilen güne göre durumu; "aktif" saklanmaz, tarihlerden türetilir. */
 export function planStatus(plan: Pick<MealPlan, 'startDate' | 'endDate' | 'archivedAt'>, date: string): PlanStatus {
   if (plan.archivedAt !== null) return 'archived'
   if (date < plan.startDate) return 'upcoming'

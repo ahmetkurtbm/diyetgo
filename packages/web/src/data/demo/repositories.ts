@@ -1,7 +1,7 @@
 /**
  * Repository arayüzlerinin localStorage implementasyonu.
  *
- * Veritabanının uygulayacağı bütünlük kurallarını (CLAUDE.md §4.4) burada da uygular:
+ * Veritabanının uygulayacağı bütünlük kurallarını burada da uygular:
  * RESTRICT (ilişkili kaydı olan danışan/besin/öğün türü silinemez), CASCADE (plan → öğün → içerik),
  * arşiv kuralları, randevu çakışması ve hedef dönemleri. Kurallar `@diyetgo/shared`'dan gelir.
  */

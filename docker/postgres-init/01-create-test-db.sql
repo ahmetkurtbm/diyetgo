@@ -1,2 +1,2 @@
--- Testler geliştirme veritabanından ayrı bu veritabanını kullanır (CLAUDE.md §4.3).
+-- Testler geliştirme veritabanından ayrı bu veritabanını kullanır.
 CREATE DATABASE diyetgo_test;

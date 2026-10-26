@@ -1,7 +1,7 @@
 /**
  * Takvim günü (`YYYY-MM-DD`) ve zaman (UTC ISO 8601) işlemleri.
  *
- * Kurallar (CLAUDE.md §4.4):
+ * Kurallar:
  * - Zamanlar UTC olarak saklanır, arayüzde `Europe/Istanbul` ile gösterilir.
  * - Takvim günleri saat bilgisi taşımaz.
  * - Buradaki fonksiyonlar makinenin yerel saat dilimini hiç kullanmaz; yalnızca UTC metotları
