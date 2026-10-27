@@ -140,7 +140,7 @@ export function OptionPlanView({ plan, meals, items, foodsById, selectableFoods,
                   aria-label={`${t.name} haftalık adet`}
                   value={quotas[t.id] ?? '0'}
                   onChange={(e) => setQuotas({ ...quotas, [t.id]: e.target.value })}
-                  className="h-9 w-16 rounded-md border border-slate-300 bg-white px-2 text-right tabular-nums"
+                  className="h-9 w-16 rounded-md border border-slate-300 bg-surface px-2 text-right tabular-nums"
                 />
                 kez
               </span>

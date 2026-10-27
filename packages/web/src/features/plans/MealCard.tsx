@@ -319,7 +319,7 @@ function ExchangeForm({ meal, items, sortOrder, foods, onDone }: { meal: PlanMea
               aria-label={`${f.name} adedi`}
               value={counts[f.id] ?? '0'}
               onChange={(e) => setCounts({ ...counts, [f.id]: e.target.value })}
-              className="h-8 w-14 rounded-md border border-slate-300 bg-white px-2 text-right tabular-nums pointer-coarse:h-10"
+              className="h-8 w-14 rounded-md border border-slate-300 bg-surface px-2 text-right tabular-nums pointer-coarse:h-10"
             />
           </label>
         ))}

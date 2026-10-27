@@ -106,12 +106,12 @@ export function FoodsPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Besin adı veya marka ara"
-              className="h-10 w-full rounded-md border border-slate-300 bg-white pr-3 pl-9 text-sm placeholder:text-slate-400"
+              className="h-10 w-full rounded-md border border-slate-300 bg-surface pr-3 pl-9 text-sm placeholder:text-slate-400"
             />
           </label>
           <label className="flex items-center gap-2 text-sm text-slate-600">
             <span>Tür</span>
-            <select value={kindFilter} onChange={(e) => setKindFilter(e.target.value as KindFilter)} className="h-9 rounded-md border border-slate-300 bg-white px-2 text-sm">
+            <select value={kindFilter} onChange={(e) => setKindFilter(e.target.value as KindFilter)} className="h-9 rounded-md border border-slate-300 bg-surface px-2 text-sm">
               {Object.entries(kinds).map(([value, label]) => (
                 <option key={value} value={value}>
                   {label}

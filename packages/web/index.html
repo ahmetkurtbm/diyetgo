@@ -5,7 +5,7 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <!-- resizes-content: mobil klavye açılınca sayfa ve pencereler klavyenin üstünde kalır. -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content" />
-    <meta name="theme-color" content="#13301f" />
+    <meta name="theme-color" content="#0f766e" />
     <!-- Ana ekrana eklenen uygulama (PWA); manifest derlemede eklenir. -->
     <link rel="apple-touch-icon" href="/apple-touch-icon-180x180.png" />
     <meta name="mobile-web-app-capable" content="yes" />
@@ -13,6 +13,13 @@
     <meta name="apple-mobile-web-app-title" content="Diyetgo" />
     <meta name="description" content="Diyetgo: diyetisyenler için danışan, beslenme planı ve randevu yönetimi (demo)." />
     <title>Diyetgo</title>
+    <!-- Kayıtlı temayı ilk çizimden önce uygular (src/lib/theme.ts ile aynı anahtar). -->
+    <script>
+      try {
+        var t = localStorage.getItem('diyetgo-theme')
+        if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t)
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>

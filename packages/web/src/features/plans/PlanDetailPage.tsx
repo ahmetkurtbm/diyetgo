@@ -188,7 +188,7 @@ export function PlanDetailPage() {
                     aria-current={n === day ? 'page' : undefined}
                     onClick={() => setSearchParams({ day: String(n) }, { replace: true })}
                     className={`flex w-16 flex-col items-center rounded-md border px-2 py-1.5 text-xs ${
-                      n === day ? 'border-brand-600 bg-brand-50 text-brand-800' : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
+                      n === day ? 'border-brand-600 bg-brand-50 text-brand-800' : 'border-slate-200 bg-surface text-slate-600 hover:border-slate-300'
                     }`}
                   >
                     <span className="font-semibold">{n}. gün</span>

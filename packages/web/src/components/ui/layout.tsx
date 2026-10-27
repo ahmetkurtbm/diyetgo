@@ -1,7 +1,7 @@
 import type { HTMLAttributes, ReactNode } from 'react'
 
 export function Card({ className = '', ...props }: HTMLAttributes<HTMLElement>) {
-  return <section className={`rounded-lg border border-slate-200 bg-white shadow-xs ${className}`} {...props} />
+  return <section className={`rounded-lg border border-slate-200 bg-surface ${className}`} {...props} />
 }
 
 export function CardHeader({ title, description, actions }: { title: string; description?: ReactNode; actions?: ReactNode }) {
@@ -20,7 +20,7 @@ export function PageHeader({ title, description, actions }: { title: string; des
   return (
     <header className="mb-6 flex flex-wrap items-end justify-between gap-4">
       <div className="min-w-0">
-        <h1 className="text-2xl font-semibold tracking-tight text-slate-900">{title}</h1>
+        <h1 className="text-[1.75rem] leading-tight font-semibold text-slate-900">{title}</h1>
         {description && <p className="mt-1 text-sm text-slate-500">{description}</p>}
       </div>
       {actions && <div className="flex flex-wrap gap-2">{actions}</div>}

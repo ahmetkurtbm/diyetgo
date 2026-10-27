@@ -1,9 +1,10 @@
 import type { ButtonHTMLAttributes } from 'react'
 
 const variants = {
-  primary: 'bg-brand-700 text-white shadow-sm shadow-emerald-700/30 hover:bg-brand-800 hover:shadow-md disabled:bg-brand-700/50 disabled:shadow-none',
-  secondary: 'border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 disabled:text-slate-400',
-  danger: 'bg-red-600 text-white hover:bg-red-700 disabled:bg-red-600/50',
+  primary: 'bg-brand-700 text-white hover:bg-brand-800 disabled:bg-brand-700/50',
+  secondary: 'border border-slate-300 bg-surface text-slate-700 hover:border-slate-400 hover:bg-slate-50 disabled:text-slate-400',
+  // Sabit kırmızı: koyu temada red-600 açılır ve beyaz yazıyla kontrastı düşer.
+  danger: 'bg-[#dc2626] text-white hover:bg-[#b91c1c] disabled:bg-[#dc2626]/50',
   ghost: 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 disabled:text-slate-400',
 } as const
 
@@ -22,7 +23,7 @@ export function Button({ variant = 'secondary', size = 'md', type = 'button', cl
   return (
     <button
       type={type}
-      className={`inline-flex shrink-0 items-center justify-center rounded-md font-medium transition duration-150 enabled:active:scale-[0.97] disabled:cursor-not-allowed ${variants[variant]} ${sizes[size]} ${className}`}
+      className={`inline-flex shrink-0 items-center justify-center rounded-md font-semibold transition duration-150 enabled:active:scale-[0.97] disabled:cursor-not-allowed ${variants[variant]} ${sizes[size]} ${className}`}
       {...props}
     />
   )

@@ -20,9 +20,9 @@ function initialMode(): Mode {
 function Brand() {
   return (
     <span className="flex items-center justify-center gap-2.5">
-      <img src="/favicon.svg" alt="" className="size-11 rounded-xl shadow-md shadow-emerald-950/20" />
+      <img src="/favicon.svg" alt="" className="size-11 rounded-xl" />
       <span className="text-3xl font-extrabold tracking-tight lowercase">
-        <span className="text-[#13301f]">diyet</span>
+        <span className="text-slate-900">diyet</span>
         <span className="text-lime-600">go</span>
       </span>
     </span>
@@ -36,7 +36,7 @@ function Tabs({ mode, onChange }: { mode: Mode; onChange: (mode: Mode) => void }
       role="tab"
       aria-selected={mode === value}
       onClick={() => onChange(value)}
-      className={`flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors ${mode === value ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
+      className={`flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors ${mode === value ? 'bg-surface text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
     >
       {label}
     </button>
@@ -120,10 +120,10 @@ export function AuthPage({ onSignedIn }: { onSignedIn: () => void }) {
   const copy = titles[mode]
 
   return (
-    <main className="flex min-h-svh items-center justify-center bg-linear-to-br from-[#eef3ea] via-slate-50 to-lime-50 px-4 py-10">
+    <main className="flex min-h-svh items-center justify-center bg-slate-50 px-4 py-10">
       <div className="w-full max-w-md">
         <Brand />
-        <section className="mt-8 animate-pop-in rounded-2xl bg-white p-6 shadow-xl ring-1 shadow-emerald-950/5 ring-slate-200 sm:p-8">
+        <section className="mt-8 animate-pop-in rounded-xl border border-slate-200 bg-surface p-6 sm:p-8">
           {(mode === 'sign-in' || mode === 'sign-up') && <Tabs mode={mode} onChange={switchMode} />}
           <h1 className="mt-6 text-xl font-semibold text-slate-900">{copy.title}</h1>
           <p className="mt-1 text-sm text-slate-500">{copy.description}</p>

@@ -1,5 +1,7 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
+import '@fontsource-variable/nunito-sans'
+import '@fontsource-variable/lora'
 import './index.css'
 import { UpdatePrompt } from './components/layout/UpdatePrompt'
 import { createDataSource } from './data'

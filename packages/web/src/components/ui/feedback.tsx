@@ -18,7 +18,7 @@ export function Badge({ tone = 'neutral', children }: { tone?: keyof typeof tone
 export function EmptyState({ icon: Icon, title, description, action }: { icon: LucideIcon; title: string; description?: string; action?: ReactNode }) {
   return (
     <div className="flex flex-col items-center px-6 py-12 text-center">
-      <span className="mb-3 rounded-full bg-linear-to-br from-brand-50 to-sky-100 p-3 text-brand-700 ring-8 ring-brand-50/50">
+      <span className="mb-3 rounded-full bg-brand-50 p-3 text-brand-700">
         <Icon aria-hidden className="size-6" />
       </span>
       <p className="font-medium text-slate-900">{title}</p>

@@ -122,7 +122,7 @@ function CopyForm({ plan, meals, mealTypes, dayCount, source, onClose }: Omit<Pr
               return (
                 <label
                   key={d}
-                  className={`flex cursor-pointer items-center gap-2 rounded-md border px-2 py-1.5 text-xs ${days.includes(d) ? 'border-brand-600 bg-brand-50' : 'border-slate-200 bg-white'}`}
+                  className={`flex cursor-pointer items-center gap-2 rounded-md border px-2 py-1.5 text-xs ${days.includes(d) ? 'border-brand-600 bg-brand-50' : 'border-slate-200 bg-surface'}`}
                 >
                   <input type="checkbox" checked={days.includes(d)} onChange={() => toggle(d)} aria-label={`${d}. gün`} />
                   <span>

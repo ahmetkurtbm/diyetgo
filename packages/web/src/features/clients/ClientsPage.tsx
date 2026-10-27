@@ -57,7 +57,7 @@ export function ClientsPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Ad, soyad veya e-posta ara"
-              className="h-10 w-full rounded-md border border-slate-300 bg-white pr-3 pl-9 text-sm placeholder:text-slate-400"
+              className="h-10 w-full rounded-md border border-slate-300 bg-surface pr-3 pl-9 text-sm placeholder:text-slate-400"
             />
           </label>
           <label className="flex items-center gap-2 text-sm text-slate-600">

@@ -105,7 +105,7 @@ export function WeeklyReportCard({ data, note, ref }: { data: WeeklyReportData; 
   const { client, week, weight, chart, bodyMetrics, nextAppointment } = data
   return (
     <div ref={ref} className="w-[400px] shrink-0 bg-[#eef3ea] p-4">
-      <article className="overflow-hidden rounded-[28px] bg-white text-slate-800 shadow-xl shadow-emerald-950/10">
+      <article className="theme-light overflow-hidden rounded-[28px] bg-white text-slate-800 shadow-xl shadow-emerald-950/10">
         <header className="relative overflow-hidden px-6 pt-6 pb-7 text-white" style={{ background: `linear-gradient(135deg, ${INK} 0%, #1f4d32 100%)` }}>
           <span aria-hidden className="absolute -top-10 -right-8 size-36 rounded-full" style={{ background: LIME, opacity: 0.18 }} />
           <span aria-hidden className="absolute -bottom-12 right-16 size-24 rounded-full" style={{ background: LIME, opacity: 0.12 }} />

@@ -1,7 +1,7 @@
 import { useId, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from 'react'
 
 const control =
-  'block w-full rounded-md border bg-white px-3 text-sm text-slate-900 shadow-xs placeholder:text-slate-400 disabled:bg-slate-100 aria-invalid:border-red-500 aria-invalid:ring-1 aria-invalid:ring-red-500 border-slate-300'
+  'block w-full rounded-md border bg-surface px-3 text-sm text-slate-900 placeholder:text-slate-400 transition-colors focus:border-brand-600 focus:ring-3 focus:ring-brand-600/20 focus:outline-none disabled:bg-slate-100 aria-invalid:border-red-500 aria-invalid:ring-1 aria-invalid:ring-red-500 border-slate-300'
 
 type FieldProps = { label: string; error?: string; hint?: string }
 

@@ -11,7 +11,7 @@ export function StartupErrorPage({ message, onReset }: { message: string; onRese
   const [confirming, setConfirming] = useState(false)
   return (
     <main className="flex min-h-svh items-center justify-center bg-slate-50 p-4">
-      <div role="alert" className="w-full max-w-md rounded-lg border border-slate-200 bg-white p-6 text-center shadow-sm">
+      <div role="alert" className="w-full max-w-md rounded-lg border border-slate-200 bg-surface p-6 text-center shadow-sm">
         <span className="mx-auto mb-3 inline-flex rounded-full bg-red-50 p-3 text-red-600">
           <AlertTriangle aria-hidden className="size-6" />
         </span>

@@ -116,7 +116,7 @@ export function MealTextDialog({ open, meal, title, sortOrder, foods, onClose }:
                       aria-label={`${row.text} besini`}
                       value={row.foodId}
                       onChange={(e) => update(i, { foodId: e.target.value })}
-                      className="mt-1 block h-10 w-full rounded-md border border-slate-300 bg-white px-2 text-sm text-slate-900"
+                      className="mt-1 block h-10 w-full rounded-md border border-slate-300 bg-surface px-2 text-sm text-slate-900"
                     >
                       <option value="">Besin bulunamadı – listeden seçin</option>
                       {foods.map((f) => (
@@ -133,7 +133,7 @@ export function MealTextDialog({ open, meal, title, sortOrder, foods, onClose }:
                       inputMode="decimal"
                       value={row.amount}
                       onChange={(e) => update(i, { amount: e.target.value })}
-                      className="mt-1 block h-10 w-full rounded-md border border-slate-300 bg-white px-2 text-right text-sm tabular-nums"
+                      className="mt-1 block h-10 w-full rounded-md border border-slate-300 bg-surface px-2 text-right text-sm tabular-nums"
                     />
                   </label>
                 </div>

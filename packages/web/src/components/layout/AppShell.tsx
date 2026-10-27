@@ -4,6 +4,7 @@ import { NavLink, Outlet, useLocation } from 'react-router'
 import { useRepositories, useRepositoryQuery } from '../../data/context'
 import { useAccount } from './account-context'
 import { PageTransition } from '../ui/motion'
+import { ThemeSwitcher } from './ThemeSwitcher'
 
 const navigation = [
   {
@@ -28,10 +29,10 @@ const navigation = [
 function Brand() {
   return (
     <span className="flex items-center gap-2.5">
-      <img src="/favicon.svg" alt="" className="size-9 shadow-md shadow-emerald-950/20 rounded-[10px]" />
+      <img src="/favicon.svg" alt="" className="size-8 rounded-[9px]" />
       {/* "go", 20 px kalın yazı (büyük metin) için WCAG AA'nın 3:1 kontrastını sağlayan lime-600 tonundadır. */}
-      <span className="text-xl font-extrabold tracking-tight lowercase">
-        <span className="text-[#13301f]">diyet</span>
+      <span className="font-display text-xl font-bold tracking-tight lowercase">
+        <span className="text-slate-900">diyet</span>
         <span className="text-lime-600">go</span>
       </span>
     </span>
@@ -55,10 +56,8 @@ function NavGroups({ onNavigate }: { onNavigate?: () => void }) {
                   end={end}
                   onClick={onNavigate}
                   className={({ isActive }) =>
-                    `flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors duration-150 ${
-                      isActive
-                        ? 'bg-linear-to-r from-brand-700 to-teal-700 text-white shadow-sm shadow-emerald-700/30'
-                        : 'text-slate-600 hover:bg-brand-50 hover:text-brand-800'
+                    `flex min-h-11 items-center gap-3 rounded-lg px-3 text-sm font-semibold transition-colors duration-150 ${
+                      isActive ? 'bg-brand-50 text-brand-800' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
                     }`
                   }
                 >
@@ -74,23 +73,68 @@ function NavGroups({ onNavigate }: { onNavigate?: () => void }) {
   )
 }
 
-/** Demo modunun sınırlarını belirtir; tarayıcı depolaması yoksa verinin kaybolacağını vurgular. */
-function DemoNotice({ persistent }: { persistent: boolean }) {
+/** Masaüstü üst menü: gruplar yan yana, aralarında ince ayraç; grup adı ekran okuyucu için. */
+function TopNav() {
+  const id = useId()
   return (
-    <div
-      role="note"
-      aria-label="Demo modu"
-      className={`rounded-md border p-3 text-xs ${persistent ? 'border-amber-200 bg-amber-50 text-amber-900' : 'border-red-200 bg-red-50 text-red-800'}`}
-    >
+    <nav aria-label="Ana menü" className="hidden items-center lg:flex">
+      {navigation.map((group, index) => (
+        <div key={group.title} className="flex items-center">
+          {index > 0 && <span aria-hidden className="mx-2 h-5 w-px bg-slate-200" />}
+          <p id={`${id}-${index}`} className="sr-only">
+            {group.title}
+          </p>
+          <ul aria-labelledby={`${id}-${index}`} className="flex items-center gap-0.5">
+            {group.items.map(({ to, label, icon: Icon, end }) => (
+              <li key={to}>
+                <NavLink
+                  to={to}
+                  end={end}
+                  className={({ isActive }) =>
+                    `flex h-9 items-center gap-2 rounded-full px-3 text-sm font-semibold whitespace-nowrap transition-colors duration-150 ${
+                      isActive ? 'bg-brand-700 text-white' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                    }`
+                  }
+                >
+                  <Icon aria-hidden className="size-4" />
+                  {label}
+                </NavLink>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </nav>
+  )
+}
+
+/** Demo modunun sınırlarını belirtir; tarayıcı depolaması yoksa verinin kaybolacağını vurgular. */
+function DemoNotice({ persistent, compact = false }: { persistent: boolean; compact?: boolean }) {
+  const tone = persistent ? 'border-amber-200 bg-amber-50 text-amber-900' : 'border-red-200 bg-red-50 text-red-800'
+  const message = persistent
+    ? 'Veriler yalnızca bu tarayıcıda tutulur; cihazlar arasında paylaşılmaz ve yedeklenmez.'
+    : 'Tarayıcı depolaması kullanılamıyor; değişiklikler sayfa yenilenince kaybolur.'
+
+  if (compact) {
+    return (
+      <div role="note" aria-label="Demo modu" className={`border-b ${tone}`}>
+        <p className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-2 gap-y-0.5 px-4 py-2 text-xs sm:px-6">
+          <Info aria-hidden className="size-4 shrink-0" />
+          <span className="font-semibold">Demo modu</span>
+          <span>{message}</span>
+          <span className="font-semibold">Gerçek kişisel veya sağlık verisi girmeyin.</span>
+        </p>
+      </div>
+    )
+  }
+
+  return (
+    <div role="note" aria-label="Demo modu" className={`rounded-lg border p-3 text-xs ${tone}`}>
       <p className="flex items-center gap-1.5 text-sm font-semibold">
         <Info aria-hidden className="size-4 shrink-0" />
         Demo modu
       </p>
-      <p className="mt-1">
-        {persistent
-          ? 'Veriler yalnızca bu tarayıcıda tutulur; cihazlar arasında paylaşılmaz ve yedeklenmez.'
-          : 'Tarayıcı depolaması kullanılamıyor; değişiklikler sayfa yenilenince kaybolur.'}
-      </p>
+      <p className="mt-1">{message}</p>
       <p className="mt-1 font-semibold">Gerçek kişisel veya sağlık verisi girmeyin.</p>
     </div>
   )
@@ -108,8 +152,8 @@ function AccountCard() {
     .map((part) => part[0]!.toLocaleUpperCase('tr-TR'))
     .join('')
   return (
-    <div className="flex items-center gap-3 rounded-lg bg-slate-50 p-2.5 ring-1 ring-slate-200">
-      <span aria-hidden className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[#13301f] text-sm font-semibold text-lime-300">
+    <div className="flex items-center gap-3 rounded-lg p-1">
+      <span aria-hidden className="flex size-9 shrink-0 items-center justify-center rounded-full bg-brand-700 text-sm font-semibold text-white">
         {initials || '?'}
       </span>
       <span className="min-w-0 flex-1">
@@ -129,7 +173,7 @@ function AccountCard() {
             setLeaving(false)
           }
         }}
-        className="rounded-md p-2 text-slate-500 hover:bg-white hover:text-slate-900 disabled:opacity-50"
+        className="flex size-9 items-center justify-center rounded-full text-slate-500 hover:bg-slate-100 hover:text-slate-900 disabled:opacity-50"
       >
         <LogOut aria-hidden className="size-4" />
       </button>
@@ -170,19 +214,23 @@ function MobileMenu({ open, onClose, isDemo, persistent }: { open: boolean; onCl
       }}
       // İçerik dialog'u tamamen kapladığından dialog'un kendisine gelen tıklama yalnızca karartılmış dış alandan gelir.
       onClick={(event) => event.target === event.currentTarget && onClose()}
-      className="m-0 h-full max-h-none w-72 max-w-[85vw] bg-white p-0 shadow-xl backdrop:bg-slate-900/40 lg:hidden"
+      className="m-0 h-full max-h-none w-72 max-w-[85vw] bg-surface p-0 shadow-xl backdrop:bg-black/50 lg:hidden"
     >
       {open && (
         <div className="flex h-full flex-col">
           <div className="flex h-14 items-center justify-between border-b border-slate-200 px-4">
             <Brand />
-            <button type="button" aria-label="Menüyü kapat" onClick={onClose} className="rounded-md p-2 text-slate-600 hover:bg-slate-100">
+            <button type="button" aria-label="Menüyü kapat" onClick={onClose} className="flex size-11 items-center justify-center rounded-full text-slate-600 hover:bg-slate-100">
               <X aria-hidden className="size-5" />
             </button>
           </div>
           <nav aria-label="Ana menü" className="flex-1 overflow-y-auto px-3 py-4">
             <NavGroups onNavigate={onClose} />
           </nav>
+          <div className="flex items-center justify-between border-t border-slate-200 px-4 py-3">
+            <span className="text-sm font-medium text-slate-600">Tema</span>
+            <ThemeSwitcher />
+          </div>
           {isDemo && (
             <div className="border-t border-slate-200 p-3">
               <DemoNotice persistent={persistent} />
@@ -207,40 +255,41 @@ export function AppShell() {
   const persistent = demo.data?.persistent ?? true
 
   return (
-    <div className="min-h-svh lg:pl-64">
-      <aside className="fixed inset-y-0 left-0 hidden w-64 flex-col border-r border-slate-200 bg-white lg:flex">
-        <div className="flex h-16 items-center px-6">
+    <div className="min-h-svh">
+      <header className="sticky top-0 z-30 border-b border-slate-200 bg-surface">
+        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
           <Brand />
-        </div>
-        <nav aria-label="Ana menü" className="flex-1 overflow-y-auto px-3 py-2">
-          <NavGroups />
-        </nav>
-        <div className="border-t border-slate-200 p-3">{isDemo ? <DemoNotice persistent={persistent} /> : <AccountCard />}</div>
-      </aside>
-
-      <header className="sticky top-0 z-30 flex h-14 items-center justify-between gap-3 border-b border-slate-200 bg-white px-4 lg:hidden">
-        <Brand />
-        <div className="flex items-center gap-2">
-          {isDemo && (
-            <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${persistent ? 'bg-amber-100 text-amber-900' : 'bg-red-100 text-red-800'}`}>
-              Demo
-            </span>
-          )}
-          <button
-            type="button"
-            aria-label="Menüyü aç"
-            aria-expanded={menuOpen}
-            aria-controls="mobile-menu"
-            onClick={() => setMenuOpen(true)}
-            className="rounded-md p-2 text-slate-600 hover:bg-slate-100"
-          >
-            <Menu aria-hidden className="size-5" />
-          </button>
+          <TopNav />
+          <div className="flex items-center gap-2">
+            <div className="hidden lg:block">
+              <ThemeSwitcher />
+            </div>
+            {!isDemo && (
+              <div className="hidden lg:block">
+                <AccountCard />
+              </div>
+            )}
+            <button
+              type="button"
+              aria-label="Menüyü aç"
+              aria-expanded={menuOpen}
+              aria-controls="mobile-menu"
+              onClick={() => setMenuOpen(true)}
+              className="flex size-11 items-center justify-center rounded-full text-slate-600 hover:bg-slate-100 lg:hidden"
+            >
+              <Menu aria-hidden className="size-5" />
+            </button>
+          </div>
         </div>
       </header>
+      {isDemo && (
+        <aside aria-label="Demo bilgisi">
+          <DemoNotice persistent={persistent} compact />
+        </aside>
+      )}
       <MobileMenu open={menuOpen} onClose={() => setMenuOpen(false)} isDemo={isDemo} persistent={persistent} />
 
-      <main key={pathname} className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:py-8">
+      <main key={pathname} className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:py-10">
         <PageTransition>
           <Outlet />
         </PageTransition>

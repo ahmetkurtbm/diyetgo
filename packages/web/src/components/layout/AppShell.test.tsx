@@ -19,7 +19,7 @@ async function openMenu(user: ReturnType<typeof renderApp>['user']) {
   return screen.findByRole('dialog', { name: 'Menü' })
 }
 
-describe('Sol menü', () => {
+describe('Ana menü', () => {
   it('bağlantıları Takip, Beslenme ve Sistem gruplarında gösterir', async () => {
     renderApp('/')
     await screen.findByRole('heading', { name: 'Genel bakış' })

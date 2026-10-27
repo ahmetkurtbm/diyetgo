@@ -128,7 +128,7 @@ export function WeightChart({ points }: { points: Point[] }) {
         {activePoint && (
           <div
             role="tooltip"
-            className="pointer-events-none absolute z-10 rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs whitespace-nowrap shadow-md"
+            className="pointer-events-none absolute z-10 rounded-md border border-slate-200 bg-surface px-2.5 py-1.5 text-xs whitespace-nowrap shadow-md"
             style={{ left: tooltipX, top: y(activePoint.value) - 12, transform: `translate(${tooltipShift}, -100%)` }}
           >
             <p className="font-semibold text-slate-900 tabular-nums">{formatNumber(activePoint.value)} kg</p>

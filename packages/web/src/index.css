@@ -1,23 +1,29 @@
 @import 'tailwindcss';
 
-/* Tasarım token'ları: tüm bileşenler bu renkleri kullanır. */
+/*
+ * Tasarım token'ları. Stil: düz (flat) — gölge ve degrade yok, ayrım çizgi ve tonla.
+ * Bileşenler Tailwind'in slate paletini kullanır; slate, beyaz yerine `surface` ve
+ * uyarı tonları aşağıda CSS değişkenine bağlanır, böylece koyu tema tek yerden çevrilir.
+ */
 @theme {
-  --font-sans: system-ui, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-sans: 'Nunito Sans Variable', system-ui, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'Lora Variable', Georgia, 'Times New Roman', serif;
 
-  --color-brand-50: var(--color-emerald-50);
-  --color-brand-100: var(--color-emerald-100);
-  --color-brand-200: var(--color-emerald-200);
-  --color-brand-600: var(--color-emerald-600);
-  --color-brand-700: var(--color-emerald-700);
-  --color-brand-800: var(--color-emerald-800);
+  /* Marka — derin teal. 700 tonu beyaz yazıyla 5.4:1 kontrast verir. */
+  --color-brand-600: #0d9488;
+  --color-brand-700: #0f766e;
+  --color-brand-800: #115e59;
+
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
 
   /* Makro renkleri: çubuk ve noktalarda kullanılır; metin her zaman slate tonundadır (kontrast). */
-  --color-macro-energy: var(--color-emerald-500);
-  --color-macro-protein: var(--color-sky-500);
-  --color-macro-carbs: var(--color-violet-500);
-  --color-macro-fat: var(--color-rose-500);
+  --color-macro-energy: #14b8a6;
+  --color-macro-protein: #0ea5e9;
+  --color-macro-carbs: #8b5cf6;
+  --color-macro-fat: #f43f5e;
   /* Hedefin %110'unu aşan değer. */
-  --color-macro-over: var(--color-amber-500);
+  --color-macro-over: #f59e0b;
 
   --animate-pop-in: pop-in 0.2s cubic-bezier(0.22, 1, 0.36, 1);
   --animate-grow-up: grow-up 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
@@ -38,6 +44,44 @@
       transform: none;
     }
   }
+}
+
+/* Değişkene bağlı renkler: `inline`, değeri kullanıldığı elemanda çözer (`.theme-light` kapsamı için şart). */
+@theme inline {
+  --color-brand-50: var(--brand-50);
+  --color-brand-100: var(--brand-100);
+  --color-brand-200: var(--brand-200);
+  --color-surface: var(--surface);
+  --color-slate-50: var(--n-50);
+  --color-slate-100: var(--n-100);
+  --color-slate-200: var(--n-200);
+  --color-slate-300: var(--n-300);
+  --color-slate-400: var(--n-400);
+  --color-slate-500: var(--n-500);
+  --color-slate-600: var(--n-600);
+  --color-slate-700: var(--n-700);
+  --color-slate-800: var(--n-800);
+  --color-slate-900: var(--n-900);
+  --color-amber-50: var(--amber-50);
+  --color-amber-100: var(--amber-100);
+  --color-amber-200: var(--amber-200);
+  --color-amber-800: var(--amber-800);
+  --color-amber-900: var(--amber-900);
+  --color-red-50: var(--red-50);
+  --color-red-100: var(--red-100);
+  --color-red-200: var(--red-200);
+  --color-red-600: var(--red-600);
+  --color-red-700: var(--red-700);
+  --color-red-800: var(--red-800);
+  --color-sky-50: var(--sky-50);
+  --color-sky-100: var(--sky-100);
+  --color-sky-200: var(--sky-200);
+  --color-sky-700: var(--sky-700);
+  --color-sky-800: var(--sky-800);
+  --color-sky-900: var(--sky-900);
+  --color-violet-50: var(--violet-50);
+  --color-violet-700: var(--violet-700);
+  --color-lime-50: var(--lime-50);
 }
 
 /* Hareket istemeyen kullanıcılarda CSS animasyon ve geçişleri kapatılır (motion için bkz. MotionConfig). */
@@ -91,13 +135,152 @@
   }
 }
 
+/* Açık tema değerleri; `.theme-light` paylaşılan rapor kartı gibi her zaman açık kalan alanlar içindir. */
+:root,
+.theme-light {
+  --surface: #ffffff;
+  --n-50: #f5f8f7;
+  --n-100: #edf2f1;
+  --n-200: #dfe7e5;
+  --n-300: #c9d5d2;
+  --n-400: #93a4a0;
+  --n-500: #5b6d69;
+  --n-600: #475855;
+  --n-700: #354441;
+  --n-800: #23312f;
+  --n-900: #13201e;
+  --brand-50: #f0fdfa;
+  --brand-100: #ccfbf1;
+  --brand-200: #99f6e4;
+  --amber-50: #fffbeb;
+  --amber-100: #fef3c7;
+  --amber-200: #fde68a;
+  --amber-800: #92400e;
+  --amber-900: #78350f;
+  --red-50: #fef2f2;
+  --red-100: #fee2e2;
+  --red-200: #fecaca;
+  --red-600: #dc2626;
+  --red-700: #b91c1c;
+  --red-800: #991b1b;
+  --sky-50: #f0f9ff;
+  --sky-100: #e0f2fe;
+  --sky-200: #bae6fd;
+  --sky-700: #0369a1;
+  --sky-800: #075985;
+  --sky-900: #0c4a6e;
+  --violet-50: #f5f3ff;
+  --violet-700: #6d28d9;
+  --lime-50: #f7fee7;
+  color-scheme: light;
+}
+
+/*
+ * Koyu tema: kullanıcı seçtiyse `data-theme="dark"`, seçmediyse cihaz ayarı. Açık zemin
+ * tonları koyu tonlara, koyu metin tonları açık tonlara döner; düğme zeminleri sabit kalır.
+ */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --surface: #111c1b;
+    --n-50: #0b1413;
+    --n-100: #16221f;
+    --n-200: #22302d;
+    --n-300: #33433f;
+    --n-400: #64766f;
+    --n-500: #9db0ab;
+    --n-600: #b7c7c3;
+    --n-700: #cfdcd9;
+    --n-800: #e2ebe9;
+    --n-900: #f1f6f5;
+    --brand-50: #0f2a27;
+    --brand-100: #123632;
+    --brand-200: #17504a;
+    --amber-50: #2a1e09;
+    --amber-100: #3a2a0d;
+    --amber-200: #5c4314;
+    --amber-800: #fcd9a0;
+    --amber-900: #fde8c4;
+    --red-50: #2b1213;
+    --red-100: #3d1719;
+    --red-200: #5e2326;
+    --red-600: #f87171;
+    --red-700: #fca5a5;
+    --red-800: #fecaca;
+    --sky-50: #0b2231;
+    --sky-100: #0f2e42;
+    --sky-200: #164560;
+    --sky-700: #7dd3fc;
+    --sky-800: #bae6fd;
+    --sky-900: #e0f2fe;
+    --violet-50: #1e1636;
+    --violet-700: #c4b5fd;
+    --lime-50: #17220b;
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme='dark'] {
+  --surface: #111c1b;
+  --n-50: #0b1413;
+  --n-100: #16221f;
+  --n-200: #22302d;
+  --n-300: #33433f;
+  --n-400: #64766f;
+  --n-500: #9db0ab;
+  --n-600: #b7c7c3;
+  --n-700: #cfdcd9;
+  --n-800: #e2ebe9;
+  --n-900: #f1f6f5;
+  --brand-50: #0f2a27;
+  --brand-100: #123632;
+  --brand-200: #17504a;
+  --amber-50: #2a1e09;
+  --amber-100: #3a2a0d;
+  --amber-200: #5c4314;
+  --amber-800: #fcd9a0;
+  --amber-900: #fde8c4;
+  --red-50: #2b1213;
+  --red-100: #3d1719;
+  --red-200: #5e2326;
+  --red-600: #f87171;
+  --red-700: #fca5a5;
+  --red-800: #fecaca;
+  --sky-50: #0b2231;
+  --sky-100: #0f2e42;
+  --sky-200: #164560;
+  --sky-700: #7dd3fc;
+  --sky-800: #bae6fd;
+  --sky-900: #e0f2fe;
+  --violet-50: #1e1636;
+  --violet-700: #c4b5fd;
+  --lime-50: #17220b;
+  color-scheme: dark;
+}
+
+/* Koyu zeminde marka rengindeki metin okunur kalsın (düğme zeminleri `bg-brand-*` değişmez). */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) :is(.text-brand-700, .text-brand-800):not(.theme-light *) {
+    color: #5eead4;
+  }
+}
+:root[data-theme='dark'] :is(.text-brand-700, .text-brand-800):not(.theme-light *) {
+  color: #5eead4;
+}
+
 @layer base {
-  html {
-    color-scheme: light;
+  body {
+    @apply bg-slate-50 font-sans text-slate-800 antialiased;
   }
 
-  body {
-    @apply bg-slate-50 text-slate-800 antialiased;
+  h1,
+  h2 {
+    font-family: var(--font-display);
+  }
+
+  button,
+  [role='button'],
+  summary {
+    cursor: pointer;
   }
 
   :focus-visible {

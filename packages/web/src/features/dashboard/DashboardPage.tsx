@@ -15,14 +15,14 @@ type Activity = { id: string; at: string; title: string; detail: string; to: str
 const cardLink = 'text-sm font-medium text-brand-700 hover:underline'
 
 /**
- * Kart renkleri. Renk yalnızca dekoratif yüzeylerdedir (şerit, ikon, çubuk); metin slate tonunda
- * kalır, böylece kontrast WCAG AA'yı korur. İkon zemini beyaz ikonla en az 3:1 kontrastlıdır.
+ * Kart renkleri (düz stil: degrade ve gölge yok). Renk yalnızca ikon zemininde ve çubuklardadır;
+ * metin slate tonunda kalır. İkon zemini beyaz ikonla en az 3:1 kontrastlıdır.
  */
 const statTones = {
-  sky: { surface: 'from-sky-50', accent: 'from-sky-400 to-sky-600', icon: 'bg-sky-600 shadow-sky-600/30', bar: 'bg-linear-to-r from-sky-400 to-sky-600' },
-  violet: { surface: 'from-violet-50', accent: 'from-violet-400 to-violet-600', icon: 'bg-violet-600 shadow-violet-600/30', bar: 'bg-linear-to-r from-violet-400 to-violet-600' },
-  amber: { surface: 'from-amber-50', accent: 'from-amber-300 to-orange-500', icon: 'bg-orange-600 shadow-orange-600/30', bar: 'bg-linear-to-t from-amber-400 to-orange-500' },
-  emerald: { surface: 'from-emerald-50', accent: 'from-emerald-400 to-teal-600', icon: 'bg-emerald-600 shadow-emerald-600/30', bar: 'bg-linear-to-r from-emerald-400 to-teal-500' },
+  sky: { icon: 'bg-sky-600', bar: 'bg-sky-500' },
+  violet: { icon: 'bg-violet-600', bar: 'bg-violet-500' },
+  amber: { icon: 'bg-orange-600', bar: 'bg-orange-500' },
+  emerald: { icon: 'bg-brand-700', bar: 'bg-brand-600' },
 } as const
 
 type StatTone = keyof typeof statTones
@@ -30,15 +30,14 @@ type StatTone = keyof typeof statTones
 function StatCard({ icon: Icon, tone, label, value, detail, children }: { icon: LucideIcon; tone: StatTone; label: string; value: number; detail: ReactNode; children?: ReactNode }) {
   const colors = statTones[tone]
   return (
-    <Card className={`relative flex h-full flex-col overflow-hidden bg-linear-to-br ${colors.surface} via-white to-white p-5 transition duration-200 hover:-translate-y-0.5 hover:shadow-md`}>
-      <span aria-hidden className={`absolute inset-x-0 top-0 h-1 bg-linear-to-r ${colors.accent}`} />
+    <Card className="flex h-full flex-col p-5 transition-colors duration-200 hover:border-slate-300">
       <div className="flex items-center justify-between gap-2">
         <p className="text-sm font-medium text-slate-600">{label}</p>
-        <span className={`rounded-lg p-2 text-white shadow-md ${colors.icon}`}>
+        <span className={`rounded-lg p-2 text-white ${colors.icon}`}>
           <Icon aria-hidden className="size-4" />
         </span>
       </div>
-      <p className="mt-2 text-3xl font-semibold tabular-nums text-slate-900">
+      <p className="mt-2 font-display text-3xl font-semibold tabular-nums text-slate-900">
         <AnimatedNumber value={value} />
       </p>
       <p className="mt-1 text-xs text-slate-500" data-testid="stat-detail">
