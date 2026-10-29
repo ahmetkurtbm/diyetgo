@@ -8,6 +8,34 @@ Diyetisyenler için danışan, ölçüm, besin, beslenme planı, randevu ve besl
 
 > **Demo uyarısı:** Herkese açık sürüm (Vercel) yalnızca **demo modunda** çalışır; yerel PostgreSQL modu için bkz. [Yerel veritabanı ve backend](#yerel-veritabanı-ve-backend). Demo modunda tüm veriler **yalnızca kullandığınız tarayıcıda** (localStorage) tutulur; sunucuya gönderilmez, cihazlar arasında paylaşılmaz ve yedeklenmez. Örnek veriler **kurgusaldır**. **Gerçek kişisel veya sağlık verisi girmeyin.**
 
+## Hangi sorunu çözüyor
+
+**Sorun.** Diyetisyenler beslenme planını hazırlarken besin değerlerini elle toplar; danışan ölçümleri, randevular ve planlar Excel, not defteri ve mesajlaşma uygulamaları arasında dağılır. Danışana düzenli ilerleme raporu göndermek zaman alır.
+
+**Çözüm.**
+- Plan yazılırken günlük ve haftalık kalori/makro toplamları canlı hesaplanır; "8 yemek kaşığı pirinç pilavı" gibi serbest metin gram ve besine çevrilir.
+- Seçenekli haftalık menü ve değişim sistemi, diyetisyenlerin gerçekte çalıştığı biçimde.
+- Ölçüm geçmişi, hedefler ve randevular danışan sayfasında tek yerde; çakışan randevu engellenir.
+- Danışana gönderilecek haftalık rapor görseli tek tıkla üretilir.
+
+**Durum.** Arayüz tarayıcıda çalışan demo olarak yayında. Çok kullanıcılı API ve PostgreSQL yerelde çalışıyor; barındırma ve KVKK süreçleri tamamlanmadan gerçek sağlık verisi kullanılmamalı.
+
+### Teknik kararlar
+
+- **Aynı sözleşme, iki uygulama.** Demo (localStorage) ve gerçek API aynı test senaryolarına karşı çalıştırılır; ikisinin farklı davranması testte yakalanır.
+- **Eşzamanlılık veritabanında.** Randevu çakışması ve hedef dönemi kontrolleri kilitli işlemlerde yapılır.
+- **Zaman doğru.** Tarih hesapları `Europe/Istanbul` saat dilimine göre; testler makinenin saat diliminden bağımsız.
+- **Yayına hazır PWA.** Telefona kurulur, çevrimdışı açılır, yeni sürümde formu kaybettirmeden güncellenir.
+
+## Ekran görüntüleri
+
+<!-- docs/screenshots/ klasörüne bu adlarla PNG ekleyin. -->
+| Genel bakış | Beslenme planı |
+|---|---|
+| ![Genel bakış](docs/screenshots/genel-bakis.png) | ![Beslenme planı](docs/screenshots/plan.png) |
+| **Haftalık rapor** | **Telefon (PWA)** |
+| ![Haftalık rapor](docs/screenshots/haftalik-rapor.png) | ![Telefon görünümü](docs/screenshots/mobil.png) |
+
 ## İçindekiler
 
 - [Özellikler](#özellikler)
