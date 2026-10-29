@@ -29,12 +29,11 @@ Diyetisyenler için danışan, ölçüm, besin, beslenme planı, randevu ve besl
 
 ## Ekran görüntüleri
 
-<!-- docs/screenshots/ klasörüne bu adlarla PNG ekleyin. -->
 | Genel bakış | Beslenme planı |
 |---|---|
 | ![Genel bakış](docs/screenshots/genel-bakis.png) | ![Beslenme planı](docs/screenshots/plan.png) |
-| **Haftalık rapor** | **Telefon (PWA)** |
-| ![Haftalık rapor](docs/screenshots/haftalik-rapor.png) | ![Telefon görünümü](docs/screenshots/mobil.png) |
+
+<img src="docs/screenshots/mobil.png" alt="Telefonda Diyetgo" width="260">
 
 ## İçindekiler
 
