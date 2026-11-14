@@ -221,6 +221,11 @@ diyetgo/
 
 Bileşenler veriye yalnızca `packages/web/src/data/repositories.ts` içindeki repository arayüzleri üzerinden erişir. Ortak iş kuralları (randevu çakışması, hedef dönemleri, plan günleri) ve saat dilimi dönüşümleri `packages/shared` içindedir.
 
+## Güvenlik ve sınırlar
+
+- Sunucu varsayılan olarak yalnızca `127.0.0.1`'e bağlanır, internete açık değildir. Açılırsa diye: Better Auth hız sınırı etkindir (giriş 60 sn'de 5, kayıt 300 sn'de 5, parola sıfırlama 300 sn'de 3; bellek depolamalı), liste uçlarında `limit` vardır (varsayılan 500, en fazla 1000) ve Express gövdesi 100 kB ile sınırlıdır.
+- Vercel'deki statik demoda güvenlik başlıkları tanımlıdır; veri yalnızca ziyaretçinin tarayıcısındadır.
+
 ## Durum ve planlanan işler
 
 Tamamlanmayan işler:
