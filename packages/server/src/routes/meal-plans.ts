@@ -1,14 +1,14 @@
 import { Router, type Response } from 'express'
 import type { Db } from '../db/client'
 import { createMealPlanService } from '../services/meal-plans'
-import { archivedBody, includeArchivedParam, ownerOf, stringParam } from './params'
+import { archivedBody, includeArchivedParam, ownerOf, pageParams, stringParam } from './params'
 
 export function mealPlansRouter(db: Db) {
   const service = (res: Response) => createMealPlanService(db, ownerOf(res))
   const router = Router()
 
   router.get('/', async (req, res) => {
-    res.json(await service(res).list({ clientId: stringParam(req.query.clientId), includeArchived: includeArchivedParam(req.query.includeArchived) }))
+    res.json(await service(res).list({ clientId: stringParam(req.query.clientId), includeArchived: includeArchivedParam(req.query.includeArchived), ...pageParams(req.query) }))
   })
   router.get('/:id', async (req, res) => {
     res.json(await service(res).get(req.params.id))

@@ -10,7 +10,7 @@ import { and, asc, countDistinct, eq, ilike, inArray, isNull, or } from 'drizzle
 import type { Db } from '../db/client'
 import { foods, planMealItems, planMeals, recipeIngredients } from '../db/schema'
 import { ApiError, isRestrictViolation, parse } from '../errors'
-import { byIdAndOwner, checkId, escapeLike, found, isValidId, now, setArchivedValue, toRecord, trCollate, type Executor } from './common'
+import { byIdAndOwner, checkId, escapeLike, found, isValidId, now, pageOf, setArchivedValue, toRecord, trCollate, type Executor, type Page } from './common'
 
 export function createFoodService(db: Db, ownerId: string) {
   async function getRow(id: string, executor: Executor = db) {
@@ -19,7 +19,8 @@ export function createFoodService(db: Db, ownerId: string) {
   }
 
   return {
-    async list({ includeArchived = false, search }: { includeArchived?: boolean; search?: string } = {}): Promise<Food[]> {
+    async list({ includeArchived = false, search, ...page }: { includeArchived?: boolean; search?: string } & Page = {}): Promise<Food[]> {
+      const { limit, offset } = pageOf(page)
       const term = search?.trim()
       const pattern = term ? `%${escapeLike(term)}%` : undefined
       const rows = await db
@@ -32,7 +33,9 @@ export function createFoodService(db: Db, ownerId: string) {
             pattern ? or(ilike(foods.name, pattern), ilike(foods.brand, pattern)) : undefined,
           ),
         )
-        .orderBy(trCollate(foods.name))
+        .orderBy(trCollate(foods.name), asc(foods.id))
+        .limit(limit)
+        .offset(offset)
       return rows.map(toRecord)
     },
 

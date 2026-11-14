@@ -3,7 +3,7 @@ import { Router, type Response } from 'express'
 import type { Db } from '../db/client'
 import { createAppointmentService } from '../services/appointments'
 import { optionalInstant } from '../services/common'
-import { ownerOf, stringParam } from './params'
+import { ownerOf, pageParams, stringParam } from './params'
 
 export function appointmentsRouter(db: Db) {
   const service = (res: Response) => createAppointmentService(db, ownerOf(res))
@@ -17,6 +17,7 @@ export function appointmentsRouter(db: Db) {
         clientId: stringParam(req.query.clientId),
         // Geçerliliği servis doğrular.
         status: stringParam(req.query.status) as AppointmentStatus | undefined,
+        ...pageParams(req.query),
       }),
     )
   })

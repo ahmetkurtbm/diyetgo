@@ -81,6 +81,22 @@ describe('/api/clients', () => {
     expect(wildcard.body).toHaveLength(0)
   })
 
+  it('paginates the list with limit and offset; rejects invalid values and caps limit at 1000', async () => {
+    for (const lastName of ['Aydın', 'Bulut', 'Cömert', 'Demir']) await createClient({ lastName, email: null })
+    const names = (res: { body: { lastName: string }[] }) => res.body.map((c) => c.lastName)
+
+    expect(names(await http.get('/api/clients').query({ limit: '2' }).expect(200))).toEqual(['Aydın', 'Bulut'])
+    expect(names(await http.get('/api/clients').query({ limit: '2', offset: '2' }).expect(200))).toEqual(['Cömert', 'Demir'])
+    expect(names(await http.get('/api/clients').query({ offset: '3' }).expect(200))).toEqual(['Demir'])
+    // Üst sınırdan büyük limit reddedilmez, 1000'e indirilir.
+    expect((await http.get('/api/clients').query({ limit: '5000' }).expect(200)).body).toHaveLength(4)
+
+    for (const query of [{ limit: '0' }, { limit: 'abc' }, { offset: '-1' }]) {
+      const res = await http.get('/api/clients').query(query).expect(400)
+      expect(res.body.error.code).toBe('validation')
+    }
+  })
+
   it('updates a client', async () => {
     const client = await createClient()
     const res = await http.put(`/api/clients/${client.id}`).send(input({ phone: '0555 000 00 00' })).expect(200)

@@ -1,13 +1,14 @@
 import { clientInputSchema, type Client } from '@diyetgo/shared'
-import { and, eq, ilike, isNull, or, sql } from 'drizzle-orm'
+import { and, asc, eq, ilike, isNull, or, sql } from 'drizzle-orm'
 import type { Db } from '../db/client'
 import { clients } from '../db/schema'
 import { ApiError, isRestrictViolation, parse } from '../errors'
-import { byIdAndOwner, escapeLike, getClientRow, now, setArchivedValue, toRecord, trCollate } from './common'
+import { byIdAndOwner, escapeLike, getClientRow, now, pageOf, setArchivedValue, toRecord, trCollate, type Page } from './common'
 
 export function createClientService(db: Db, ownerId: string) {
   return {
-    async list({ includeArchived = false, search }: { includeArchived?: boolean; search?: string } = {}): Promise<Client[]> {
+    async list({ includeArchived = false, search, ...page }: { includeArchived?: boolean; search?: string } & Page = {}): Promise<Client[]> {
+      const { limit, offset } = pageOf(page)
       const term = search?.trim()
       const pattern = term ? `%${escapeLike(term)}%` : undefined
       const rows = await db
@@ -20,7 +21,9 @@ export function createClientService(db: Db, ownerId: string) {
             pattern ? or(ilike(sql`${clients.firstName} || ' ' || ${clients.lastName}`, pattern), ilike(clients.email, pattern)) : undefined,
           ),
         )
-        .orderBy(trCollate(clients.lastName), trCollate(clients.firstName))
+        .orderBy(trCollate(clients.lastName), trCollate(clients.firstName), asc(clients.id))
+        .limit(limit)
+        .offset(offset)
       return rows.map(toRecord)
     },
 

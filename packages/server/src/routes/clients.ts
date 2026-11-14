@@ -4,7 +4,7 @@ import { createConditionService, createMedicationService, createRecommendationSe
 import { createClientService } from '../services/clients'
 import { createGoalService } from '../services/goals'
 import { createMeasurementService } from '../services/measurements'
-import { archivedBody, includeArchivedParam, ownerOf, stringParam } from './params'
+import { archivedBody, includeArchivedParam, ownerOf, pageParams, stringParam } from './params'
 
 export function clientsRouter(db: Db) {
   const service = (res: Response) => createClientService(db, ownerOf(res))
@@ -13,7 +13,7 @@ export function clientsRouter(db: Db) {
   const router = Router()
 
   router.get('/', async (req, res) => {
-    res.json(await service(res).list({ search: stringParam(req.query.search), includeArchived: includeArchivedParam(req.query.includeArchived) }))
+    res.json(await service(res).list({ search: stringParam(req.query.search), includeArchived: includeArchivedParam(req.query.includeArchived), ...pageParams(req.query) }))
   })
   router.get('/:id', async (req, res) => {
     res.json(await service(res).get(req.params.id))

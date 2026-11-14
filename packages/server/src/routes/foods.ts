@@ -2,14 +2,14 @@ import { Router, type Response } from 'express'
 import type { Db } from '../db/client'
 import { createFoodService } from '../services/foods'
 import { createMealTypeService } from '../services/meal-types'
-import { archivedBody, includeArchivedParam, ownerOf, stringParam } from './params'
+import { archivedBody, includeArchivedParam, ownerOf, pageParams, stringParam } from './params'
 
 export function foodsRouter(db: Db) {
   const service = (res: Response) => createFoodService(db, ownerOf(res))
   const router = Router()
 
   router.get('/', async (req, res) => {
-    res.json(await service(res).list({ search: stringParam(req.query.search), includeArchived: includeArchivedParam(req.query.includeArchived) }))
+    res.json(await service(res).list({ search: stringParam(req.query.search), includeArchived: includeArchivedParam(req.query.includeArchived), ...pageParams(req.query) }))
   })
   // `/:id`'den önce: "ingredients" bir besin kimliği gibi yorumlanmasın.
   router.get('/ingredients', async (_req, res) => {

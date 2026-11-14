@@ -27,7 +27,7 @@ import { z } from 'zod'
 import type { Db } from '../db/client'
 import { foods, mealPlans, mealTypes, planMealItems, planMeals } from '../db/schema'
 import { ApiError, parse } from '../errors'
-import { byIdAndOwner, checkId, found, isValidId, now, requireActiveClient, setArchivedValue, toRecord, trCollate, type Executor } from './common'
+import { byIdAndOwner, checkId, found, isValidId, now, pageOf, requireActiveClient, setArchivedValue, toRecord, trCollate, type Executor, type Page } from './common'
 
 export type MealPlanDetail = { plan: MealPlan; meals: PlanMeal[]; items: PlanMealItem[] }
 
@@ -112,7 +112,8 @@ async function checkItemFood(db: Executor, ownerId: string, foodId: string, prev
 export function createMealPlanService(db: Db, ownerId: string) {
   return {
     /** En yeni başlangıç tarihi önce. */
-    async list({ includeArchived = false, clientId }: { includeArchived?: boolean; clientId?: string } = {}): Promise<MealPlan[]> {
+    async list({ includeArchived = false, clientId, ...page }: { includeArchived?: boolean; clientId?: string } & Page = {}): Promise<MealPlan[]> {
+      const { limit, offset } = pageOf(page)
       // Geçersiz kimlikle hiçbir plan eşleşmez (demo moduyla aynı).
       if (clientId !== undefined && !isValidId(clientId)) return []
       const rows = await db
@@ -125,7 +126,9 @@ export function createMealPlanService(db: Db, ownerId: string) {
             clientId === undefined ? undefined : eq(mealPlans.clientId, clientId),
           ),
         )
-        .orderBy(desc(mealPlans.startDate), trCollate(mealPlans.title))
+        .orderBy(desc(mealPlans.startDate), trCollate(mealPlans.title), asc(mealPlans.id))
+        .limit(limit)
+        .offset(offset)
       return rows.map(toRecord)
     },
 

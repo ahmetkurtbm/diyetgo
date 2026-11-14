@@ -24,6 +24,20 @@ export type AuthOptions = {
 
 export const MIN_PASSWORD_LENGTH = 10
 
+/**
+ * Kaba kuvvet ve hesap oluşturma/sıfırlama suistimaline karşı hız sınırları (yol, `basePath` olmadan).
+ * Sayaçlar süreç belleğinde tutulur: veritabanı depolaması ek bir tablo/şema gerektirir, bu yüzden
+ * kullanılmaz; sunucu yeniden başlarsa sayaçlar sıfırlanır ve birden çok süreç çalışırsa her süreç
+ * kendi sayacını tutar. Sunucu birden çok süreçle yayına alınırsa ortak bir depolamaya geçilmelidir.
+ */
+export const AUTH_RATE_LIMIT_RULES = {
+  '/sign-in/email': { window: 60, max: 5 },
+  '/sign-up/email': { window: 300, max: 5 },
+  '/request-password-reset': { window: 300, max: 3 },
+  '/reset-password': { window: 300, max: 3 },
+  '/reset-password/*': { window: 300, max: 3 },
+}
+
 export function createAuth(db: Db, { baseURL, secret, trustedOrigins = [] }: AuthOptions) {
   const production = process.env.NODE_ENV === 'production'
   return betterAuth({
@@ -33,6 +47,8 @@ export function createAuth(db: Db, { baseURL, secret, trustedOrigins = [] }: Aut
     secret,
     trustedOrigins,
     telemetry: { enabled: false },
+    // Better Auth hız sınırını yalnızca production'da açar; her ortamda açık olsun diye belirtilir.
+    rateLimit: { enabled: true, storage: 'memory', customRules: AUTH_RATE_LIMIT_RULES },
     database: drizzleAdapter(db, {
       provider: 'pg',
       schema: { user: users, session: sessions, account: accounts, verification: verifications },
@@ -52,6 +68,11 @@ export function createAuth(db: Db, { baseURL, secret, trustedOrigins = [] }: Aut
       disableOriginCheck: false,
       // Kimlikler uuid'dir; veritabanı `gen_random_uuid()` ile üretir.
       database: { generateId: 'uuid' },
+      // İstemci IP'si için `ipAddressHeaders` verilmez (varsayılan korunur): güvenilir bir ters vekil
+      // yok, API yalnızca yerelden (Vite proxy'si) erişilir. Varsayılan tek değerli `x-forwarded-for`
+      // başlığını okur; API doğrudan internete açılırsa istemci bu başlığı değiştirip sayacı atlatabilir.
+      // Sunucu bir ters vekilin arkasında yayına alınırsa vekilin ayarladığı başlık (`ipAddressHeaders`)
+      // ve `trustedProxies` birlikte verilmelidir.
     },
     databaseHooks: {
       user: {

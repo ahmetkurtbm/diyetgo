@@ -48,6 +48,17 @@ export function optionalInstant(value: unknown, field: string): string | undefin
   return value
 }
 
+/** Liste uçlarının sayfalaması: varsayılan ve en çok satır sayısı. */
+export const DEFAULT_LIST_LIMIT = 500
+export const MAX_LIST_LIMIT = 1000
+
+export type Page = { limit?: number; offset?: number }
+
+/** Sayfa isteğini sınırlara oturtur: `limit` en çok `MAX_LIST_LIMIT`, belirtilmezse `DEFAULT_LIST_LIMIT`. */
+export function pageOf({ limit, offset }: Page = {}) {
+  return { limit: Math.min(limit ?? DEFAULT_LIST_LIMIT, MAX_LIST_LIMIT), offset: offset ?? 0 }
+}
+
 export const escapeLike = (value: string) => value.replace(/[\\%_]/g, (c) => `\\${c}`)
 
 /** Türkçe alfabetik sıralama (PostgreSQL ICU harmanlaması). */

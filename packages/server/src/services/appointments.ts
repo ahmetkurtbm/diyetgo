@@ -14,9 +14,9 @@ import { and, asc, eq, gt, gte, lt, ne } from 'drizzle-orm'
 import type { Db } from '../db/client'
 import { appointments } from '../db/schema'
 import { ApiError, parse } from '../errors'
-import { byIdAndOwner, checkId, found, isValidId, lock, now, requireActiveClient, toRecord, type Executor, type Tx } from './common'
+import { byIdAndOwner, checkId, found, isValidId, lock, now, pageOf, requireActiveClient, toRecord, type Executor, type Page, type Tx } from './common'
 
-export type AppointmentFilter = { from?: string; to?: string; clientId?: string; status?: AppointmentStatus }
+export type AppointmentFilter = { from?: string; to?: string; clientId?: string; status?: AppointmentStatus } & Page
 
 async function getRow(db: Executor, ownerId: string, id: string) {
   checkId(id, 'Randevu')
@@ -47,7 +47,8 @@ async function checkConflicts(tx: Tx, ownerId: string, candidate: AppointmentInp
 export function createAppointmentService(db: Db, ownerId: string) {
   return {
     /** `from`/`to`: UTC zaman aralığı, yarı açık `[from, to)`. Başlangıç zamanına göre sıralı. */
-    async list({ from, to, clientId, status }: AppointmentFilter = {}): Promise<Appointment[]> {
+    async list({ from, to, clientId, status, ...page }: AppointmentFilter = {}): Promise<Appointment[]> {
+      const { limit, offset } = pageOf(page)
       if (status !== undefined) parse(appointmentStatusSchema, status)
       // Geçersiz kimlikle hiçbir randevu eşleşmez (demo moduyla aynı).
       if (clientId !== undefined && !isValidId(clientId)) return []
@@ -63,7 +64,9 @@ export function createAppointmentService(db: Db, ownerId: string) {
             status === undefined ? undefined : eq(appointments.status, status),
           ),
         )
-        .orderBy(asc(appointments.startsAt))
+        .orderBy(asc(appointments.startsAt), asc(appointments.id))
+        .limit(limit)
+        .offset(offset)
       return rows.map(toRecord)
     },
 
