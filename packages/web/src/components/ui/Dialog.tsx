@@ -5,8 +5,52 @@ import { Button } from './Button'
 const sizes = { sm: 'max-w-sm', md: 'max-w-lg', lg: 'max-w-2xl' } as const
 
 /**
+ * Geri tuşu (Android, tarayıcı) açık pencereyi kapatsın diye her açık pencere geçmişe bir kayıt ekler.
+ * Yalnızca en üstteki pencere kapanır. Pencere düğmeyle kapanınca eklenen kayıt geri alınır; bu geri
+ * alma, alttaki pencereyi kapatmasın diye bir kez yok sayılır.
+ */
+const openDialogs: string[] = []
+let ignoreNextPop = false
+
+function useCloseOnBack(open: boolean, onClose: () => void) {
+  const id = useId()
+  const onCloseRef = useRef(onClose)
+  useEffect(() => {
+    onCloseRef.current = onClose
+  })
+
+  useEffect(() => {
+    if (!open) return
+    let closedByBack = false
+    // Yönlendiricinin durum alanları korunur; adres değişmez.
+    window.history.pushState({ ...(window.history.state as object | null), diyetgoDialog: id }, '')
+    openDialogs.push(id)
+    const onPop = () => {
+      if (ignoreNextPop) {
+        ignoreNextPop = false
+        return
+      }
+      if (openDialogs.at(-1) !== id) return
+      closedByBack = true
+      onCloseRef.current()
+    }
+    window.addEventListener('popstate', onPop)
+    return () => {
+      window.removeEventListener('popstate', onPop)
+      openDialogs.splice(openDialogs.indexOf(id), 1)
+      // Pencereden başka sayfaya geçildiyse geçmiş kaydı artık bizim değildir; dokunulmaz.
+      if (!closedByBack && (window.history.state as { diyetgoDialog?: string } | null)?.diyetgoDialog === id) {
+        ignoreNextPop = openDialogs.length > 0
+        window.history.back()
+      }
+    }
+  }, [open, id])
+}
+
+/**
  * Tarayıcının yerleşik `<dialog>` öğesi: odak yakalama, Esc ile kapatma ve arka planı
  * etkisizleştirme tarayıcı tarafından sağlanır. Gövde kaydırılır; başlık ve alt düğmeler hep görünür.
+ * Geri tuşu da pencereyi kapatır (bkz. `useCloseOnBack`).
  */
 export function Dialog({
   open,
@@ -27,6 +71,7 @@ export function Dialog({
 }) {
   const ref = useRef<HTMLDialogElement>(null)
   const titleId = useId()
+  useCloseOnBack(open, onClose)
 
   useEffect(() => {
     const dialog = ref.current
