@@ -60,3 +60,11 @@ describe('Uygulama kabuğu', () => {
     expect(screen.getAllByRole('link', { name: 'Danışanlar' }).length).toBeGreaterThan(0)
   })
 })
+
+describe('Ayarlar: hesap silme', () => {
+  it('demo modunda hesap olmadığı için gösterilmez', async () => {
+    renderApp('/settings')
+    await screen.findByRole('heading', { name: 'Ayarlar' })
+    expect(screen.queryByRole('button', { name: 'Hesabımı sil' })).toBeNull()
+  })
+})

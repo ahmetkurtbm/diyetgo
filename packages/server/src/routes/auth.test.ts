@@ -114,6 +114,38 @@ describe('diyetisyenler arası izolasyon', () => {
     return { danisan, food, mealType, plan, meal, item, measurement, appointment, goal, medication, condition, recommendation }
   }
 
+  it('hesap yalnızca parolayla silinir; tüm kayıtları gider, başka diyetisyenin kayıtları kalır', async () => {
+    const a = await seedOwner()
+    const owner = await signUp('Silinecek Diyetisyen')
+    const other = await signUp('Kalan Diyetisyen')
+    const otherClient = (await other.http.post('/api/clients').send(clientBody).expect(201)).body
+    // Silinecek hesabın da kayıtları olsun: danışan, plan, tarif.
+    const own = (await owner.http.post('/api/clients').send(clientBody).expect(201)).body
+    const ownFood = (await owner.http.post('/api/foods').send(foodBody).expect(201)).body
+    const recipe = (await owner.http.post('/api/foods').send({ ...foodBody, name: 'Tarif', recipeYieldG: 200 }).expect(201)).body
+    await owner.http.put(`/api/foods/${recipe.id}/ingredients`).send([{ foodId: ownFood.id, quantity: 100 }]).expect(200)
+    await owner.http.post('/api/meal-plans').send({ clientId: own.id, title: 'P', startDate: '2031-05-01', endDate: null, notes: null, kind: 'daily', weeklyQuotas: [] }).expect(201)
+    await owner.http.post('/api/appointments').send({ clientId: own.id, startsAt: at('10:00'), endsAt: at('10:30'), status: 'scheduled', notes: null }).expect(201)
+
+    const remove = (body: object) => owner.http.post('/api/auth/delete-user').set('Origin', TEST_ORIGIN).send(body)
+    await remove({}).expect(400)
+    await remove({ password: 'yanlis-parola-123' }).expect(400)
+    expect((await owner.http.get('/api/clients').expect(200)).body).toHaveLength(1)
+
+    await remove({ password: TEST_PASSWORD }).expect(200)
+    await owner.http.get('/api/clients').expect(401)
+    await request(app).post('/api/auth/sign-in/email').set('Origin', TEST_ORIGIN).send({ email: owner.email, password: TEST_PASSWORD }).expect(401)
+    for (const table of ['clients', 'foods', 'meal_types', 'meal_plans', 'appointments', 'recipe_ingredients']) {
+      const owned = table === 'recipe_ingredients'
+        ? await db.$client.query(`select count(*)::int as n from recipe_ingredients where recipe_id = $1`, [recipe.id])
+        : await db.$client.query(`select count(*)::int as n from ${table} where owner_id = $1`, [owner.userId])
+      expect(owned.rows[0].n).toBe(0)
+    }
+    // Diğer diyetisyenlerin kayıtları yerinde.
+    expect((await other.http.get('/api/clients').expect(200)).body.map((c: { id: string }) => c.id)).toEqual([otherClient.id])
+    expect((await db.$client.query('select count(*)::int as n from clients where id = $1', [a.danisan.id])).rows[0].n).toBe(1)
+  })
+
   it('başka diyetisyenin kayıtlarını listelemez', async () => {
     await seedOwner()
     const { http } = await signUp('İkinci Diyetisyen')

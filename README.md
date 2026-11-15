@@ -64,6 +64,7 @@ Diyetisyenler için danışan, ölçüm, besin, beslenme planı, randevu ve besl
   - **Değişim sistemi:** Öğüne besin yerine değişim girilebilir (ekmek, süt, et, sebze, meyve, yağ, kuru baklagil; "Değişim gir" ile adet olarak). Değişimler `baseUnit: "exchange"` olan besinlerdir: değerleri 1 değişim başınadır, plandaki miktar değişim sayısıdır. Başlangıç değerleri yaklaşıktır ve Besinler ekranından değiştirilebilir. Plan ekranı kullanılan değişimlerin eşdeğer örneklerini (ör. 1 ekmek değişimi = 1 ince dilim ekmek) gösterir.
   - **Gün ve öğün kopyalama:** Bir günün tüm öğünleri seçilen günlere, bir öğün başka günlere / öğün türlerine / seçeneklere kopyalanır. Hedefte öğün varsa besinler o öğünün sonuna eklenir (`POST /api/meal-plans/:id/copy-meals`).
   - **Metinden ekle:** Öğüne "8 yemek kaşığı pirinç pilavı" gibi satırlar yazılır; miktar (aralıkta ortalama), ölçü ve besin otomatik bulunur, gram karşılığı besinin porsiyonundan ya da varsayılan ev ölçülerinden (1 yemek kaşığı ≈ 15 g, 1 kase ≈ 200 g…) hesaplanır. Diyetisyen önizlemede düzeltip onaylar. Ölçüler ve yemek değerleri yaklaşıktır.
+- **Hesap silme (API modu):** Ayarlar ekranından, parola girilerek; diyetisyenin hesabı ve tüm kayıtları kalıcı olarak silinir (`POST /api/auth/delete-user`, parola zorunlu). Demo modunda hesap yoktur.
 - **Randevular:** Oluşturma, düzenleme, iptal, silme; çakışma kontrolü ve filtreler.
 - **Hedefler:** Dönemli enerji ve makro hedefleri, geçmişin korunması, isteğe bağlı Mifflin-St Jeor tahmini.
 - **Ayarlar:** Öğün türleri ve demo verilerini sıfırlama.

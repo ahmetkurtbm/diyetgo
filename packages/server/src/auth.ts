@@ -6,11 +6,14 @@
  * - Parola sıfırlama: e-posta servisi henüz yok; yerelde bağlantı sunucu günlüğüne yazılır,
  *   üretimde (NODE_ENV=production) özellik devre dışıdır.
  * - Yeni hesap varsayılan öğün türleriyle başlar.
+ * - Hesap silme yalnızca parolayla yapılır; diyetisyenin tüm kayıtları da silinir (geri alınamaz).
  */
 import { betterAuth } from 'better-auth'
+import { APIError, createAuthMiddleware } from 'better-auth/api'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import type { Db } from './db/client'
 import { accounts, sessions, users, verifications } from './db/schema'
+import { deleteOwnerData } from './services/account'
 import { insertDefaultMealTypes } from './services/meal-types'
 
 export type AuthOptions = {
@@ -36,6 +39,7 @@ export const AUTH_RATE_LIMIT_RULES = {
   '/request-password-reset': { window: 300, max: 3 },
   '/reset-password': { window: 300, max: 3 },
   '/reset-password/*': { window: 300, max: 3 },
+  '/delete-user': { window: 300, max: 5 },
 }
 
 export function createAuth(db: Db, { baseURL, secret, trustedOrigins = [] }: AuthOptions) {
@@ -60,6 +64,24 @@ export function createAuth(db: Db, { baseURL, secret, trustedOrigins = [] }: Aut
         if (production) throw new Error('Parola sıfırlama e-postası henüz yapılandırılmadı.')
         console.info(`[yerel geliştirme] ${user.email} için parola sıfırlama bağlantısı: ${url}`)
       },
+    },
+    user: {
+      deleteUser: {
+        enabled: true,
+        beforeDelete: async (user) => {
+          await deleteOwnerData(db, user.id)
+        },
+      },
+    },
+    hooks: {
+      // Better Auth, taze oturumda parolasız silmeye izin verir; burada parola her zaman istenir.
+      before: createAuthMiddleware(async (ctx) => {
+        if (ctx.path !== '/delete-user') return
+        const body = ctx.body as { password?: unknown; token?: unknown } | undefined
+        if (typeof body?.password !== 'string' || body.password === '' || body.token !== undefined) {
+          throw new APIError('BAD_REQUEST', { message: 'Hesabı silmek için parolanızı girin.' })
+        }
+      }),
     },
     advanced: {
       cookiePrefix: 'diyetgo',

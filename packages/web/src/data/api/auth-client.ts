@@ -14,6 +14,7 @@ const MESSAGES: Record<string, string> = {
   USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL: 'Bu e-postayla bir hesap zaten var. Giriş yapmayı deneyin.',
   PASSWORD_TOO_SHORT: 'Parola en az 10 karakter olmalı.',
   PASSWORD_TOO_LONG: 'Parola çok uzun.',
+  INVALID_PASSWORD: 'Parola hatalı.',
   INVALID_TOKEN: 'Bağlantının süresi dolmuş veya geçersiz. Yeniden parola sıfırlama isteyin.',
 }
 

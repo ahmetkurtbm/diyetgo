@@ -1,5 +1,5 @@
 import type { MealType } from '@diyetgo/shared'
-import { Archive, ArchiveRestore, Pencil, Plus, RotateCcw, Trash2, Utensils } from 'lucide-react'
+import { Archive, ArchiveRestore, Pencil, Plus, RotateCcw, Trash2, UserX, Utensils } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { useRepositories, useRepositoryQuery } from '../../data/context'
 import { Button } from '../../components/ui/Button'
@@ -20,6 +20,7 @@ export function SettingsPage() {
       <div className="space-y-6">
         <MealTypesSection />
         <DemoDataSection />
+        {!demo && <AccountSection />}
       </div>
     </>
   )
@@ -269,6 +270,59 @@ function DemoDataSection() {
             ))}
           </ul>
         )}
+      </ConfirmDialog>
+    </Card>
+  )
+}
+
+/**
+ * Hesap silme (yalnızca API modu): parola istenir; diyetisyenin tüm kayıtları ve hesabı kalıcı olarak
+ * silinir. Oturum istemcisi demo paketine girmesin diye yalnızca bu işlemde yüklenir.
+ */
+function AccountSection() {
+  const [confirming, setConfirming] = useState(false)
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState<string>()
+  const [busy, setBusy] = useState(false)
+
+  function close() {
+    setConfirming(false)
+    setPassword('')
+    setError(undefined)
+  }
+
+  async function remove() {
+    if (password === '') return setError('Parolanızı girin')
+    setBusy(true)
+    const { authClient, authErrorMessage } = await import('../../data/api/auth-client')
+    const result = await authClient.deleteUser({ password })
+    setBusy(false)
+    if (result.error) return setError(authErrorMessage(result.error))
+    window.location.assign('/')
+  }
+
+  return (
+    <Card>
+      <CardHeader
+        title="Hesabı sil"
+        description="Hesabınız ve tüm danışan, ölçüm, plan, randevu, besin ve tarif kayıtlarınız kalıcı olarak silinir. Bu işlem geri alınamaz."
+        actions={
+          <Button variant="danger" size="sm" onClick={() => setConfirming(true)}>
+            <UserX aria-hidden className="size-4" />
+            Hesabımı sil
+          </Button>
+        }
+      />
+      <ConfirmDialog
+        open={confirming}
+        title="Hesabınız silinsin mi?"
+        description="Tüm kayıtlarınız kalıcı olarak silinir ve geri alınamaz. Onaylamak için parolanızı girin."
+        confirmLabel="Hesabı kalıcı olarak sil"
+        busy={busy}
+        onCancel={close}
+        onConfirm={() => void remove()}
+      >
+        <TextField label="Parola" type="password" autoComplete="current-password" value={password} error={error} onChange={(e) => setPassword(e.target.value)} />
       </ConfirmDialog>
     </Card>
   )
