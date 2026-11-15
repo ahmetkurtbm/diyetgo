@@ -628,10 +628,16 @@ export function createDemoRepositories(
       async info() {
         const { seededAt, data } = store.read()
         const counts = Object.fromEntries(Object.entries(data).map(([name, records]) => [name, records.length]))
-        return { persistent: store.persistent, seededAt, counts }
+        return { persistent: store.persistent, seededAt, counts, lastBackupAt: store.lastBackupAt() }
       },
       async reset() {
         store.reset()
+      },
+      async exportBackup() {
+        return store.exportBackup()
+      },
+      async importBackup(text) {
+        store.importBackup(text)
       },
     },
   }

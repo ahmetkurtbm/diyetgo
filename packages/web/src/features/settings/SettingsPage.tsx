@@ -1,5 +1,5 @@
 import type { MealType } from '@diyetgo/shared'
-import { Archive, ArchiveRestore, Pencil, Plus, RotateCcw, Trash2, UserX, Utensils } from 'lucide-react'
+import { Archive, ArchiveRestore, Download, Pencil, Plus, RotateCcw, Trash2, Upload, UserX, Utensils } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { useRepositories, useRepositoryQuery } from '../../data/context'
 import { Button } from '../../components/ui/Button'
@@ -9,6 +9,7 @@ import { TextField } from '../../components/ui/form'
 import { Card, CardHeader, PageHeader } from '../../components/ui/layout'
 import { useToast } from '../../components/ui/toast-context'
 import { errorMessage, fieldErrorsOf } from '../../lib/errors'
+import { downloadBackup } from '../../lib/backup'
 import { formatDateTime } from '../../lib/format'
 import { parseNumber } from '../../lib/forms'
 
@@ -207,9 +208,33 @@ function DemoDataSection() {
   const info = useRepositoryQuery((r) => (r.demo ? r.demo.info() : Promise.resolve(null)), [])
   const [confirming, setConfirming] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [restoring, setRestoring] = useState<{ name: string; text: string } | null>(null)
 
   if (!repositories.demo) return null
   const demo = repositories.demo
+
+  async function backup() {
+    try {
+      await downloadBackup(demo)
+      toast.success('Yedek dosyası indirildi.')
+    } catch (error) {
+      toast.error(errorMessage(error))
+    }
+  }
+
+  async function restore() {
+    if (!restoring) return
+    setBusy(true)
+    try {
+      await demo.importBackup(restoring.text)
+      toast.success('Yedek geri yüklendi.')
+      setRestoring(null)
+    } catch (error) {
+      toast.error(errorMessage(error))
+    } finally {
+      setBusy(false)
+    }
+  }
 
   async function reset() {
     setBusy(true)
@@ -228,7 +253,7 @@ function DemoDataSection() {
     <Card>
       <CardHeader
         title="Demo verileri"
-        description="Demo modunda tüm veriler yalnızca bu tarayıcıda tutulur; cihazlar arasında paylaşılmaz ve yedeklenmez."
+        description="Demo modunda tüm veriler yalnızca bu tarayıcıda tutulur; cihazlar arasında paylaşılmaz. Yedek dosyası almadıkça yedeklenmez."
       />
       <div className="space-y-4 px-5 py-4">
         {info.status === 'success' && info.data && (
@@ -243,6 +268,34 @@ function DemoDataSection() {
             </div>
           </dl>
         )}
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-slate-200 p-4">
+          <p className="min-w-0 flex-1 basis-60 text-sm text-slate-700">
+            Verilerinizi kaybetmemek için haftada bir yedek alın; yedek dosyasıyla başka cihaza da taşıyabilirsiniz.
+            <span className="block text-xs text-slate-500">
+              Son yedek: {info.data?.lastBackupAt ? formatDateTime(info.data.lastBackupAt) : 'hiç alınmadı'}
+            </span>
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="primary" onClick={() => void backup()}>
+              <Download aria-hidden className="size-4" />
+              Yedek al
+            </Button>
+            <label className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-md border border-slate-300 bg-surface px-4 text-sm font-medium text-slate-700 hover:bg-slate-50 pointer-coarse:h-11">
+              <Upload aria-hidden className="size-4" />
+              Yedekten geri yükle
+              <input
+                type="file"
+                accept="application/json,.json"
+                className="sr-only"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0]
+                  e.target.value = ''
+                  if (file) setRestoring({ name: file.name, text: await file.text() })
+                }}
+              />
+            </label>
+          </div>
+        </div>
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-red-200 bg-red-50 p-4">
           <p className="text-sm text-red-800">Sıfırlama, bu tarayıcıdaki tüm Diyetgo demo verilerini siler ve örnek verileri yeniden yükler. Bu işlem geri alınamaz.</p>
           <Button variant="danger" onClick={() => setConfirming(true)}>
@@ -251,6 +304,15 @@ function DemoDataSection() {
           </Button>
         </div>
       </div>
+      <ConfirmDialog
+        open={restoring !== null}
+        busy={busy}
+        title="Yedek geri yüklensin mi?"
+        description={`"${restoring?.name ?? ''}" dosyasındaki veriler, bu tarayıcıdaki mevcut verilerin yerine geçer. Mevcut veriler silinir.`}
+        confirmLabel="Evet, geri yükle"
+        onCancel={() => setRestoring(null)}
+        onConfirm={() => void restore()}
+      />
       <ConfirmDialog
         open={confirming}
         busy={busy}

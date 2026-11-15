@@ -1,10 +1,11 @@
-import { CalendarDays, Info, LayoutDashboard, LogOut, Menu, NotebookPen, Settings, Users, UtensilsCrossed, X } from 'lucide-react'
+import { CalendarDays, Download, Info, LayoutDashboard, LogOut, Menu, NotebookPen, Settings, Users, UtensilsCrossed, X } from 'lucide-react'
 import { useEffect, useId, useRef, useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router'
 import { useRepositories, useRepositoryQuery } from '../../data/context'
 import { useAccount } from './account-context'
 import { PageTransition } from '../ui/motion'
 import { ThemeSwitcher } from './ThemeSwitcher'
+import { downloadBackup, isBackupDue } from '../../lib/backup'
 
 const navigation = [
   {
@@ -247,6 +248,35 @@ function MobileMenu({ open, onClose, isDemo, persistent }: { open: boolean; onCl
   )
 }
 
+/** Demo modunda son yedeğin üzerinden bir hafta geçince yedek almayı hatırlatır. */
+function BackupReminder() {
+  const repositories = useRepositories()
+  const info = useRepositoryQuery((r) => (r.demo ? r.demo.info() : Promise.resolve(null)), [])
+  const [dismissed, setDismissed] = useState(false)
+  const demo = repositories.demo
+  if (!demo || dismissed || !info.data || !info.data.persistent || !isBackupDue(info.data)) return null
+  return (
+    <aside aria-label="Yedek hatırlatması" className="border-b border-amber-200 bg-amber-50">
+      <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2 px-4 py-2 text-sm text-amber-900 sm:px-6">
+        <p>Son yedeğin üzerinden bir hafta geçti. Verilerinizi kaybetmemek için yedek alın.</p>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => void downloadBackup(demo).then(() => setDismissed(true))}
+            className="inline-flex h-9 items-center gap-1.5 rounded-md bg-amber-600 px-3 font-medium text-white hover:bg-amber-700 pointer-coarse:h-11"
+          >
+            <Download aria-hidden className="size-4" />
+            Yedek al
+          </button>
+          <button type="button" onClick={() => setDismissed(true)} className="h-9 rounded-md px-3 text-amber-900 hover:bg-amber-100 pointer-coarse:h-11">
+            Daha sonra
+          </button>
+        </div>
+      </div>
+    </aside>
+  )
+}
+
 export function AppShell() {
   const [menuOpen, setMenuOpen] = useState(false)
   const { pathname } = useLocation()
@@ -287,6 +317,7 @@ export function AppShell() {
           <DemoNotice persistent={persistent} compact />
         </aside>
       )}
+      {isDemo && <BackupReminder />}
       <MobileMenu open={menuOpen} onClose={() => setMenuOpen(false)} isDemo={isDemo} persistent={persistent} />
 
       <main key={pathname} className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:py-10">

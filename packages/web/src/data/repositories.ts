@@ -161,13 +161,17 @@ export interface ClientRecordRepository<T, I> {
   remove(id: string): Promise<void>
 }
 
-export type DemoInfo = { persistent: boolean; seededAt: string; counts: Record<string, number> }
+export type DemoInfo = { persistent: boolean; seededAt: string; counts: Record<string, number>; /** Son yedeğin alındığı an; hiç alınmadıysa `null`. */ lastBackupAt: string | null }
 
 /** Yalnızca demo modunda bulunur. */
 export interface DemoControls {
   info(): Promise<DemoInfo>
   /** Yalnızca Diyetgo demo verilerini siler ve örnek verileri yeniden yükler. */
   reset(): Promise<void>
+  /** Tüm demo verilerini yedek dosyası içeriği (JSON) olarak döndürür ve yedek zamanını kaydeder. */
+  exportBackup(): Promise<string>
+  /** Yedek dosyasını doğrulayıp mevcut verilerin yerine yükler; geçersizse hiçbir şey değişmez. */
+  importBackup(text: string): Promise<void>
 }
 
 export type Repositories = {

@@ -31,6 +31,8 @@ import { MemoryStorage } from './memory-storage'
 
 export const STORAGE_KEY = 'diyetgo:demo:v1'
 export const STORAGE_PREFIX = 'diyetgo:'
+/** Son yedeğin zamanı; haftalık yedek hatırlatması için. */
+export const BACKUP_KEY = 'diyetgo:backup:last'
 /**
  * Veri biçiminin sürümü. Eski sürümler açılışta kayıpsız yükseltilir (bkz. `upgrade`):
  * - 2: ölçümlere uyluk çevresi (`thighCm`); danışanlara ilaç, hastalık ve öneri koleksiyonları.
@@ -109,6 +111,11 @@ export type DemoStore = {
   read(): Envelope
   write(data: DemoData): void
   reset(): void
+  /** Yedek dosyası içeriği; yedek zamanı kaydedilir. */
+  exportBackup(): string
+  /** Yedeği eski sürümse yükseltir, doğrular ve yükler; geçersizse `validation` hatası verir. */
+  importBackup(text: string): void
+  lastBackupAt(): string | null
   subscribe(listener: () => void): () => void
   /** Başka bir sekmedeki değişiklik gibi dış olayları abonelere iletir. */
   notify(): void
@@ -219,6 +226,37 @@ export function openDemoStore(options: { storage: Storage | null; now?: () => Da
       }
       save(envelope)
       notify()
+    },
+    exportBackup() {
+      const text = JSON.stringify(store.read())
+      try {
+        storage.setItem(BACKUP_KEY, now().toISOString())
+      } catch {
+        // Yedek zamanı kaydedilemese de yedek dosyası verilir.
+      }
+      // "Son yedek" bilgisini gösteren ekranlar yenilensin.
+      notify()
+      return text
+    },
+    importBackup(text) {
+      let parsed: unknown
+      try {
+        parsed = JSON.parse(text)
+      } catch {
+        throw new RepositoryError('validation', 'Dosya okunamadı. Diyetgo yedek dosyası seçin.')
+      }
+      const upgraded = upgrade(parsed, istanbulDateOf(now()))
+      const error = validate(upgraded)
+      if (error) throw new RepositoryError('validation', `Yedek yüklenemedi: ${error.message}`)
+      save(upgraded as Envelope)
+      notify()
+    },
+    lastBackupAt() {
+      try {
+        return storage.getItem(BACKUP_KEY)
+      } catch {
+        return null
+      }
     },
     subscribe(listener) {
       listeners.add(listener)

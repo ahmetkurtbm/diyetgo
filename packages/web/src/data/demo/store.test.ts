@@ -183,3 +183,27 @@ describe('değişiklik bildirimi', () => {
     expect(listener).toHaveBeenCalledTimes(3)
   })
 })
+
+describe('yedek', () => {
+  it('yedek dosyası başka tarayıcıya yüklenince aynı veriyi verir; yedek zamanı kaydedilir', () => {
+    const source = open(new MemoryStorage())
+    const data = source.read().data
+    data.clients[0]!.firstName = 'Yedeklenen'
+    source.write(data)
+    expect(source.lastBackupAt()).toBeNull()
+    const text = source.exportBackup()
+    expect(source.lastBackupAt()).toBe(NOW.toISOString())
+
+    const target = open(new MemoryStorage())
+    target.importBackup(text)
+    expect(target.read().data.clients[0]!.firstName).toBe('Yedeklenen')
+  })
+
+  it('geçersiz yedek mevcut verileri değiştirmez', () => {
+    const store = open(new MemoryStorage())
+    const before = JSON.stringify(store.read())
+    expect(() => store.importBackup('bozuk')).toThrow(/Dosya okunamadı/)
+    expect(() => store.importBackup(JSON.stringify({ version: 7, seededAt: NOW.toISOString(), data: { clients: [] } }))).toThrow(/Yedek yüklenemedi/)
+    expect(JSON.stringify(store.read())).toBe(before)
+  })
+})
