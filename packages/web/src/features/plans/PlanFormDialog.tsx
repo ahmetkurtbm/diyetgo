@@ -122,12 +122,15 @@ function PlanForm({
           hint={
             values.kind === 'options'
               ? 'Her öğün türü için birkaç seçenek ve haftada kaç kez yeneceğini girersiniz; danışan seçeneklerden birini seçer.'
-              : 'Her gün için öğünleri tek tek girersiniz.'
+              : values.kind === 'text'
+                ? 'Her gün ve öğün için menüyü serbestçe yazarsınız; besin eşleştirmesi ve değer hesabı yoktur. PDF olarak indirilebilir.'
+                : 'Her gün için öğünleri tek tek girersiniz.'
           }
           onChange={(e) => setValues({ ...values, kind: e.target.value as MealPlanKind })}
         >
           <option value="daily">Günlük menü (gün gün)</option>
           <option value="options">Seçenekli haftalık menü</option>
+          <option value="text">Serbest menü (tamamen elle yazılır)</option>
         </SelectField>
       </FormSection>
       <FormSection title="Plan süresi" description="Bitiş günü plana dahildir.">

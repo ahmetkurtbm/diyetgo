@@ -383,7 +383,7 @@ export function DashboardPage() {
                     </div>
                     <span className="shrink-0 text-xs text-slate-500 tabular-nums">{plan.kind === 'options' ? 'Seçenekli haftalık menü' : length === null ? `${day}. gün · açık uçlu` : `${day}. gün / ${length}`}</span>
                   </div>
-                  {length !== null && plan.kind === 'daily' && (
+                  {length !== null && plan.kind !== 'options' && (
                     <div className="mt-2">
                       <Meter value={day} max={length} label={`${plan.title} ilerlemesi`} />
                     </div>

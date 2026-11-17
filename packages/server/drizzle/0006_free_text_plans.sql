@@ -1,0 +1,1 @@
+ALTER TYPE "public"."meal_plan_kind" ADD VALUE 'text';

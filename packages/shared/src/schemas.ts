@@ -186,8 +186,10 @@ export type MealType = z.infer<typeof mealTypeSchema>
  * - `daily`: Gün gün menü; öğünlerin `dayNumber` alanı plan günüdür.
  * - `options`: Seçenekli haftalık menü; her öğün türü için birkaç seçenek ve haftalık adet girilir,
  *   danışan seçer. Öğünlerin `dayNumber` alanı o öğün türündeki seçenek numarasıdır (1, 2, …).
+ * - `text`: Serbest menü; günler `daily` gibi numaralanır ama öğün içeriği besin eşleştirmesi olmadan
+ *   elle yazılır ve öğünün `notes` alanında tutulur. Besin değeri hesaplanmaz.
  */
-export const mealPlanKindSchema = z.enum(['daily', 'options'])
+export const mealPlanKindSchema = z.enum(['daily', 'options', 'text'])
 export type MealPlanKind = z.infer<typeof mealPlanKindSchema>
 
 /** Seçenekli planda bir öğün türünün haftada kaç kez yeneceği. */

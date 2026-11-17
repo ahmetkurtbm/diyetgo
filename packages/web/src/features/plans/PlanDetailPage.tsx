@@ -11,7 +11,7 @@ import {
   type MealPlan,
   type PlanMeal,
 } from '@diyetgo/shared'
-import { Archive, ArchiveRestore, ArrowLeft, Copy, FileX, Pencil, Plus, Trash2, Utensils } from 'lucide-react'
+import { Archive, ArchiveRestore, ArrowLeft, Copy, FileDown, FileX, Pencil, Plus, Trash2, Utensils } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
 import { useRepositories, useRepositoryQuery } from '../../data/context'
@@ -30,6 +30,8 @@ import { MealFormDialog } from './MealFormDialog'
 import { NutrientSummary } from './NutrientSummary'
 import { CopyMealsDialog, type CopySource } from './CopyMealsDialog'
 import { ExchangeGuide } from './ExchangeGuide'
+import { PlanExportDialog } from './PlanExportDialog'
+import { TextDayEditor } from './TextDayEditor'
 import { OptionPlanView } from './OptionPlanView'
 import { PlanFormDialog } from './PlanFormDialog'
 
@@ -53,7 +55,7 @@ export function PlanDetailPage() {
   const repositories = useRepositories()
   const toast = useToast()
   const navigate = useNavigate()
-  const [dialog, setDialog] = useState<'edit' | 'copy' | 'delete' | 'meal' | null>(null)
+  const [dialog, setDialog] = useState<'edit' | 'copy' | 'delete' | 'meal' | 'export' | null>(null)
   const [editingMeal, setEditingMeal] = useState<PlanMeal | null>(null)
   const [deletingMeal, setDeletingMeal] = useState<PlanMeal | null>(null)
   const [copySource, setCopySource] = useState<CopySource | null>(null)
@@ -143,6 +145,12 @@ export function PlanDetailPage() {
         }
         actions={
           <>
+            {plan.kind === 'text' && (
+              <Button variant="primary" onClick={() => setDialog('export')}>
+                <FileDown aria-hidden className="size-4" />
+                PDF ve Canva
+              </Button>
+            )}
             <Button onClick={() => setDialog('edit')}>
               <Pencil aria-hidden className="size-4" />
               Düzenle
@@ -201,6 +209,10 @@ export function PlanDetailPage() {
           </ol>
         </nav>
 
+        {plan.kind === 'text' ? (
+          <TextDayEditor key={`${day}:${meals.filter((m) => m.dayNumber === day).map((m) => m.id + m.updatedAt).join()}`} plan={plan} day={day} meals={meals} mealTypes={mealTypes} />
+        ) : (
+        <>
         <Card className="mb-6">
           <CardHeader title={`${day}. gün toplamı`} description={formatLongDate(dayDate)} />
           <div className="px-5 py-4">
@@ -281,10 +293,12 @@ export function PlanDetailPage() {
             ))}
           </div>
         )}
-
+        </>
+        )}
         </>
       )}
 
+      <PlanExportDialog open={dialog === 'export'} plan={plan} client={client} meals={meals} mealTypes={mealTypes} onClose={() => setDialog(null)} />
       <ExchangeGuide items={items} foodsById={foodsById} />
       <CopyMealsDialog plan={plan} meals={meals} mealTypes={mealTypes} dayCount={dayCount} source={copySource} onClose={() => setCopySource(null)} />
       <PlanFormDialog open={dialog === 'edit'} plan={plan} onClose={() => setDialog(null)} />

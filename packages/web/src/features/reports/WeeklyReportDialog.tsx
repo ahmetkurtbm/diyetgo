@@ -6,21 +6,12 @@ import { Dialog } from '../../components/ui/Dialog'
 import { ErrorState, LoadingState } from '../../components/ui/feedback'
 import { useToast } from '../../components/ui/toast-context'
 import { useRepositoryQuery } from '../../data/context'
+import { slug } from '../../lib/files'
 import { today } from '../../lib/format'
 import { WeeklyReportCard } from './WeeklyReportCard'
 import { loadWeeklyReport } from './weekly-report-data'
 
 const NOTE_MAX = 300
-
-/** Dosya adı için Türkçe karakterleri sadeleştirir: `Şule Çınar` → `sule-cinar`. */
-function slug(text: string): string {
-  const map: Record<string, string> = { ç: 'c', ğ: 'g', ı: 'i', ö: 'o', ş: 's', ü: 'u' }
-  return text
-    .toLocaleLowerCase('tr-TR')
-    .replace(/[çğıöşü]/g, (c) => map[c]!)
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '')
-}
 
 async function renderPng(node: HTMLElement): Promise<Blob> {
   // Kütüphane yalnızca görsel üretilirken yüklenir; ana paket büyümez.

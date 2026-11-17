@@ -44,7 +44,7 @@ export const sexEnum = pgEnum('sex', ['female', 'male'])
 export const baseUnitEnum = pgEnum('base_unit', ['g', 'ml', 'exchange'])
 export const appointmentStatusEnum = pgEnum('appointment_status', ['scheduled', 'completed', 'cancelled', 'no_show'])
 export const goalMethodEnum = pgEnum('goal_method', ['manual', 'mifflin_st_jeor'])
-export const mealPlanKindEnum = pgEnum('meal_plan_kind', ['daily', 'options'])
+export const mealPlanKindEnum = pgEnum('meal_plan_kind', ['daily', 'options', 'text'])
 export const cookingMethodEnum = pgEnum('cooking_method', ['raw', 'boiled', 'steamed', 'grilled', 'baked', 'sauteed', 'stewed', 'fried'])
 
 // ---------- Kimlik doğrulama (Better Auth) ----------

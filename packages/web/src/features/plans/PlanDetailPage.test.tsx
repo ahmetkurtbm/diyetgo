@@ -2,7 +2,7 @@ import { dayTotals, mealTotals, optionPlanSummary, type Food } from '@diyetgo/sh
 import { fireEvent, screen, within } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { formatNumber } from '../../lib/format'
-import { fixDate, renderApp } from '../../test-utils'
+import { fixDate, renderApp, SEED_IDS } from '../../test-utils'
 
 fixDate()
 
@@ -340,5 +340,73 @@ describe('Değişim girme', () => {
     await user.click(within(again).getByRole('button', { name: 'Kaydet' }))
     await screen.findAllByText('Değişimler kaydedildi.')
     expect((await breakfastItems()).some((i) => i.foodId === bread.id)).toBe(false)
+  })
+})
+
+describe('Serbest menü', () => {
+  async function openTextPlan() {
+    const view = renderApp('/plans')
+    await screen.findByRole('table', { name: 'Plan listesi' })
+    const plan = await view.repositories.mealPlans.create({
+      clientId: SEED_IDS.deniz,
+      title: 'Elle yazılan menü',
+      startDate: '2026-03-10',
+      endDate: '2026-03-12',
+      notes: 'günde 2 litre su ic',
+      kind: 'text',
+      weeklyQuotas: [],
+    })
+    view.unmount()
+    const again = renderApp(`/plans/${plan.id}`, view.storage)
+    await screen.findByRole('heading', { name: 'Elle yazılan menü' })
+    return { ...again, plan }
+  }
+
+  it('günün öğünlerini elle yazar, yazımı düzeltir, kaydeder ve değer hesaplamaz', async () => {
+    const { user, repositories, plan } = await openTextPlan()
+    expect(screen.queryByRole('heading', { name: '1. gün toplamı' })).toBeNull()
+    const breakfast = screen.getByLabelText('Kahvaltı içeriği') as HTMLTextAreaElement
+    fireEvent.change(breakfast, { target: { value: '- 2  haslanmis yumurta\n  4 yemek kasigi yogurt , 1 dilim ekmek' } })
+    await user.click(screen.getByRole('button', { name: 'Yazımı düzelt' }))
+    expect(breakfast.value).toBe('2 haşlanmış yumurta\n4 yemek kaşığı yoğurt, 1 dilim ekmek')
+    await user.click(screen.getByRole('button', { name: 'Kaydet' }))
+    expect(await screen.findByText('1. gün kaydedildi.')).toBeDefined()
+
+    const { meals } = await repositories.mealPlans.get(plan.id)
+    expect(meals).toEqual([expect.objectContaining({ dayNumber: 1, notes: '2 haşlanmış yumurta\n4 yemek kaşığı yoğurt, 1 dilim ekmek' })])
+
+    // Metni silmek öğünü kaldırır.
+    fireEvent.change(screen.getByLabelText('Kahvaltı içeriği'), { target: { value: '' } })
+    await user.click(screen.getByRole('button', { name: 'Kaydet' }))
+    await screen.findAllByText('1. gün kaydedildi.')
+    expect((await repositories.mealPlans.get(plan.id)).meals).toHaveLength(0)
+  })
+
+  it('PDF ve Canva penceresi düzeltilmiş, sıralı belgeyi gösterir ve Canva için kopyalar', async () => {
+    const { user, repositories, plan } = await openTextPlan()
+    const types = await repositories.mealTypes.list()
+    const byName = (name: string) => types.find((t) => t.name === name)!.id
+    await repositories.mealPlans.addMeal({ mealPlanId: plan.id, dayNumber: 1, mealTypeId: byName('Akşam'), time: null, notes: 'izgara tavuk\nyagsiz salata' })
+    await repositories.mealPlans.addMeal({ mealPlanId: plan.id, dayNumber: 1, mealTypeId: byName('Kahvaltı'), time: null, notes: 'sut ve ekmek' })
+    let copied = ''
+    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: (text: string) => ((copied = text), Promise.resolve()) } })
+
+    await user.click(await screen.findByRole('button', { name: 'PDF ve Canva' }))
+    const dialog = await screen.findByRole('dialog', { name: 'PDF ve Canva' })
+    await user.type(within(dialog).getByLabelText('Diyetisyen adı'), 'Dyt. Deniz Kaya')
+    const preview = within(dialog).getByLabelText('Belge önizlemesi')
+    expect(within(preview).getByText('Elle yazılan menü')).toBeDefined()
+    expect(within(preview).getByText('Deniz Örnek')).toBeDefined()
+    expect(within(preview).getByText('Dyt. Deniz Kaya')).toBeDefined()
+    expect(within(preview).getByText('Süt ve ekmek')).toBeDefined()
+
+    await user.click(within(dialog).getByRole('button', { name: 'Canva için kopyala' }))
+    expect(await screen.findByText(/Kopyalandı/)).toBeDefined()
+    expect(copied.split('\n').slice(0, 4)).toEqual(['Elle yazılan menü', 'Danışan: Deniz Örnek', 'Tarih: 10 Mart 2026 – 12 Mart 2026', 'Diyetisyen: Dyt. Deniz Kaya'])
+    // Öğünler sıralıdır (Kahvaltı, Akşam), yazım düzeltilmiştir ve notlar eklenir.
+    expect(copied.indexOf('Kahvaltı:')).toBeLessThan(copied.indexOf('Akşam:'))
+    expect(copied).toContain('• Süt ve ekmek')
+    expect(copied).toContain('• Yağsız salata')
+    expect(copied).toContain('• Günde 2 litre su ic')
   })
 })

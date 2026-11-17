@@ -332,6 +332,16 @@ export function describeRepositoryContract(name: string, setup: () => Promise<Re
         expect((await repos.mealPlans.get(plan.id)).meals).toHaveLength(detail.meals.length)
       })
 
+      it('serbest menüde öğün metni notes alanında tutulur; günler plan süresine bağlıdır, tür değişmez', async () => {
+        const { plan, mealType } = await createPlan({ kind: 'text' })
+        expect(plan.kind).toBe('text')
+        const meal = await repos.mealPlans.addMeal({ mealPlanId: plan.id, dayNumber: 2, mealTypeId: mealType.id, time: null, notes: '8 yemek kaşığı pilav\n1 kase salata' })
+        expect((await repos.mealPlans.get(plan.id)).meals).toEqual([expect.objectContaining({ id: meal.id, notes: '8 yemek kaşığı pilav\n1 kase salata' })])
+        await expectError(repos.mealPlans.addMeal({ mealPlanId: plan.id, dayNumber: 8, mealTypeId: mealType.id, time: null, notes: 'x' }), 'validation')
+        const kindChange = await expectError(repos.mealPlans.update(plan.id, { ...plan, kind: 'daily' }), 'validation')
+        expect(kindChange.fieldErrors.kind).toBeTruthy()
+      })
+
       it('öğün silinince içerikleri, plan silinince öğünleri silinir', async () => {
         const { plan, mealType } = await createPlan()
         const food = await repos.foods.create(foodInput())

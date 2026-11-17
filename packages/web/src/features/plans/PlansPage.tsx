@@ -126,7 +126,11 @@ export function PlansPage() {
                           {plan.kind === 'options' ? (
                             <span className="block text-xs text-slate-500">Seçenekli haftalık menü</span>
                           ) : (
-                            length !== null && <span className="block text-xs text-slate-500">{length} gün</span>
+                            length !== null && (
+                              <span className="block text-xs text-slate-500">
+                                {length} gün{plan.kind === 'text' && ' · serbest menü'}
+                              </span>
+                            )
                           )}
                         </span>
                       </Td>

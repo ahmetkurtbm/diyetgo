@@ -43,6 +43,13 @@
       "when": 1792908344538,
       "tag": "0005_food_exchanges",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1794897206546,
+      "tag": "0006_free_text_plans",
+      "breakpoints": true
     }
   ]
 }
