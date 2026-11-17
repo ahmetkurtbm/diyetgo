@@ -4,6 +4,8 @@ import { NavLink, Outlet, useLocation } from 'react-router'
 import { useRepositories, useRepositoryQuery } from '../../data/context'
 import { useAccount } from './account-context'
 import { PageTransition } from '../ui/motion'
+import { ReminderPrompt } from '../../features/reminders/ReminderControls'
+import { useAppointmentReminders } from '../../features/reminders/useAppointmentReminders'
 import { InstallPrompt } from './InstallPrompt'
 import { ThemeSwitcher } from './ThemeSwitcher'
 import { downloadBackup, isBackupDue } from '../../lib/backup'
@@ -282,6 +284,7 @@ export function AppShell() {
   const [menuOpen, setMenuOpen] = useState(false)
   const { pathname } = useLocation()
   const isDemo = useRepositories().mode === 'demo'
+  useAppointmentReminders()
   const demo = useRepositoryQuery((r) => (r.demo ? r.demo.info() : Promise.resolve(null)), [])
   const persistent = demo.data?.persistent ?? true
 
@@ -320,6 +323,7 @@ export function AppShell() {
       )}
       {isDemo && <BackupReminder />}
       <InstallPrompt />
+      <ReminderPrompt />
       <MobileMenu open={menuOpen} onClose={() => setMenuOpen(false)} isDemo={isDemo} persistent={persistent} />
 
       <main key={pathname} className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:py-10">

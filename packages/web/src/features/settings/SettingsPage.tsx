@@ -10,6 +10,7 @@ import { Card, CardHeader, PageHeader } from '../../components/ui/layout'
 import { useToast } from '../../components/ui/toast-context'
 import { errorMessage, fieldErrorsOf } from '../../lib/errors'
 import { downloadBackup } from '../../lib/backup'
+import { RemindersSection } from '../reminders/ReminderControls'
 import { formatDateTime } from '../../lib/format'
 import { parseNumber } from '../../lib/forms'
 
@@ -20,6 +21,7 @@ export function SettingsPage() {
       <PageHeader title="Ayarlar" description={demo ? 'Öğün türlerini yönetin ve demo verilerini sıfırlayın.' : 'Öğün türlerini yönetin.'} />
       <div className="space-y-6">
         <MealTypesSection />
+        <RemindersSection />
         <DemoDataSection />
         {!demo && <AccountSection />}
       </div>
