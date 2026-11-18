@@ -173,6 +173,21 @@ describe('diyetisyenler arası izolasyon', () => {
     }
   })
 
+  it('API başlıkları: önbelleğe alınmaz; yabancı kökenden gelen değiştirici istek reddedilir', async () => {
+    const owner = await signUp('Köken')
+    const list = await owner.http.get('/api/clients').expect(200)
+    expect(list.headers['cache-control']).toBe('no-store')
+    expect(list.headers['x-content-type-options']).toBe('nosniff')
+    expect(list.headers['x-powered-by']).toBeUndefined()
+    // Güvenilir köken veya başlıksız istek geçer; yabancı köken (çerez geçerli olsa bile) reddedilir.
+    await owner.http.post('/api/clients').set('Origin', TEST_ORIGIN).send(clientBody).expect(201)
+    await owner.http.post('/api/clients').set('Origin', 'https://evil.example').send(clientBody).expect(403)
+    await owner.http.put('/api/meal-types/00000000-0000-4000-8000-000000000000').set('Origin', 'https://evil.example').send({}).expect(403)
+    // Okuma istekleri köken kontrolüne takılmaz.
+    await owner.http.get('/api/clients').set('Origin', 'https://evil.example').expect(200)
+    expect((await owner.http.get('/api/clients').expect(200)).body).toHaveLength(2 - 1)
+  })
+
   it('başka diyetisyenin kayıtlarını listelemez', async () => {
     await seedOwner()
     const { http } = await signUp('İkinci Diyetisyen')

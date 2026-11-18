@@ -9,7 +9,7 @@ export const TEST_ORIGIN = 'http://localhost:5173'
 export const TEST_PASSWORD = 'test-parola-12345'
 
 export const auth = createAuth(db, { baseURL: TEST_ORIGIN, secret: 'diyetgo-test-secret-0123456789abcdefghij' })
-export const app = createApp(db, auth)
+export const app = createApp(db, auth, { trustedOrigins: [TEST_ORIGIN] })
 
 /** Oturum çereziyle (veya çerezsiz) istek gönderen supertest sarmalayıcısı. */
 export function client(cookie?: string) {

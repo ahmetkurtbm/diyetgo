@@ -12,9 +12,20 @@ import { conditionsRouter, goalsRouter, measurementsRouter, medicationsRouter, r
 
 const LOCAL_HOSTNAMES = new Set(['localhost', '127.0.0.1', '[::1]'])
 
-export function createApp(db: Db, auth: Auth) {
+/**
+ * `trustedOrigins`: uygulamanın tarayıcıdan açıldığı kökenler (ör. `http://localhost:5173`). Değiştirici
+ * (POST/PUT/DELETE) API istekleri `Origin` başlığı taşıyorsa bu kökenlerden biri olmalıdır; böylece çerez
+ * `SameSite` korumasına ek olarak aynı siteden gelen yabancı bir sayfa da API'yi kullanamaz.
+ * Başlıksız istekler (tarayıcı dışı istemciler) etkilenmez; onlar zaten oturum çerezi gerektirir.
+ */
+export function createApp(db: Db, auth: Auth, { trustedOrigins }: { trustedOrigins: readonly string[] }) {
   const app = express()
   app.disable('x-powered-by')
+  // Sağlık verisi içeren yanıtlar tarayıcıda veya aradaki önbelleklerde saklanmasın; içerik türü tahmin edilmesin.
+  app.use((_req, res, next) => {
+    res.set({ 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'no-referrer', 'X-Frame-Options': 'DENY' })
+    next()
+  })
   // API henüz yayına alınmadı; yalnızca yerel adla gelen istekler kabul edilir. Bu, başka bir sitenin
   // DNS rebinding ile 127.0.0.1'e yönlenip API'yi kendi kökeninden kullanmasını engeller.
   app.use((req, _res, next) => {
@@ -24,6 +35,14 @@ export function createApp(db: Db, auth: Auth) {
 
   // Better Auth kendi gövde ayrıştırmasını yapar; bu yüzden `express.json()`'dan önce bağlanır.
   app.all('/api/auth/*splat', toNodeHandler(auth))
+  app.use('/api', (req, _res, next) => {
+    const origin = req.headers.origin
+    const safeMethod = req.method === 'GET' || req.method === 'HEAD' || req.method === 'OPTIONS'
+    if (!safeMethod && origin !== undefined && !trustedOrigins.includes(origin)) {
+      throw new ApiError('forbidden', 'Bu kökenden gelen istek kabul edilmez.')
+    }
+    next()
+  })
   app.use(express.json())
 
   /** API'nin ve veritabanı bağlantısının çalıştığını doğrular; oturum gerektirmez. */
