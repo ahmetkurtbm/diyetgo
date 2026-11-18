@@ -8,6 +8,17 @@ export const A4_PT = { width: 595.28, height: 841.89 } as const
 
 export type PdfPage = { jpeg: Uint8Array; width: number; height: number }
 
+/**
+ * Tarayıcılar canvas alanını sınırlar (iPhone/iPad Safari yaklaşık 16,7 milyon piksel); aşılırsa çizim
+ * boş veya başarısız olur. Uzun belgelerde ölçek, toplam alan güvenli sınırın altında kalacak kadar
+ * düşürülür (en fazla `max`; çok uzun belgede bile okunabilir kalsın diye en az `MIN_RENDER_SCALE`).
+ */
+export const MAX_CANVAS_PIXELS = 12_000_000
+export const MIN_RENDER_SCALE = 0.6
+export function renderScale(width: number, height: number, max = 2): number {
+  return Math.max(MIN_RENDER_SCALE, Math.min(max, Math.sqrt(MAX_CANVAS_PIXELS / (width * height))))
+}
+
 const encoder = new TextEncoder()
 
 /** `pages` boşsa hata verir. Dönen bayt dizisi `application/pdf` olarak kaydedilir. */

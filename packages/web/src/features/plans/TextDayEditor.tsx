@@ -2,6 +2,9 @@
  * Serbest menü: seçili günün her öğünü için tamamen elle yazılan metin. Besin eşleştirmesi ve değer
  * hesabı yoktur; metin öğünün `notes` alanında saklanır. Yazım düzeltme yalnızca kutudaki metni
  * düzenler, kaydetmek için "Kaydet" gerekir.
+ *
+ * Yalnızca kullanıcının değiştirdiği kutular `edits` içinde tutulur; diğerleri kayıtlı değeri gösterir.
+ * Böylece bir kayıt sırasında planın yeniden yüklenmesi yazılan ama henüz kaydedilmemiş metni silmez.
  */
 import { correctMealText, LIMITS, type MealPlan, type MealType, type PlanMeal } from '@diyetgo/shared'
 import { Save, SpellCheck } from 'lucide-react'
@@ -21,15 +24,16 @@ export function TextDayEditor({ plan, day, meals, mealTypes }: Props) {
   const dayMeals = meals.filter((m) => m.dayNumber === day)
   const shown = mealTypes.filter((t) => t.archivedAt === null || dayMeals.some((m) => m.mealTypeId === t.id)).sort((a, b) => a.sortOrder - b.sortOrder)
   const saved = (typeId: string) => dayMeals.find((m) => m.mealTypeId === typeId)?.notes ?? ''
-  const [texts, setTexts] = useState<Record<string, string>>(() => Object.fromEntries(shown.map((t) => [t.id, saved(t.id)])))
+  const [edits, setEdits] = useState<Record<string, string>>({})
   const [busy, setBusy] = useState(false)
-  const dirty = shown.some((t) => (texts[t.id] ?? '').trim() !== saved(t.id).trim())
+  const textOf = (typeId: string) => edits[typeId] ?? saved(typeId)
+  const dirty = shown.some((t) => t.id in edits && edits[t.id]!.trim() !== saved(t.id).trim())
 
   async function save() {
     setBusy(true)
     try {
       for (const type of shown) {
-        const text = (texts[type.id] ?? '').trim()
+        const text = textOf(type.id).trim()
         const existing = dayMeals.find((m) => m.mealTypeId === type.id)
         if (text === '' && existing) await repositories.mealPlans.removeMeal(existing.id)
         else if (text !== '' && !existing) await repositories.mealPlans.addMeal({ mealPlanId: plan.id, dayNumber: day, mealTypeId: type.id, time: null, notes: text })
@@ -37,6 +41,7 @@ export function TextDayEditor({ plan, day, meals, mealTypes }: Props) {
           await repositories.mealPlans.updateMeal(existing.id, { mealPlanId: plan.id, dayNumber: day, mealTypeId: type.id, time: existing.time, notes: text })
         }
       }
+      setEdits({})
       toast.success(`${day}. gün kaydedildi.`)
     } catch (error) {
       toast.error(errorMessage(error))
@@ -52,7 +57,7 @@ export function TextDayEditor({ plan, day, meals, mealTypes }: Props) {
         description="Her öğünü istediğiniz gibi yazın; her satır PDF'te ayrı madde olur. Besin değeri hesaplanmaz."
         actions={
           <>
-            <Button size="sm" onClick={() => setTexts(Object.fromEntries(Object.entries(texts).map(([id, text]) => [id, correctMealText(text)])))}>
+            <Button size="sm" onClick={() => setEdits(Object.fromEntries(shown.map((t) => [t.id, correctMealText(textOf(t.id))])))}>
               <SpellCheck aria-hidden className="size-4" />
               Yazımı düzelt
             </Button>
@@ -73,8 +78,8 @@ export function TextDayEditor({ plan, day, meals, mealTypes }: Props) {
             spellCheck
             rows={5}
             maxLength={LIMITS.notes}
-            value={texts[type.id] ?? ''}
-            onChange={(e) => setTexts({ ...texts, [type.id]: e.target.value })}
+            value={textOf(type.id)}
+            onChange={(e) => setEdits({ ...edits, [type.id]: e.target.value })}
             placeholder={'7-8 yemek kaşığı tavuk sote\n8 yemek kaşığı pirinç pilavı\n1 küçük kase yağsız salata'}
           />
         ))}

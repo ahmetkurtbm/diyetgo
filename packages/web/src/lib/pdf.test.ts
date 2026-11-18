@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { A4_PT, buildPdf, pageCuts } from './pdf'
+import { A4_PT, buildPdf, MAX_CANVAS_PIXELS, MIN_RENDER_SCALE, pageCuts, renderScale } from './pdf'
 
 const text = (bytes: Uint8Array) => new TextDecoder('latin1').decode(bytes)
 
@@ -54,5 +54,16 @@ describe('pageCuts', () => {
       [1000, 2000],
       [2000, 2500],
     ])
+  })
+})
+
+describe('renderScale', () => {
+  it('kısa belgede tam ölçeği korur, uzun belgede canvas alanını güvenli sınırın altında tutur', () => {
+    expect(renderScale(794, 1500)).toBe(2)
+    const scale = renderScale(794, 30_000)
+    expect(scale).toBeLessThan(2)
+    expect(794 * scale * (30_000 * scale)).toBeLessThanOrEqual(MAX_CANVAS_PIXELS * 1.0001)
+    // Çok uzun belgede bile alt sınırın altına inmez (okunaklı kalsın).
+    expect(renderScale(794, 200_000)).toBe(MIN_RENDER_SCALE)
   })
 })

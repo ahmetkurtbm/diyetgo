@@ -212,8 +212,8 @@ export function PlanDetailPage() {
 
         {plan.kind === 'text' ? (
           <>
-            <TextDayEditor key={`${day}:${meals.filter((m) => m.dayNumber === day).map((m) => m.id + m.updatedAt).join()}`} plan={plan} day={day} meals={meals} mealTypes={mealTypes} />
-            <TextRecommendationsEditor key={`${plan.id}:${plan.updatedAt}`} plan={plan} />
+            <TextDayEditor key={`${plan.id}:${day}`} plan={plan} day={day} meals={meals} mealTypes={mealTypes} />
+            <TextRecommendationsEditor plan={plan} />
           </>
         ) : (
         <>

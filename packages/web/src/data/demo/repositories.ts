@@ -22,6 +22,7 @@ import {
   foodKindChangeIssue,
   goalPeriodsOverlap,
   isMealSlotValid,
+  LIMITS,
   mealCopySlots,
   isMealTypeNameTaken,
   mealPlanInputSchema,
@@ -454,7 +455,7 @@ export function createDemoRepositories(
             if (meal.mealPlanId !== planId) throw new RepositoryError('not_found', 'Öğün bulunamadı.')
             return meal
           })
-          const result: CopyMealsResult = { meals: 0, items: 0 }
+          const result: CopyMealsResult = { meals: 0, items: 0, skipped: 0 }
           for (const { source, dayNumber, mealTypeId } of mealCopySlots(sources, parsed.targets)) {
             if (!isMealSlotValid(plan, dayNumber)) {
               const message = plan.kind === 'options' ? 'Geçersiz seçenek numarası' : 'Gün plan süresinin dışında'
@@ -472,7 +473,13 @@ export function createDemoRepositories(
             }
             const targetId = target.id
             let sortOrder = Math.max(-1, ...data.planMealItems.filter((i) => i.planMealId === targetId).map((i) => i.sortOrder)) + 1
-            const copies = data.planMealItems.filter((i) => i.planMealId === source.id).sort((a, b) => a.sortOrder - b.sortOrder)
+            const all = data.planMealItems.filter((i) => i.planMealId === source.id).sort((a, b) => a.sortOrder - b.sortOrder)
+            // Arşivlenmiş besin yeni öğüne eklenemez; kopyada atlanır ve sayısı bildirilir.
+            const copies = all.filter((i) => canAddFoodToMeal(find(data.foods, i.foodId, 'Besin')))
+            result.skipped += all.length - copies.length
+            if (copies.length > 0 && sortOrder + copies.length - 1 > LIMITS.sortOrder) {
+              throw new RepositoryError('validation', `Bir öğünde en fazla ${LIMITS.sortOrder + 1} içerik olabilir.`)
+            }
             for (const item of copies) data.planMealItems.push({ ...item, ...stamp(ts), planMealId: targetId, sortOrder: sortOrder++ })
             result.items += copies.length
           }
@@ -635,6 +642,9 @@ export function createDemoRepositories(
       },
       async exportBackup() {
         return store.exportBackup()
+      },
+      async recordBackup() {
+        store.recordBackup()
       },
       async importBackup(text) {
         store.importBackup(text)

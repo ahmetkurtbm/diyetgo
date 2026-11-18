@@ -166,16 +166,25 @@ export function mealsOutsidePlan<T extends Pick<PlanMeal, 'dayNumber'>>(plan: Pl
 
 /**
  * Öğün kopyalamada her kaynak öğünün gideceği yer. Kaynağın kendi yerine kopyalama atlanır;
- * hedefin öğün türü boşsa kaynağınki kullanılır.
+ * hedefin öğün türü boşsa kaynağınki kullanılır. Aynı kaynak aynı yere birden çok kez yazılmaz
+ * (hedef listesindeki tekrarlar tek sayılır).
  */
 export function mealCopySlots<T extends Pick<PlanMeal, 'dayNumber' | 'mealTypeId'>>(
   sources: readonly T[],
   targets: readonly { dayNumber: number; mealTypeId: string | null }[],
 ): { source: T; dayNumber: number; mealTypeId: string }[] {
+  const seen = new Set<string>()
   return targets.flatMap((t) =>
     sources
-      .map((source) => ({ source, dayNumber: t.dayNumber, mealTypeId: t.mealTypeId ?? source.mealTypeId }))
-      .filter((slot) => slot.dayNumber !== slot.source.dayNumber || slot.mealTypeId !== slot.source.mealTypeId),
+      .map((source, index) => ({ source, index, dayNumber: t.dayNumber, mealTypeId: t.mealTypeId ?? source.mealTypeId }))
+      .filter((slot) => slot.dayNumber !== slot.source.dayNumber || slot.mealTypeId !== slot.source.mealTypeId)
+      .filter((slot) => {
+        const key = `${slot.index}:${slot.dayNumber}:${slot.mealTypeId}`
+        if (seen.has(key)) return false
+        seen.add(key)
+        return true
+      })
+      .map(({ source, dayNumber, mealTypeId }) => ({ source, dayNumber, mealTypeId })),
   )
 }
 

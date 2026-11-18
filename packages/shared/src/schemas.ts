@@ -251,8 +251,8 @@ export const copyMealsInputSchema = z.object({
     .max(LIMITS.copyTargets),
 })
 export type CopyMealsInput = z.infer<typeof copyMealsInputSchema>
-/** Oluşturulan öğün ve kopyalanan içerik sayısı. */
-export type CopyMealsResult = { meals: number; items: number }
+/** Oluşturulan öğün, kopyalanan içerik ve (arşivlenmiş besin olduğu için) atlanan içerik sayısı. */
+export type CopyMealsResult = { meals: number; items: number; skipped: number }
 
 // ---------- Öğün içeriği ----------
 

@@ -382,6 +382,18 @@ describe('Serbest menü', () => {
     expect((await repositories.mealPlans.get(plan.id)).meals).toHaveLength(0)
   })
 
+  it('bir günü kaydetmek, öneriler kutusundaki kaydedilmemiş metni silmez', async () => {
+    const { user } = await openTextPlan()
+    fireEvent.change(screen.getByLabelText('Öneriler içeriği'), { target: { value: 'Günde 2 litre su içiniz' } })
+    fireEvent.change(screen.getByLabelText('Kahvaltı içeriği'), { target: { value: 'sut ve ekmek' } })
+    await user.click(within(screen.getByRole('region', { name: '1. gün menüsü' })).getByRole('button', { name: 'Kaydet' }))
+    expect(await screen.findByText('1. gün kaydedildi.')).toBeDefined()
+    await new Promise((resolve) => setTimeout(resolve, 100))
+    expect((screen.getByLabelText('Öneriler içeriği') as HTMLTextAreaElement).value).toBe('Günde 2 litre su içiniz')
+    // Kaydedilen kutu da değerini korur.
+    expect((screen.getByLabelText('Kahvaltı içeriği') as HTMLTextAreaElement).value).toBe('sut ve ekmek')
+  })
+
   it('PDF ve Canva penceresi düzeltilmiş, sıralı belgeyi gösterir ve Canva için kopyalar', async () => {
     const { user, repositories, plan } = await openTextPlan()
     const types = await repositories.mealTypes.list()

@@ -284,6 +284,11 @@ describe('mealCopySlots', () => {
     ])
   })
 
+  it('hedef listesindeki tekrarları tek sayar', () => {
+    const slots = mealCopySlots([breakfast], [{ dayNumber: 2, mealTypeId: null }, { dayNumber: 2, mealTypeId: 'kahvalti' }, { dayNumber: 2, mealTypeId: null }])
+    expect(slots).toHaveLength(1)
+  })
+
   it('öğünü başka türe ve günlere kopyalar', () => {
     const slots = mealCopySlots([breakfast], [{ dayNumber: 1, mealTypeId: 'aksam' }, { dayNumber: 3, mealTypeId: 'kahvalti' }])
     expect(slots.map((s) => [s.dayNumber, s.mealTypeId])).toEqual([

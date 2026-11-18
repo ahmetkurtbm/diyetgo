@@ -42,7 +42,9 @@ describe('Randevu hatırlatıcıları', () => {
 
     expect(await screen.findByText(/Randevuya 1 saat var: Deniz Örnek/)).toBeDefined()
     await waitFor(() => expect(shown).toHaveLength(1))
-    expect(shown[0]).toMatchObject({ title: 'Randevuya 1 saat var', body: expect.stringContaining('Deniz Örnek') })
+    // Sistem bildirimi (kilit ekranında görünebilir) danışanın adını içermez; ekrandaki uyarı içerir.
+    expect(shown[0]).toMatchObject({ title: 'Randevuya 1 saat var', body: expect.stringMatching(/^Saat \d{2}:\d{2}$/) })
+    expect(shown[0]!.body).not.toContain('Deniz')
     expect(JSON.parse(localStorage.getItem('diyetgo:reminders:fired')!)).toHaveLength(1)
 
     // Sayfa yenilenince (aynı depolama) aynı hatırlatma yeniden gösterilmez.
@@ -72,6 +74,17 @@ describe('Randevu hatırlatıcıları', () => {
     await repositories.appointments.update(cancelled.id, { ...cancelled, status: 'cancelled' })
     await new Promise((resolve) => setTimeout(resolve, 300))
     expect(screen.queryByText(/Randevuya 1 saat var/)).toBeNull()
+    expect(shown).toHaveLength(0)
+  })
+
+  it('liste yüklendikten sonra iptal edilen randevu için hatırlatma göstermez', async () => {
+    const { shown } = stubNotification('granted')
+    const { repositories } = renderApp('/')
+    await screen.findByRole('heading', { name: 'Genel bakış' })
+    const appointment = await createAppointment(repositories, 59)
+    // Zamanlayıcı kurulduktan hemen sonra, tetiklenmeden iptal edilir: hatırlatma yeniden doğrulanır.
+    await repositories.appointments.update(appointment.id, { ...appointment, status: 'cancelled' })
+    await new Promise((resolve) => setTimeout(resolve, 300))
     expect(shown).toHaveLength(0)
   })
 

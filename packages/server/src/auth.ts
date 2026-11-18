@@ -60,6 +60,8 @@ export function createAuth(db: Db, { baseURL, secret, trustedOrigins = [] }: Aut
     emailAndPassword: {
       enabled: true,
       minPasswordLength: MIN_PASSWORD_LENGTH,
+      // Parola sıfırlanınca açık oturumlar kapanır: çerezi ele geçirilmiş bir hesap parolayla kurtarılabilir.
+      revokeSessionsOnPasswordReset: true,
       sendResetPassword: async ({ user, url }) => {
         if (production) throw new Error('Parola sıfırlama e-postası henüz yapılandırılmadı.')
         console.info(`[yerel geliştirme] ${user.email} için parola sıfırlama bağlantısı: ${url}`)

@@ -13,13 +13,13 @@ import { useToast } from '../../components/ui/toast-context'
 import { useAccount } from '../../components/layout/account-context'
 import { saveBlob, slug } from '../../lib/files'
 import { today } from '../../lib/format'
-import { buildPdf, pageCuts, type PdfPage } from '../../lib/pdf'
+import { buildPdf, pageCuts, renderScale, type PdfPage } from '../../lib/pdf'
 import { PDF_THEMES, themeById, type PdfTheme } from '../../lib/pdf-themes'
 import { loadDecoration, PAGE_PX } from '../../lib/plan-decor'
 import { buildPlanDocument } from './plan-document'
 import { PlanDocumentView } from './PlanDocumentView'
 
-const SCALE = 2
+const MAX_SCALE = 2
 const MARGIN_PX = 56
 const NAME_KEY = 'diyetgo:dietitian-name'
 const THEME_KEY = 'diyetgo:pdf-theme'
@@ -44,7 +44,9 @@ function savedName(): string {
 async function renderPdf(node: HTMLElement, theme: PdfTheme): Promise<Blob> {
   // Kütüphane yalnızca çıktı üretilirken yüklenir; ana paket büyümez.
   const { domToCanvas } = await import('modern-screenshot')
-  const source = await domToCanvas(node, { scale: SCALE, backgroundColor: null })
+  // Uzun belgede ölçek düşer; böylece iPhone/iPad'in canvas sınırı aşılmaz.
+  const scale = renderScale(node.offsetWidth, node.offsetHeight, MAX_SCALE)
+  const source = await domToCanvas(node, { scale, backgroundColor: null })
   const top = node.getBoundingClientRect().top
   const bottoms = [...node.querySelectorAll('[data-pdf-block]')].map((el) => el.getBoundingClientRect().bottom - top)
   const cuts = pageCuts(bottoms, node.offsetHeight, PAGE_PX.height - 2 * MARGIN_PX)
@@ -52,13 +54,13 @@ async function renderPdf(node: HTMLElement, theme: PdfTheme): Promise<Blob> {
   const pages: PdfPage[] = []
   for (const [from, to] of cuts) {
     const page = document.createElement('canvas')
-    page.width = PAGE_PX.width * SCALE
-    page.height = PAGE_PX.height * SCALE
+    page.width = Math.round(PAGE_PX.width * scale)
+    page.height = Math.round(PAGE_PX.height * scale)
     const context = page.getContext('2d')!
     context.fillStyle = theme.bg
     context.fillRect(0, 0, page.width, page.height)
     context.drawImage(decoration, 0, 0, page.width, page.height)
-    context.drawImage(source, 0, from * SCALE, source.width, (to - from) * SCALE, 0, MARGIN_PX * SCALE, source.width, (to - from) * SCALE)
+    context.drawImage(source, 0, from * scale, source.width, (to - from) * scale, 0, MARGIN_PX * scale, source.width, (to - from) * scale)
     const blob = await new Promise<Blob | null>((resolve) => page.toBlob(resolve, 'image/jpeg', 0.92))
     if (!blob) throw new Error('Sayfa görseli oluşturulamadı')
     pages.push({ jpeg: new Uint8Array(await blob.arrayBuffer()), width: page.width, height: page.height })

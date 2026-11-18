@@ -192,11 +192,46 @@ describe('yedek', () => {
     source.write(data)
     expect(source.lastBackupAt()).toBeNull()
     const text = source.exportBackup()
+    // Yedek zamanı dosya kaydedildikten sonra işlenir.
+    expect(source.lastBackupAt()).toBeNull()
+    source.recordBackup()
     expect(source.lastBackupAt()).toBe(NOW.toISOString())
 
     const target = open(new MemoryStorage())
     target.importBackup(text)
     expect(target.read().data.clients[0]!.firstName).toBe('Yedeklenen')
+  })
+
+  it('yedek yüklerken bozuk tarihi, tekrarlanan kimliği ve sarkık bağı reddeder; fazlalıkları depoya yazmaz', () => {
+    const base = () => JSON.parse(JSON.stringify(openStore().read())) as { version: number; seededAt: string; data: Record<string, Record<string, unknown>[]> }
+    function openStore() {
+      return open(new MemoryStorage())
+    }
+    const target = openStore()
+    const before = JSON.stringify(target.read())
+
+    const badDate = base()
+    badDate.seededAt = 'x'
+    expect(() => target.importBackup(JSON.stringify(badDate))).toThrow(/geçersiz/)
+
+    const duplicate = base()
+    duplicate.data.clients!.push({ ...duplicate.data.clients![0]! })
+    expect(() => target.importBackup(JSON.stringify(duplicate))).toThrow(/aynı kimlikli/)
+
+    const dangling = base()
+    dangling.data.planMealItems![0]!.foodId = '00000000-0000-4000-8000-00000000dead'
+    expect(() => target.importBackup(JSON.stringify(dangling))).toThrow(/bağlı olduğu kaydı olmayan/)
+    expect(JSON.stringify(target.read())).toBe(before)
+
+    const extra = base()
+    ;(extra as unknown as Record<string, unknown>).hack = true
+    ;(extra.data as Record<string, unknown>).sahte = [{ id: 'x' }]
+    extra.data.clients![0]!.fazla = 'alan'
+    target.importBackup(JSON.stringify(extra))
+    const saved = target.read()
+    expect(Object.keys(saved.data)).not.toContain('sahte')
+    expect(saved.data.clients[0]).not.toHaveProperty('fazla')
+    expect(saved).not.toHaveProperty('hack')
   })
 
   it('geçersiz yedek mevcut verileri değiştirmez', () => {

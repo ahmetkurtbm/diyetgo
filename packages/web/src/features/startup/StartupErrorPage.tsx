@@ -7,7 +7,7 @@ import { ConfirmDialog } from '../../components/ui/Dialog'
  * Veri kaynağı açılamadığında gösterilir. Bozuk veya tanınmayan demo verisi kendiliğinden silinmez;
  * kullanıcı açıkça onaylarsa yalnızca Diyetgo demo verileri silinir.
  */
-export function StartupErrorPage({ message, onReset }: { message: string; onReset?: () => void }) {
+export function StartupErrorPage({ message, onReset, title = 'Diyetgo başlatılamadı', onReload }: { message: string; onReset?: () => void; title?: string; onReload?: () => void }) {
   const [confirming, setConfirming] = useState(false)
   return (
     <main className="flex min-h-svh items-center justify-center bg-slate-50 p-4">
@@ -15,8 +15,13 @@ export function StartupErrorPage({ message, onReset }: { message: string; onRese
         <span className="mx-auto mb-3 inline-flex rounded-full bg-red-50 p-3 text-red-600">
           <AlertTriangle aria-hidden className="size-6" />
         </span>
-        <h1 className="text-lg font-semibold text-slate-900">Diyetgo başlatılamadı</h1>
+        <h1 className="text-lg font-semibold text-slate-900">{title}</h1>
         <p className="mt-2 text-sm text-slate-600">{message}</p>
+        {onReload && (
+          <Button variant="primary" className="mt-5" onClick={onReload}>
+            Sayfayı yenile
+          </Button>
+        )}
         {onReset && (
           <>
             <p className="mt-2 text-sm text-slate-600">

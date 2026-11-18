@@ -5,7 +5,7 @@
  * Her senaryo kendi kayıtlarını oluşturur; mevcut (seed) verilere dayanmaz. Randevular seed
  * verisiyle çakışmaması için uzak bir tarihte (2031) oluşturulur.
  */
-import type { AppointmentInput, ClientGoalInput, ClientInput, ClientMedicationInput, FoodInput, MealPlanInput } from '@diyetgo/shared'
+import { LIMITS, type AppointmentInput, type ClientGoalInput, type ClientInput, type ClientMedicationInput, type FoodInput, type MealPlanInput } from '@diyetgo/shared'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { RepositoryError, type Repositories, type RepositoryErrorCode } from './repositories'
 
@@ -305,7 +305,7 @@ export function describeRepositoryContract(name: string, setup: () => Promise<Re
 
         // Günü kopyala: 1. gün (kendi yeri atlanır) → 2. ve 3. gün.
         const day = await repos.mealPlans.copyMeals(plan.id, { mealIds: [breakfast.id], targets: [1, 2, 3].map((d) => ({ dayNumber: d, mealTypeId: null })) })
-        expect(day).toEqual({ meals: 1, items: 4 })
+        expect(day).toEqual({ meals: 1, items: 4, skipped: 0 })
         let detail = await repos.mealPlans.get(plan.id)
         const day2 = detail.meals.find((m) => m.dayNumber === 2)!
         expect(day2).toMatchObject({ mealTypeId: mealType.id, time: '08:00', notes: 'Not' })
@@ -320,7 +320,7 @@ export function describeRepositoryContract(name: string, setup: () => Promise<Re
         ])
 
         // Öğünü başka öğün türüne kopyala.
-        expect(await repos.mealPlans.copyMeals(plan.id, { mealIds: [breakfast.id], targets: [{ dayNumber: 1, mealTypeId: lunch.id }] })).toEqual({ meals: 1, items: 2 })
+        expect(await repos.mealPlans.copyMeals(plan.id, { mealIds: [breakfast.id], targets: [{ dayNumber: 1, mealTypeId: lunch.id }] })).toEqual({ meals: 1, items: 2, skipped: 0 })
         detail = await repos.mealPlans.get(plan.id)
         expect(detail.meals.filter((m) => m.dayNumber === 1).map((m) => m.mealTypeId).sort()).toEqual([mealType.id, lunch.id].sort())
 
@@ -340,6 +340,29 @@ export function describeRepositoryContract(name: string, setup: () => Promise<Re
         await expectError(repos.mealPlans.addMeal({ mealPlanId: plan.id, dayNumber: 8, mealTypeId: mealType.id, time: null, notes: 'x' }), 'validation')
         const kindChange = await expectError(repos.mealPlans.update(plan.id, { ...plan, kind: 'daily' }), 'validation')
         expect(kindChange.fieldErrors.kind).toBeTruthy()
+      })
+
+      it('kopyalama: hedef tekrarları tek sayılır, arşivli besin atlanır, öğün içerik sınırı aşılmaz', async () => {
+        const { plan, mealType } = await createPlan()
+        const keep = await repos.foods.create(foodInput({ name: 'Kopyada kalan' }))
+        const gone = await repos.foods.create(foodInput({ name: 'Kopyada arşivlenen' }))
+        const source = await repos.mealPlans.addMeal({ mealPlanId: plan.id, dayNumber: 1, mealTypeId: mealType.id, time: null, notes: null })
+        await repos.mealPlans.addItem({ planMealId: source.id, foodId: keep.id, quantity: 10, sortOrder: 0, notes: null })
+        await repos.mealPlans.addItem({ planMealId: source.id, foodId: gone.id, quantity: 20, sortOrder: 1, notes: null })
+        await repos.foods.setArchived(gone.id, true)
+
+        // Aynı hedef üç kez yazılsa da bir kez kopyalanır; arşivli besin atlanır ve sayısı bildirilir.
+        const repeated = [2, 2, 2].map((dayNumber) => ({ dayNumber, mealTypeId: null }))
+        expect(await repos.mealPlans.copyMeals(plan.id, { mealIds: [source.id], targets: repeated })).toEqual({ meals: 1, items: 1, skipped: 1 })
+        const detail = await repos.mealPlans.get(plan.id)
+        const copy = detail.meals.find((m) => m.dayNumber === 2)!
+        expect(detail.items.filter((i) => i.planMealId === copy.id).map((i) => i.foodId)).toEqual([keep.id])
+
+        // Hedef öğünde sıra sınırı dolmuşsa kopyalama reddedilir ve hiçbir şey eklenmez.
+        const full = await repos.mealPlans.addMeal({ mealPlanId: plan.id, dayNumber: 3, mealTypeId: mealType.id, time: null, notes: null })
+        await repos.mealPlans.addItem({ planMealId: full.id, foodId: keep.id, quantity: 5, sortOrder: LIMITS.sortOrder, notes: null })
+        await expectError(repos.mealPlans.copyMeals(plan.id, { mealIds: [source.id], targets: [{ dayNumber: 3, mealTypeId: null }] }), 'validation')
+        expect((await repos.mealPlans.get(plan.id)).items.filter((i) => i.planMealId === full.id)).toHaveLength(1)
       })
 
       it('öğün silinince içerikleri, plan silinince öğünleri silinir', async () => {

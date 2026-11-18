@@ -168,8 +168,10 @@ export interface DemoControls {
   info(): Promise<DemoInfo>
   /** Yalnızca Diyetgo demo verilerini siler ve örnek verileri yeniden yükler. */
   reset(): Promise<void>
-  /** Tüm demo verilerini yedek dosyası içeriği (JSON) olarak döndürür ve yedek zamanını kaydeder. */
+  /** Tüm demo verilerini yedek dosyası içeriği (JSON) olarak döndürür. */
   exportBackup(): Promise<string>
+  /** Yedek dosyası kaydedildikten sonra yedek zamanını işler. */
+  recordBackup(): Promise<void>
   /** Yedek dosyasını doğrulayıp mevcut verilerin yerine yükler; geçersizse hiçbir şey değişmez. */
   importBackup(text: string): Promise<void>
 }

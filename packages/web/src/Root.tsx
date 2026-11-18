@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react'
 import App from './App.tsx'
 import type { DataSource } from './data'
+import { AppErrorBoundary } from './components/AppErrorBoundary'
 import { StartupErrorPage } from './features/startup/StartupErrorPage'
 
 // Oturum yalnızca API modunda gerekir; kimlik doğrulama kodu demo paketine girmez.
@@ -23,11 +24,27 @@ export function Root({ source }: { source: DataSource }) {
       />
     )
   }
+  const { demo } = source.repositories
   const app = <App repositories={source.repositories} />
-  if (source.repositories.mode !== 'api') return app
+  const content =
+    source.repositories.mode !== 'api' ? (
+      app
+    ) : (
+      <Suspense fallback={null}>
+        <AuthGate>{app}</AuthGate>
+      </Suspense>
+    )
   return (
-    <Suspense fallback={null}>
-      <AuthGate>{app}</AuthGate>
-    </Suspense>
+    <AppErrorBoundary
+      onReset={
+        demo
+          ? () => {
+              void demo.reset().then(() => window.location.reload())
+            }
+          : undefined
+      }
+    >
+      {content}
+    </AppErrorBoundary>
   )
 }

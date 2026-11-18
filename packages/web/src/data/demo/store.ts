@@ -17,6 +17,7 @@ import {
   EXCHANGE_GROUPS,
   FOOD_CATALOG,
   foodSchema,
+  instantSchema,
   istanbulDateOf,
   mealPlanSchema,
   mealTypeSchema,
@@ -111,8 +112,10 @@ export type DemoStore = {
   read(): Envelope
   write(data: DemoData): void
   reset(): void
-  /** Yedek dosyası içeriği; yedek zamanı kaydedilir. */
+  /** Yedek dosyası içeriği. Yedek zamanını kaydetmez: dosya kaydedildikten sonra `recordBackup` çağrılır. */
   exportBackup(): string
+  /** Yedeğin alındığı anı kaydeder (haftalık hatırlatma bunu kullanır). */
+  recordBackup(): void
   /** Yedeği eski sürümse yükseltir, doğrular ve yükler; geçersizse `validation` hatası verir. */
   importBackup(text: string): void
   lastBackupAt(): string | null
@@ -147,13 +150,56 @@ export function getBrowserStorage(): Storage | null {
   }
 }
 
+/** Kayıtların hangi koleksiyondaki kayda bağlandığı: [koleksiyon, alan, hedef koleksiyon]. */
+const REFERENCES = [
+  ['measurements', 'clientId', 'clients'],
+  ['mealPlans', 'clientId', 'clients'],
+  ['planMeals', 'mealPlanId', 'mealPlans'],
+  ['planMeals', 'mealTypeId', 'mealTypes'],
+  ['planMealItems', 'planMealId', 'planMeals'],
+  ['planMealItems', 'foodId', 'foods'],
+  ['appointments', 'clientId', 'clients'],
+  ['clientGoals', 'clientId', 'clients'],
+  ['clientMedications', 'clientId', 'clients'],
+  ['clientConditions', 'clientId', 'clients'],
+  ['clientRecommendations', 'clientId', 'clients'],
+  ['recipeIngredients', 'recipeId', 'foods'],
+  ['recipeIngredients', 'foodId', 'foods'],
+] as const
+
+/**
+ * Yedekten yüklenen verinin kayıtlar arası bütünlüğü: kimlikler koleksiyon içinde benzersiz olmalı ve
+ * her bağ var olan bir kaydı göstermeli (veritabanındaki birincil ve yabancı anahtar kuralları).
+ */
+function relationIssue(data: Record<string, unknown[]>): string | null {
+  const ids = new Map<string, Set<unknown>>()
+  for (const name of Object.keys(collectionSchemas)) {
+    const set = new Set((data[name] as { id?: unknown }[]).map((r) => r.id))
+    if (set.size !== data[name]!.length) return `Yedekte aynı kimlikli birden çok kayıt var (${name}).`
+    ids.set(name, set)
+  }
+  for (const [name, field, target] of REFERENCES) {
+    if ((data[name] as Record<string, unknown>[]).some((r) => !ids.get(target)!.has(r[field]))) {
+      return `Yedekte bağlı olduğu kaydı olmayan kayıt var (${name}).`
+    }
+  }
+  return null
+}
+
+/** Yalnızca bilinen koleksiyonları ve şemadaki alanları tutar; fazlalıklar yedekle depoya yazılmaz. */
+function sanitize(data: Record<string, unknown[]>): DemoData {
+  return Object.fromEntries(
+    Object.entries(collectionSchemas).map(([name, schema]) => [name, data[name]!.map((record) => (schema as unknown as { parse(v: unknown): unknown }).parse(record))]),
+  ) as unknown as DemoData
+}
+
 function validate(value: unknown): OpenError | null {
   if (typeof value !== 'object' || value === null) return { reason: 'corrupt', message: 'Demo verileri okunamadı.' }
   const envelope = value as Partial<Envelope>
   if (envelope.version !== VERSION) {
     return { reason: 'unsupported_version', message: `Demo verilerinin sürümü (${String(envelope.version)}) tanınmıyor.` }
   }
-  if (typeof envelope.seededAt !== 'string' || typeof envelope.data !== 'object' || envelope.data === null) {
+  if (!instantSchema.safeParse(envelope.seededAt).success || typeof envelope.data !== 'object' || envelope.data === null) {
     return { reason: 'invalid', message: 'Demo verilerinin yapısı geçersiz.' }
   }
   for (const [name, schema] of Object.entries(collectionSchemas)) {
@@ -228,15 +274,16 @@ export function openDemoStore(options: { storage: Storage | null; now?: () => Da
       notify()
     },
     exportBackup() {
-      const text = JSON.stringify(store.read())
+      return JSON.stringify(store.read())
+    },
+    recordBackup() {
       try {
         storage.setItem(BACKUP_KEY, now().toISOString())
       } catch {
-        // Yedek zamanı kaydedilemese de yedek dosyası verilir.
+        // Yedek zamanı kaydedilemezse hatırlatma erken gelir; yedek dosyası yine geçerlidir.
       }
       // "Son yedek" bilgisini gösteren ekranlar yenilensin.
       notify()
-      return text
     },
     importBackup(text) {
       let parsed: unknown
@@ -248,7 +295,11 @@ export function openDemoStore(options: { storage: Storage | null; now?: () => Da
       const upgraded = upgrade(parsed, istanbulDateOf(now()))
       const error = validate(upgraded)
       if (error) throw new RepositoryError('validation', `Yedek yüklenemedi: ${error.message}`)
-      save(upgraded as Envelope)
+      const envelope = upgraded as Envelope
+      const data = envelope.data as unknown as Record<string, unknown[]>
+      const issue = relationIssue(data)
+      if (issue) throw new RepositoryError('validation', `Yedek yüklenemedi: ${issue}`)
+      save({ version: VERSION, seededAt: envelope.seededAt, data: sanitize(data) })
       notify()
     },
     lastBackupAt() {

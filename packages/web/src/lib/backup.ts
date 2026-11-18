@@ -3,6 +3,7 @@
  * alınmaz; son yedeğin üzerinden bir hafta geçince uygulama hatırlatır.
  */
 import type { DemoControls, DemoInfo } from '../data/repositories'
+import { saveBlob } from './files'
 import { today } from './format'
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000
@@ -12,11 +13,8 @@ export function isBackupDue(info: Pick<DemoInfo, 'seededAt' | 'lastBackupAt'>, n
   return now.getTime() - Date.parse(info.lastBackupAt ?? info.seededAt) >= WEEK_MS
 }
 
+/** Dosya hazırlanıp indirme başlatılınca yedek zamanı işlenir; hata olursa işlenmez. */
 export async function downloadBackup(demo: DemoControls): Promise<void> {
-  const url = URL.createObjectURL(new Blob([await demo.exportBackup()], { type: 'application/json' }))
-  const link = document.createElement('a')
-  link.href = url
-  link.download = `diyetgo-yedek-${today()}.json`
-  link.click()
-  URL.revokeObjectURL(url)
+  saveBlob(new Blob([await demo.exportBackup()], { type: 'application/json' }), `diyetgo-yedek-${today()}.json`)
+  await demo.recordBackup()
 }

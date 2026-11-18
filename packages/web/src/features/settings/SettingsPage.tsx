@@ -9,6 +9,7 @@ import { TextField } from '../../components/ui/form'
 import { Card, CardHeader, PageHeader } from '../../components/ui/layout'
 import { useToast } from '../../components/ui/toast-context'
 import { errorMessage, fieldErrorsOf } from '../../lib/errors'
+import { clearDemoStorage } from '../../data/demo/store'
 import { downloadBackup } from '../../lib/backup'
 import { RemindersSection } from '../reminders/ReminderControls'
 import { formatDateTime } from '../../lib/format'
@@ -358,11 +359,23 @@ function AccountSection() {
   async function remove() {
     if (password === '') return setError('Parolanızı girin')
     setBusy(true)
-    const { authClient, authErrorMessage } = await import('../../data/api/auth-client')
-    const result = await authClient.deleteUser({ password })
-    setBusy(false)
-    if (result.error) return setError(authErrorMessage(result.error))
-    window.location.assign('/')
+    try {
+      const { authClient, authErrorMessage } = await import('../../data/api/auth-client')
+      const result = await authClient.deleteUser({ password })
+      if (result.error) return setError(authErrorMessage(result.error))
+      // Hesap silindi: bu tarayıcıda kalan Diyetgo ayarları (diyetisyen adı, tercihler, hatırlatma kayıtları) da temizlenir.
+      try {
+        clearDemoStorage(localStorage)
+      } catch {
+        // Temizlenemese de hesap silinmiştir.
+      }
+      window.location.assign('/')
+    } catch {
+      // Ağ hatası veya kod parçası yüklenemedi: düğme takılı kalmasın, kullanıcı bilgilendirilsin.
+      setError('İşlem tamamlanamadı. Bağlantınızı kontrol edip tekrar deneyin.')
+    } finally {
+      setBusy(false)
+    }
   }
 
   return (

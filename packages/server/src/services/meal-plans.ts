@@ -6,6 +6,7 @@ import {
   addDays,
   canAddFoodToMeal,
   canUseMealType,
+  LIMITS,
   copyMealsInputSchema,
   isMealSlotValid,
   mealCopySlots,
@@ -253,8 +254,12 @@ export function createMealPlanService(db: Db, ownerId: string) {
         const types = typeIds.length === 0 ? [] : await tx.select().from(mealTypes).where(and(eq(mealTypes.ownerId, ownerId), inArray(mealTypes.id, typeIds)))
         if (types.length !== typeIds.length) throw new ApiError('not_found', 'Öğün türü bulunamadı.')
         const sourceItems = await tx.select().from(planMealItems).where(inArray(planMealItems.planMealId, mealIds)).orderBy(asc(planMealItems.sortOrder))
+        // Arşivlenmiş besin yeni öğüne eklenemez (bkz. `addItem`); kopyada atlanır ve sayısı bildirilir.
+        const foodIds = [...new Set(sourceItems.map((i) => i.foodId))]
+        const foodRows = foodIds.length === 0 ? [] : await tx.select().from(foods).where(inArray(foods.id, foodIds))
+        const addable = new Set(foodRows.filter(canAddFoodToMeal).map((f) => f.id))
         const nextSort = new Map<string, number>()
-        const result: CopyMealsResult = { meals: 0, items: 0 }
+        const result: CopyMealsResult = { meals: 0, items: 0, skipped: 0 }
         for (const { source, dayNumber, mealTypeId } of slots) {
           if (!isMealSlotValid(plan, dayNumber)) {
             const message = plan.kind === 'options' ? 'Geçersiz seçenek numarası' : 'Gün plan süresinin dışında'
@@ -275,9 +280,14 @@ export function createMealPlanService(db: Db, ownerId: string) {
             const rows = await tx.select({ sortOrder: planMealItems.sortOrder }).from(planMealItems).where(eq(planMealItems.planMealId, targetId))
             nextSort.set(targetId, Math.max(-1, ...rows.map((r) => r.sortOrder)) + 1)
           }
-          const copies = sourceItems.filter((i) => i.planMealId === source.id)
+          const all = sourceItems.filter((i) => i.planMealId === source.id)
+          const copies = all.filter((i) => addable.has(i.foodId))
+          result.skipped += all.length - copies.length
           if (copies.length > 0) {
             const start = nextSort.get(targetId)!
+            if (start + copies.length - 1 > LIMITS.sortOrder) {
+              throw new ApiError('validation', `Bir öğünde en fazla ${LIMITS.sortOrder + 1} içerik olabilir.`)
+            }
             await tx.insert(planMealItems).values(copies.map((i, n) => ({ planMealId: targetId, foodId: i.foodId, quantity: i.quantity, sortOrder: start + n, notes: i.notes })))
             nextSort.set(targetId, start + copies.length)
             result.items += copies.length

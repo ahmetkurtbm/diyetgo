@@ -1,6 +1,6 @@
 /** Kimlik doğrulama ve diyetisyenler arası veri izolasyonu. */
 import request from 'supertest'
-import { afterAll, beforeEach, describe, expect, it } from 'vitest'
+import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { db, resetDatabase } from '../test/db'
 import { app, client, cookieFrom, signUp, TEST_ORIGIN, TEST_PASSWORD } from '../test/session'
 
@@ -54,6 +54,24 @@ describe('oturum', () => {
 
     await request(app).post('/api/auth/sign-in/email').set('Origin', TEST_ORIGIN).send({ email, password: 'yanlis-parola-123' }).expect(401)
     await request(app).post('/api/auth/sign-in/email').set('Origin', TEST_ORIGIN).send({ email, password: TEST_PASSWORD }).expect(200)
+  })
+
+  it('parola sıfırlanınca açık oturumlar kapanır', async () => {
+    const owner = await signUp('Sıfırlayan')
+    const logs: string[] = []
+    const info = vi.spyOn(console, 'info').mockImplementation((message: unknown) => void logs.push(String(message)))
+    try {
+      await request(app).post('/api/auth/request-password-reset').set('Origin', TEST_ORIGIN).send({ email: owner.email, redirectTo: `${TEST_ORIGIN}/reset` }).expect(200)
+      await vi.waitFor(() => expect(logs.some((l) => l.includes('sıfırlama bağlantısı'))).toBe(true))
+    } finally {
+      info.mockRestore()
+    }
+    const token = /reset-password\/([^?\s]+)/.exec(logs.find((l) => l.includes('sıfırlama bağlantısı'))!)![1]!
+    await owner.http.get('/api/clients').expect(200)
+    await request(app).post('/api/auth/reset-password').set('Origin', TEST_ORIGIN).send({ newPassword: 'yepyeni-parola-123', token }).expect(200)
+    // Eski oturum çerezi artık geçersiz; yeni parolayla giriş çalışır.
+    await owner.http.get('/api/clients').expect(401)
+    await request(app).post('/api/auth/sign-in/email').set('Origin', TEST_ORIGIN).send({ email: owner.email, password: 'yepyeni-parola-123' }).expect(200)
   })
 
   it('kısa parolayı reddeder', async () => {
@@ -144,6 +162,15 @@ describe('diyetisyenler arası izolasyon', () => {
     // Diğer diyetisyenlerin kayıtları yerinde.
     expect((await other.http.get('/api/clients').expect(200)).body.map((c: { id: string }) => c.id)).toEqual([otherClient.id])
     expect((await db.$client.query('select count(*)::int as n from clients where id = $1', [a.danisan.id])).rows[0].n).toBe(1)
+  })
+
+  it('hesap silme tek işlemdedir: kullanıcı, oturum ve parola kaydı birlikte gider', async () => {
+    const owner = await signUp('Tek işlem')
+    await owner.http.post('/api/clients').send(clientBody).expect(201)
+    await owner.http.post('/api/auth/delete-user').set('Origin', TEST_ORIGIN).send({ password: TEST_PASSWORD }).expect(200)
+    for (const [table, column] of [['users', 'id'], ['sessions', 'user_id'], ['accounts', 'user_id'], ['clients', 'owner_id']] as const) {
+      expect((await db.$client.query(`select count(*)::int as n from ${table} where ${column} = $1`, [owner.userId])).rows[0].n).toBe(0)
+    }
   })
 
   it('başka diyetisyenin kayıtlarını listelemez', async () => {

@@ -16,15 +16,18 @@ import { errorMessage } from '../../lib/errors'
 export function TextRecommendationsEditor({ plan }: { plan: MealPlan }) {
   const repositories = useRepositories()
   const toast = useToast()
-  const [text, setText] = useState(plan.notes ?? '')
+  // Yalnızca değiştirilmişse taslak tutulur; değilse kayıtlı metin gösterilir (plan yeniden yüklenince metin kaybolmaz).
+  const [draft, setDraft] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
-  const dirty = text.trim() !== (plan.notes ?? '').trim()
+  const text = draft ?? plan.notes ?? ''
+  const dirty = draft !== null && draft.trim() !== (plan.notes ?? '').trim()
 
   async function save() {
     setBusy(true)
     try {
       const { clientId, title, startDate, endDate, kind, weeklyQuotas } = plan
       await repositories.mealPlans.update(plan.id, { clientId, title, startDate, endDate, kind, weeklyQuotas, notes: text.trim() === '' ? null : text.trim() })
+      setDraft(null)
       toast.success('Öneriler kaydedildi.')
     } catch (error) {
       toast.error(errorMessage(error))
@@ -40,7 +43,7 @@ export function TextRecommendationsEditor({ plan }: { plan: MealPlan }) {
         description="Her satır PDF'te simgeli ayrı bir öneri olur. Menünün altında şekilli bir bölüm olarak çıkar."
         actions={
           <>
-            <Button size="sm" onClick={() => setText(correctMealText(text))}>
+            <Button size="sm" onClick={() => setDraft(correctMealText(text))}>
               <SpellCheck aria-hidden className="size-4" />
               Yazımı düzelt
             </Button>
@@ -60,7 +63,7 @@ export function TextRecommendationsEditor({ plan }: { plan: MealPlan }) {
           rows={5}
           maxLength={LIMITS.notes}
           value={text}
-          onChange={(e) => setText(e.target.value)}
+          onChange={(e) => setDraft(e.target.value)}
           placeholder={'Günde 2-2,5 litre su için\nHaftada 2 gün sebze yemeği\nHaftada 2 gün balık\nHaftada 3-4 gün kuru baklagil'}
         />
       </div>

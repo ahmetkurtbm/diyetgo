@@ -70,7 +70,7 @@ function CopyForm({ plan, meals, mealTypes, dayCount, source, onClose }: Omit<Pr
     try {
       const result = await repositories.mealPlans.copyMeals(plan.id, { mealIds, targets })
       const where = isOptions ? `${typeName(mealTypeId)} · ${targets[0]!.dayNumber}. seçenek` : `${targets.length} güne`
-      toast.success(`${where} kopyalandı (${result.items} besin).`)
+      toast.success(`${where} kopyalandı (${result.items} besin${result.skipped > 0 ? `; ${result.skipped} arşivli besin atlandı` : ''}).`)
       onClose()
     } catch (error) {
       toast.error(errorMessage(error))
