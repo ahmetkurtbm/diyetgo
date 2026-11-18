@@ -14,6 +14,7 @@ import { useAccount } from '../../components/layout/account-context'
 import { saveBlob, slug } from '../../lib/files'
 import { today } from '../../lib/format'
 import { buildPdf, pageCuts, type PdfPage } from '../../lib/pdf'
+import { PDF_THEMES, themeById, type PdfTheme } from '../../lib/pdf-themes'
 import { loadDecoration, PAGE_PX } from '../../lib/plan-decor'
 import { buildPlanDocument } from './plan-document'
 import { PlanDocumentView } from './PlanDocumentView'
@@ -21,6 +22,15 @@ import { PlanDocumentView } from './PlanDocumentView'
 const SCALE = 2
 const MARGIN_PX = 56
 const NAME_KEY = 'diyetgo:dietitian-name'
+const THEME_KEY = 'diyetgo:pdf-theme'
+
+function savedTheme(): PdfTheme {
+  try {
+    return themeById(localStorage.getItem(THEME_KEY))
+  } catch {
+    return themeById(null)
+  }
+}
 
 function savedName(): string {
   try {
@@ -31,21 +41,21 @@ function savedName(): string {
 }
 
 /** Belgeyi görsele çizer, bloklara göre sayfalara böler ve her sayfaya çiçekli zemini ekleyip PDF yazar. */
-async function renderPdf(node: HTMLElement): Promise<Blob> {
+async function renderPdf(node: HTMLElement, theme: PdfTheme): Promise<Blob> {
   // Kütüphane yalnızca çıktı üretilirken yüklenir; ana paket büyümez.
   const { domToCanvas } = await import('modern-screenshot')
   const source = await domToCanvas(node, { scale: SCALE, backgroundColor: null })
   const top = node.getBoundingClientRect().top
   const bottoms = [...node.querySelectorAll('[data-pdf-block]')].map((el) => el.getBoundingClientRect().bottom - top)
   const cuts = pageCuts(bottoms, node.offsetHeight, PAGE_PX.height - 2 * MARGIN_PX)
-  const decoration = await loadDecoration()
+  const decoration = await loadDecoration(theme)
   const pages: PdfPage[] = []
   for (const [from, to] of cuts) {
     const page = document.createElement('canvas')
     page.width = PAGE_PX.width * SCALE
     page.height = PAGE_PX.height * SCALE
     const context = page.getContext('2d')!
-    context.fillStyle = '#fffafc'
+    context.fillStyle = theme.bg
     context.fillRect(0, 0, page.width, page.height)
     context.drawImage(decoration, 0, 0, page.width, page.height)
     context.drawImage(source, 0, from * SCALE, source.width, (to - from) * SCALE, 0, MARGIN_PX * SCALE, source.width, (to - from) * SCALE)
@@ -64,6 +74,7 @@ export function PlanExportDialog({ open, plan, client, meals, mealTypes, onClose
   const captureRef = useRef<HTMLDivElement>(null)
   const [name, setName] = useState(() => account?.name ?? savedName())
   const [busy, setBusy] = useState(false)
+  const [theme, setTheme] = useState(savedTheme)
   // Önizleme pencerenin genişliğine sığar; telefonda küçülür.
   const zoom = Math.min(0.8, (Math.min(672, window.innerWidth - 32) - 44) / PAGE_PX.width)
 
@@ -73,6 +84,7 @@ export function PlanExportDialog({ open, plan, client, meals, mealTypes, onClose
   function rememberName() {
     try {
       localStorage.setItem(NAME_KEY, name.trim())
+      localStorage.setItem(THEME_KEY, theme.id)
     } catch {
       // Kaydedilemese de çıktı alınabilir.
     }
@@ -84,7 +96,7 @@ export function PlanExportDialog({ open, plan, client, meals, mealTypes, onClose
     try {
       rememberName()
       await document.fonts?.ready
-      saveBlob(await renderPdf(captureRef.current), `diyetgo-plan-${slug(client.firstName)}-${today()}.pdf`)
+      saveBlob(await renderPdf(captureRef.current, theme), `diyetgo-plan-${slug(client.firstName)}-${today()}.pdf`)
       toast.success('PDF indirildi.')
     } catch {
       toast.error('PDF oluşturulamadı. Lütfen tekrar deneyin.')
@@ -135,12 +147,29 @@ export function PlanExportDialog({ open, plan, client, meals, mealTypes, onClose
     >
       <div className="space-y-4">
         <TextField label="Diyetisyen adı" autoComplete="name" hint="Belgede görünür; bu tarayıcıda hatırlanır." value={name} maxLength={100} onChange={(e) => setName(e.target.value)} />
+        <fieldset>
+          <legend className="mb-2 text-sm font-medium text-slate-700">Tasarım</legend>
+          <div className="flex flex-wrap gap-2">
+            {PDF_THEMES.map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                aria-pressed={t.id === theme.id}
+                onClick={() => setTheme(t)}
+                className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm pointer-coarse:min-h-11 ${t.id === theme.id ? 'border-brand-600 bg-brand-50 text-brand-800 ring-2 ring-brand-600/30' : 'border-slate-300 bg-surface text-slate-700 hover:border-slate-400'}`}
+              >
+                <span aria-hidden className="size-4 rounded-full ring-1 ring-black/10" style={{ background: `linear-gradient(135deg, ${t.stripFrom}, ${t.petals[0]} 55%, ${t.accent})` }} />
+                {t.name}
+              </button>
+            ))}
+          </div>
+        </fieldset>
         {empty ? (
           <p className="rounded-md bg-slate-50 p-4 text-sm text-slate-600">Henüz yazılmış öğün yok. Önce günlerin menüsünü yazıp kaydedin.</p>
         ) : (
           <div className="overflow-hidden rounded-md border border-slate-200">
             <div aria-label="Belge önizlemesi" style={{ zoom }}>
-              <PlanDocumentView doc={doc} decorated />
+              <PlanDocumentView doc={doc} theme={theme} decorated />
             </div>
           </div>
         )}
@@ -150,7 +179,7 @@ export function PlanExportDialog({ open, plan, client, meals, mealTypes, onClose
         !empty &&
         createPortal(
           <div aria-hidden style={{ position: 'fixed', left: -10000, top: 0 }}>
-            <PlanDocumentView ref={captureRef} doc={doc} />
+            <PlanDocumentView ref={captureRef} doc={doc} theme={theme} />
           </div>,
           document.body,
         )}

@@ -138,7 +138,7 @@ function PlanForm({
         <TextField label="Bitiş tarihi" type="date" hint="Boş bırakılırsa plan açık uçludur." value={values.endDate} error={errors.endDate} onChange={set('endDate')} />
       </FormSection>
       <div className="border-t border-slate-200 pt-5">
-        <TextareaField label="Notlar" value={values.notes} error={errors.notes} onChange={set('notes')} />
+        <TextareaField label={values.kind === 'text' ? 'Öneriler' : 'Notlar'} value={values.notes} error={errors.notes} onChange={set('notes')} />
       </div>
     </form>
   )

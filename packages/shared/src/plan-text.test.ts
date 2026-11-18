@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { correctLine, correctMealText, foldTurkish, mealLines, planDocumentToHtml, planDocumentToText, type PlanDocument } from './plan-text'
+import { correctLine, correctMealText, foldTurkish, mealLines, planDocumentToHtml, planDocumentToText, recommendationIcon, type PlanDocument } from './plan-text'
 
 describe('correctLine', () => {
   it('boşluk, noktalama, aralık ve satır başı büyük harfi düzeltir', () => {
@@ -44,7 +44,7 @@ describe('planDocumentTo*', () => {
     clientName: 'Ayşe Yılmaz',
     dietitianName: 'Dyt. Deniz Kaya',
     periodLabel: '17 Kasım 2026 – 23 Kasım 2026',
-    notes: ['Günde 2 litre su içiniz'],
+    recommendations: ['Günde 2 litre su içiniz'],
     days: [{ heading: '1. Gün · Pazartesi', meals: [{ name: 'Kahvaltı', lines: ['2 dilim ekmek', 'Domates <taze>'] }] }],
   }
 
@@ -61,7 +61,7 @@ describe('planDocumentTo*', () => {
         '• 2 dilim ekmek',
         '• Domates <taze>',
         '',
-        'Notlar',
+        'Öneriler',
         '• Günde 2 litre su içiniz',
       ].join('\n'),
     )
@@ -72,5 +72,15 @@ describe('planDocumentTo*', () => {
     expect(html).toContain('<li>Domates &lt;taze&gt;</li>')
     expect(html).not.toContain('Diyetisyen')
     expect(planDocumentToText({ ...doc, dietitianName: '' })).not.toContain('Diyetisyen')
+  })
+})
+
+describe('recommendationIcon', () => {
+  it('öneri satırına uygun simgeyi seçer', () => {
+    expect(recommendationIcon('Günde 2-2,5 litre su için')).toBe('water')
+    expect(recommendationIcon('Haftada 2 gün balık tüketin')).toBe('fish')
+    expect(recommendationIcon('Haftada 3-4 gün kuru baklagil')).toBe('legume')
+    expect(recommendationIcon('Haftada 2 gün sebze yemeği')).toBe('vegetable')
+    expect(recommendationIcon('Yavaş yiyin, iyi çiğneyin')).toBe('flower')
   })
 })

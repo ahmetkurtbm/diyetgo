@@ -46,7 +46,7 @@ export function TextDayEditor({ plan, day, meals, mealTypes }: Props) {
   }
 
   return (
-    <Card className="mb-6">
+    <Card className="mb-6" aria-label={`${day}. gün menüsü`}>
       <CardHeader
         title={`${day}. gün menüsü`}
         description="Her öğünü istediğiniz gibi yazın; her satır PDF'te ayrı madde olur. Besin değeri hesaplanmaz."

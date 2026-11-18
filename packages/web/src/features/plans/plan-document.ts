@@ -1,4 +1,7 @@
-/** Serbest menüyü (öğünlerin `notes` alanı) dışa aktarılacak belgeye çevirir; metin düzeltilir ve sıralanır. */
+/**
+ * Serbest menüyü (öğünlerin `notes` alanı) dışa aktarılacak belgeye çevirir; metin düzeltilir ve sıralanır.
+ * Planın `notes` alanı serbest menüde "Öneriler" olarak kullanılır.
+ */
 import { mealLines, planDayDate, type Client, type MealPlan, type MealType, type PlanDocument, type PlanMeal } from '@diyetgo/shared'
 import { formatDate, formatLongDate } from '../../lib/format'
 import { fullName } from '../../lib/labels'
@@ -21,7 +24,7 @@ export function buildPlanDocument(plan: MealPlan, client: Client, meals: readonl
     clientName: fullName(client),
     dietitianName: dietitianName.trim(),
     periodLabel: plan.endDate ? `${formatDate(plan.startDate)} – ${formatDate(plan.endDate)}` : formatDate(plan.startDate),
-    notes: mealLines(plan.notes),
+    recommendations: mealLines(plan.notes),
     days,
   }
 }

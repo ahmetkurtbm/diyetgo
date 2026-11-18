@@ -367,9 +367,9 @@ describe('Serbest menü', () => {
     expect(screen.queryByRole('heading', { name: '1. gün toplamı' })).toBeNull()
     const breakfast = screen.getByLabelText('Kahvaltı içeriği') as HTMLTextAreaElement
     fireEvent.change(breakfast, { target: { value: '- 2  haslanmis yumurta\n  4 yemek kasigi yogurt , 1 dilim ekmek' } })
-    await user.click(screen.getByRole('button', { name: 'Yazımı düzelt' }))
+    await user.click(within(screen.getByRole('region', { name: '1. gün menüsü' })).getByRole('button', { name: 'Yazımı düzelt' }))
     expect(breakfast.value).toBe('2 haşlanmış yumurta\n4 yemek kaşığı yoğurt, 1 dilim ekmek')
-    await user.click(screen.getByRole('button', { name: 'Kaydet' }))
+    await user.click(within(screen.getByRole('region', { name: '1. gün menüsü' })).getByRole('button', { name: 'Kaydet' }))
     expect(await screen.findByText('1. gün kaydedildi.')).toBeDefined()
 
     const { meals } = await repositories.mealPlans.get(plan.id)
@@ -377,7 +377,7 @@ describe('Serbest menü', () => {
 
     // Metni silmek öğünü kaldırır.
     fireEvent.change(screen.getByLabelText('Kahvaltı içeriği'), { target: { value: '' } })
-    await user.click(screen.getByRole('button', { name: 'Kaydet' }))
+    await user.click(within(screen.getByRole('region', { name: '1. gün menüsü' })).getByRole('button', { name: 'Kaydet' }))
     await screen.findAllByText('1. gün kaydedildi.')
     expect((await repositories.mealPlans.get(plan.id)).meals).toHaveLength(0)
   })
@@ -407,6 +407,43 @@ describe('Serbest menü', () => {
     expect(copied.indexOf('Kahvaltı:')).toBeLessThan(copied.indexOf('Akşam:'))
     expect(copied).toContain('• Süt ve ekmek')
     expect(copied).toContain('• Yağsız salata')
-    expect(copied).toContain('• Günde 2 litre su ic')
+    expect(copied).toContain('• Günde 2 litre su iç')
+  })
+})
+
+describe('Serbest menü: öneriler ve PDF teması', () => {
+  it('önerileri yazar, düzeltir ve kaydeder; PDF önizlemesinde Öneriler bölümü ve tema seçimi çıkar', async () => {
+    const view = renderApp('/plans')
+    await screen.findByRole('table', { name: 'Plan listesi' })
+    const plan = await view.repositories.mealPlans.create({
+      clientId: SEED_IDS.deniz, title: 'Öneri planı', startDate: '2026-03-10', endDate: '2026-03-12', notes: null, kind: 'text', weeklyQuotas: [],
+    })
+    const types = await view.repositories.mealTypes.list()
+    await view.repositories.mealPlans.addMeal({ mealPlanId: plan.id, dayNumber: 1, mealTypeId: types[0]!.id, time: null, notes: 'sut ve ekmek' })
+    view.unmount()
+    const { user, repositories } = renderApp(`/plans/${plan.id}`, view.storage)
+    await screen.findByRole('heading', { name: 'Öneri planı' })
+
+    const box = screen.getByLabelText('Öneriler içeriği') as HTMLTextAreaElement
+    fireEvent.change(box, { target: { value: 'gunde 2-2,5 litre su icin\nhaftada 2 gun balik' } })
+    const card = screen.getByRole('region', { name: 'Öneriler' })
+    await user.click(within(card).getByRole('button', { name: 'Yazımı düzelt' }))
+    expect(box.value).toBe('Günde 2-2,5 litre su için\nHaftada 2 gün balık')
+    await user.click(within(card).getByRole('button', { name: 'Kaydet' }))
+    expect(await screen.findByText('Öneriler kaydedildi.')).toBeDefined()
+    expect((await repositories.mealPlans.get(plan.id)).plan.notes).toBe('Günde 2-2,5 litre su için\nHaftada 2 gün balık')
+
+    await user.click(screen.getByRole('button', { name: 'PDF ve Canva' }))
+    const dialog = await screen.findByRole('dialog', { name: 'PDF ve Canva' })
+    const preview = within(dialog).getByLabelText('Belge önizlemesi')
+    expect(within(preview).getByRole('heading', { name: 'Öneriler' })).toBeDefined()
+    expect(within(preview).getByText('Haftada 2 gün balık')).toBeDefined()
+
+    // Tasarım seçimi hatırlanır.
+    const lavender = within(dialog).getByRole('button', { name: 'Lavanta' })
+    expect(lavender.getAttribute('aria-pressed')).toBe('false')
+    await user.click(lavender)
+    expect(lavender.getAttribute('aria-pressed')).toBe('true')
+    expect(within(dialog).getByRole('button', { name: 'Pembe çiçek' }).getAttribute('aria-pressed')).toBe('false')
   })
 })

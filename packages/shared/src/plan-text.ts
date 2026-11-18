@@ -24,6 +24,7 @@ const COMMON_WORDS = [
   'bulgur', 'mercimek', 'nohut', 'fasulye', 'salata', 'salatalık', 'domates', 'biber', 'maydanoz', 'dereotu', 'roka', 'marul', 'tavuk',
   'balık', 'köfte', 'kıyma', 'sebze', 'meyve', 'ayran', 'kefir', 'su', 'kahve', 'tarçın', 'bal', 'pekmez', 'tahin', 'ceviz', 'badem',
   'fıstık', 'kuruyemiş', 'tam', 'buğday', 'çavdar', 'yulaf', 'ara', 'öğün', 'kahvaltı', 'öğle', 'akşam', 'yemeği', 'sote', 'haşlama',
+  'günde', 'gün', 'için', 'iç', 'içiniz', 'haftada', 'tüketin', 'tüketiniz', 'çiğneyin', 'yavaş', 'yiyin', 'yeterli', 'bol', 'önce', 'sonra',
   'fırında', 'buğulama', 'ızgarada', 'limon', 'sirke', 'baharat', 'sızma', 'yağ', 'diyet', 'açlık', 'tokluk', 'günlük', 'haftalık',
 ]
 
@@ -107,7 +108,8 @@ export type PlanDocument = {
   dietitianName: string
   /** Örn. "17 Kasım 2026 – 23 Kasım 2026". */
   periodLabel: string
-  notes: string[]
+  /** Diyetisyenin yazdığı öneriler (günde su, haftalık öğün sıklığı vb.); belgede ayrı bir bölüm olur. */
+  recommendations: string[]
   days: { heading: string; meals: { name: string; lines: string[] }[] }[]
 }
 
@@ -122,9 +124,9 @@ export function planDocumentToText(doc: PlanDocument): string {
       for (const line of meal.lines) lines.push(`• ${line}`)
     }
   }
-  if (doc.notes.length > 0) {
-    lines.push('', 'Notlar')
-    for (const line of doc.notes) lines.push(`• ${line}`)
+  if (doc.recommendations.length > 0) {
+    lines.push('', 'Öneriler')
+    for (const line of doc.recommendations) lines.push(`• ${line}`)
   }
   return lines.join('\n')
 }
@@ -142,6 +144,20 @@ export function planDocumentToHtml(doc: PlanDocument): string {
       parts.push(`<h3>${escapeHtml(meal.name)}</h3><ul>${meal.lines.map((l) => `<li>${escapeHtml(l)}</li>`).join('')}</ul>`)
     }
   }
-  if (doc.notes.length > 0) parts.push(`<h2>Notlar</h2><ul>${doc.notes.map((l) => `<li>${escapeHtml(l)}</li>`).join('')}</ul>`)
+  if (doc.recommendations.length > 0) parts.push(`<h2>Öneriler</h2><ul>${doc.recommendations.map((l) => `<li>${escapeHtml(l)}</li>`).join('')}</ul>`)
   return parts.join('')
+}
+
+// ---------- Öneri simgeleri ----------
+
+export type RecommendationIcon = 'water' | 'fish' | 'vegetable' | 'legume' | 'flower'
+
+/** Öneri satırındaki anahtar kelimeye göre belgede gösterilecek simge; tanınmazsa çiçek. */
+export function recommendationIcon(line: string): RecommendationIcon {
+  const text = foldTurkish(line)
+  if (/\b(su|litre|sivi)\b/.test(text)) return 'water'
+  if (/balik|somon|levrek|hamsi|ton\b/.test(text)) return 'fish'
+  if (/baklagil|fasulye|nohut|mercimek|barbunya/.test(text)) return 'legume'
+  if (/sebze|salata|yesillik|meyve/.test(text)) return 'vegetable'
+  return 'flower'
 }
