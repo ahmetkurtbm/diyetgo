@@ -1,5 +1,7 @@
 import { RefreshCw, X } from 'lucide-react'
+import { useEffect } from 'react'
 import { useRegisterSW } from 'virtual:pwa-register/react'
+import { reportUpdate } from '../../lib/app-update'
 import { Button } from '../ui/Button'
 
 /**
@@ -10,7 +12,12 @@ export function UpdatePrompt() {
   const {
     needRefresh: [needRefresh, setNeedRefresh],
     updateServiceWorker,
-  } = useRegisterSW()
+  } = useRegisterSW({
+    // Ayarlar'daki "Sürüm" bölümü aynı kayıt üzerinden elle denetler; öneri kapatılsa da güncelleme orada kalır.
+    onRegisteredSW: (_url, registration) => reportUpdate({ registration }),
+    onNeedRefresh: () => reportUpdate({ needRefresh: true }),
+  })
+  useEffect(() => reportUpdate({ apply: updateServiceWorker }), [updateServiceWorker])
 
   if (!needRefresh) return null
   return (

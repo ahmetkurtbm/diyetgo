@@ -1,5 +1,6 @@
 import { screen, waitFor, within } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { reportUpdate, resetUpdateState } from '../../lib/app-update'
 import { renderApp, fixDate } from '../../test-utils'
 
 fixDate()
@@ -66,5 +67,33 @@ describe('Ayarlar: hesap silme', () => {
     renderApp('/settings')
     await screen.findByRole('heading', { name: 'Ayarlar' })
     expect(screen.queryByRole('button', { name: 'Hesabımı sil' })).toBeNull()
+  })
+})
+
+describe('Ayarlar: sürüm', () => {
+  const worker = {} as ServiceWorker
+  const registration = (waiting: ServiceWorker | null) => ({ installing: null, waiting, update: () => Promise.resolve() })
+
+  beforeEach(resetUpdateState)
+
+  it('service worker yoksa sayfayı yenileme önerir', async () => {
+    renderApp('/settings')
+    expect(await screen.findByRole('button', { name: 'Sayfayı yenile' })).toBeDefined()
+    expect(screen.getByText(/Yüklü sürüm:/)).toBeDefined()
+  })
+
+  it('en yeni sürümdeyse "Güncelsiniz" yazar', async () => {
+    reportUpdate({ registration: registration(null) })
+    renderApp('/settings')
+    expect(await screen.findByText('Güncelsiniz. En yeni sürümü kullanıyorsunuz.')).toBeDefined()
+    expect(screen.queryByRole('button', { name: 'Yeni sürüme güncelle' })).toBeNull()
+  })
+
+  it('yeni sürüm hazırsa güncelle düğmesi gösterir ve uygular', async () => {
+    const apply = vi.fn(() => Promise.resolve())
+    reportUpdate({ registration: registration(worker), apply })
+    const { user } = renderApp('/settings')
+    await user.click(await screen.findByRole('button', { name: 'Yeni sürüme güncelle' }))
+    expect(apply).toHaveBeenCalledWith(true)
   })
 })

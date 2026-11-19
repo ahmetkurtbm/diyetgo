@@ -5,6 +5,9 @@ interface ImportMetaEnv {
   readonly VITE_DATA_MODE?: 'demo' | 'api'
 }
 
+/** Uygulamanın derlendiği an (ISO); Ayarlar'da sürüm bilgisi olarak gösterilir. */
+declare const __BUILD_TIME__: string
+
 interface ImportMeta {
   readonly env: ImportMetaEnv
 }

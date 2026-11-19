@@ -1,6 +1,6 @@
 import type { MealType } from '@diyetgo/shared'
-import { Archive, ArchiveRestore, Download, Pencil, Plus, RotateCcw, Trash2, Upload, UserX, Utensils } from 'lucide-react'
-import { useState, type FormEvent } from 'react'
+import { Archive, ArchiveRestore, CheckCircle2, Download, Pencil, Plus, RefreshCw, RotateCcw, Trash2, Upload, UserX, Utensils } from 'lucide-react'
+import { useEffect, useState, useSyncExternalStore, type FormEvent } from 'react'
 import { useRepositories, useRepositoryQuery } from '../../data/context'
 import { Button } from '../../components/ui/Button'
 import { ConfirmDialog } from '../../components/ui/Dialog'
@@ -10,6 +10,7 @@ import { Card, CardHeader, PageHeader } from '../../components/ui/layout'
 import { useToast } from '../../components/ui/toast-context'
 import { errorMessage, fieldErrorsOf } from '../../lib/errors'
 import { clearDemoStorage } from '../../data/demo/store'
+import { applyUpdate, checkForUpdate, subscribeUpdate, updateReady, type UpdateCheck } from '../../lib/app-update'
 import { downloadBackup } from '../../lib/backup'
 import { RemindersSection } from '../reminders/ReminderControls'
 import { formatDateTime } from '../../lib/format'
@@ -23,6 +24,7 @@ export function SettingsPage() {
       <div className="space-y-6">
         <MealTypesSection />
         <RemindersSection />
+        <VersionSection />
         <DemoDataSection />
         {!demo && <AccountSection />}
       </div>
@@ -401,6 +403,83 @@ function AccountSection() {
       >
         <TextField label="Parola" type="password" autoComplete="current-password" value={password} error={error} onChange={(e) => setPassword(e.target.value)} />
       </ConfirmDialog>
+    </Card>
+  )
+}
+
+/**
+ * Sürüm: uygulamanın yeni sürümü olup olmadığını denetler. Alttaki "yeni sürüm hazır" önerisini
+ * kaçıran veya kapatan kullanıcı güncellemeyi buradan yapabilir. Bölüm açılınca kendiliğinden denetler.
+ */
+function VersionSection() {
+  const ready = useSyncExternalStore(subscribeUpdate, updateReady)
+  const [result, setResult] = useState<'checking' | UpdateCheck>('checking')
+  const [busy, setBusy] = useState(false)
+
+  useEffect(() => {
+    let active = true
+    void checkForUpdate().then((next) => active && setResult(next))
+    return () => {
+      active = false
+    }
+  }, [])
+
+  async function recheck() {
+    setResult('checking')
+    setResult(await checkForUpdate())
+  }
+
+  async function update() {
+    setBusy(true)
+    try {
+      await applyUpdate()
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader title="Sürüm" description={`Yüklü sürüm: ${formatDateTime(__BUILD_TIME__)} derlemesi.`} />
+      <div className="space-y-3 px-5 py-4 text-sm">
+        {ready ? (
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-brand-200 bg-brand-50 p-4">
+            <p className="min-w-0 flex-1 basis-60 text-brand-900">
+              <strong>Yeni sürüm hazır.</strong> Güncelleyince sayfa yenilenir; kaydedilmemiş yazılar kaybolabilir, kayıtlı verileriniz korunur.
+            </p>
+            <Button variant="primary" disabled={busy} onClick={() => void update()}>
+              <RefreshCw aria-hidden className="size-4" />
+              Yeni sürüme güncelle
+            </Button>
+          </div>
+        ) : result === 'checking' ? (
+          <p className="flex items-center gap-2 text-slate-600" role="status">
+            <RefreshCw aria-hidden className="size-4 animate-spin" />
+            Güncellemeler denetleniyor…
+          </p>
+        ) : result === 'unsupported' ? (
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-slate-600">Bu tarayıcıda güncellemeler otomatik denetlenemiyor. Sayfayı yenileyerek en yeni sürüme geçebilirsiniz.</p>
+            <Button onClick={() => window.location.reload()}>
+              <RefreshCw aria-hidden className="size-4" />
+              Sayfayı yenile
+            </Button>
+          </div>
+        ) : result === 'offline' ? (
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-slate-600">Güncellemeler denetlenemedi. İnternet bağlantınızı kontrol edip tekrar deneyin.</p>
+            <Button onClick={() => void recheck()}>Tekrar dene</Button>
+          </div>
+        ) : (
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="flex items-center gap-2 font-medium text-slate-800">
+              <CheckCircle2 aria-hidden className="size-4 text-brand-700" />
+              Güncelsiniz. En yeni sürümü kullanıyorsunuz.
+            </p>
+            <Button onClick={() => void recheck()}>Tekrar denetle</Button>
+          </div>
+        )}
+      </div>
     </Card>
   )
 }
